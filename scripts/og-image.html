@@ -1,0 +1,274 @@
+<!doctype html>
+<!-- Source for public/og-image.png — render with scripts/build-og.sh.
+     Light-mode recreation of the hero: copy on the left, HeroSchematic on the right. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --flame-500: #e2451e;
+        --flame-600: #c5360f;
+        --stone-50: #fafaf9;
+        --stone-200: #e7e5e4;
+        --stone-300: #d6d3d1;
+        --stone-400: #a8a29e;
+        --stone-500: #78716c;
+        --stone-600: #57534e;
+        --stone-900: #1c1917;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1200px; height: 630px; }
+      body {
+        position: relative;
+        overflow: hidden;
+        background: var(--stone-50);
+        color: var(--stone-900);
+        font-family: "Inter", sans-serif;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        padding: 60px 72px;
+      }
+      /* recurring e-ink dot-matrix field, masked toward the top like the hero */
+      .dots {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(rgba(214, 211, 209, 0.7) 1px, transparent 1.5px);
+        background-size: 14px 14px;
+        -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000, transparent 75%);
+        mask-image: radial-gradient(120% 90% at 50% 0%, #000, transparent 75%);
+      }
+
+      .left { position: relative; width: 552px; flex: none; }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 46px;
+      }
+      .brand svg { width: 40px; height: 40px; }
+      .brand .word {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 27px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        color: var(--stone-900);
+      }
+      .brand .word b { color: var(--flame-600); font-weight: 600; }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 17px;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--flame-600);
+        margin-bottom: 22px;
+      }
+      .eyebrow .rule { width: 30px; height: 1px; background: rgba(226, 69, 30, 0.6); }
+
+      h1 {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 62px;
+        font-weight: 600;
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        color: var(--stone-900);
+      }
+      p.sub {
+        margin-top: 26px;
+        font-size: 23px;
+        line-height: 1.45;
+        color: var(--stone-600);
+      }
+
+      .stats {
+        display: flex;
+        gap: 40px;
+        margin-top: 40px;
+        padding-top: 26px;
+        border-top: 1px solid var(--stone-200);
+      }
+      .stats .v {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 28px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        color: var(--stone-900);
+      }
+      .stats .k {
+        margin-top: 4px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 13px;
+        color: var(--stone-500);
+      }
+
+      /* right column — diagram with a faint blueprint grid behind it, as in the hero */
+      .right {
+        position: relative;
+        flex: 1;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .grid {
+        position: absolute;
+        inset: 8px;
+        border-radius: 16px;
+        background-image:
+          linear-gradient(to right, rgba(231, 229, 228, 0.6) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(231, 229, 228, 0.6) 1px, transparent 1px);
+        background-size: 28px 28px;
+        -webkit-mask-image: radial-gradient(80% 80% at 50% 50%, #000, transparent);
+        mask-image: radial-gradient(80% 80% at 50% 50%, #000, transparent);
+      }
+      .right svg.diagram { position: relative; width: 100%; }
+      .cap {
+        position: absolute;
+        bottom: 8px;
+        left: 10px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 13px;
+        color: var(--stone-400);
+      }
+      .mono { font-family: "IBM Plex Mono", monospace; }
+    </style>
+  </head>
+  <body>
+    <div class="dots"></div>
+
+    <div class="left">
+      <div class="brand">
+        <!-- Free Ink mark: e-ink dot tile with the top-right corner igniting -->
+        <svg viewBox="0 0 40 40" aria-hidden="true">
+          <g fill="#1c1917">
+            <circle cx="6" cy="6" r="1.5"/><circle cx="13" cy="6" r="1.5"/><circle cx="20" cy="6" r="1.5"/>
+            <circle cx="27" cy="6" r="1.5" fill="#e2451e" opacity="0.7"/><circle cx="34" cy="6" r="1.5" fill="#e2451e" opacity="0.35"/>
+            <circle cx="6" cy="13" r="1.5"/><circle cx="13" cy="13" r="1.5"/><circle cx="20" cy="13" r="1.5"/>
+            <circle cx="27" cy="13" r="1.5" fill="#e2451e" opacity="0.7"/><circle cx="34" cy="13" r="1.5" fill="#e2451e" opacity="0.7"/>
+            <circle cx="6" cy="20" r="1.5"/><circle cx="13" cy="20" r="1.5"/><circle cx="20" cy="20" r="1.5"/><circle cx="27" cy="20" r="1.5"/><circle cx="34" cy="20" r="1.5"/>
+            <circle cx="6" cy="27" r="1.5"/><circle cx="13" cy="27" r="1.5"/><circle cx="20" cy="27" r="1.5"/><circle cx="27" cy="27" r="1.5"/><circle cx="34" cy="27" r="1.5"/>
+            <circle cx="6" cy="34" r="1.5"/><circle cx="13" cy="34" r="1.5"/><circle cx="20" cy="34" r="1.5"/><circle cx="27" cy="34" r="1.5"/><circle cx="34" cy="34" r="1.5"/>
+          </g>
+        </svg>
+        <span class="word">Free<b>Ink</b></span>
+      </div>
+
+      <div class="eyebrow"><span class="rule"></span>The open e-reader stack</div>
+      <h1>An open ecosystem for e-readers.</h1>
+      <p class="sub">Open-source software, firmware &amp; hardware for e-paper readers — every layer yours to build on.</p>
+
+      <div class="stats">
+        <div><div class="v">100%</div><div class="k">Open source</div></div>
+        <div><div class="v">MIT</div><div class="k">&amp; open hardware</div></div>
+        <div><div class="v">∞</div><div class="k">Forks welcome</div></div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="grid"></div>
+      <!-- HeroSchematic, light-mode colors baked in -->
+      <svg class="diagram" viewBox="-20 0 720 580" aria-hidden="true">
+        <defs>
+          <pattern id="hero-dots" width="11" height="11" patternUnits="userSpaceOnUse">
+            <circle cx="1.5" cy="1.5" r="1" fill="#d6d3d1" />
+          </pattern>
+        </defs>
+
+        <!-- dimension line, left -->
+        <g stroke="#d6d3d1" stroke-width="1">
+          <line x1="150" y1="96" x2="150" y2="488" />
+          <line x1="146" y1="96" x2="154" y2="96" />
+          <line x1="146" y1="488" x2="154" y2="488" />
+        </g>
+        <text x="142" y="296" text-anchor="end" class="mono" fill="#78716c" font-size="10">158 mm</text>
+
+        <!-- device body -->
+        <rect x="226" y="96" width="234" height="392" rx="18" fill="#fafaf9" stroke="#a8a29e" stroke-width="1.5" />
+        <!-- screen well -->
+        <rect x="240" y="120" width="206" height="300" rx="4" fill="url(#hero-dots)" stroke="#d6d3d1" stroke-width="1.5" />
+        <rect x="240" y="120" width="206" height="300" rx="4" fill="none" stroke="#d6d3d1" stroke-width="1.5" />
+
+        <!-- lines of text on the e-ink screen -->
+        <g stroke="#d6d3d1" stroke-width="3" stroke-linecap="round">
+          <line x1="244" y1="150" x2="364" y2="150" />
+          <line x1="244" y1="170" x2="340" y2="170" />
+          <line x1="244" y1="190" x2="378" y2="190" />
+          <line x1="244" y1="210" x2="354" y2="210" />
+          <line x1="244" y1="230" x2="372" y2="230" />
+          <line x1="244" y1="250" x2="324" y2="250" />
+          <line x1="244" y1="270" x2="368" y2="270" />
+          <line x1="244" y1="290" x2="346" y2="290" />
+          <line x1="244" y1="310" x2="362" y2="310" />
+          <line x1="244" y1="330" x2="308" y2="330" />
+        </g>
+
+        <!-- control buttons -->
+        <g stroke="#a8a29e" fill="#f5f5f4" stroke-width="1.5">
+          <circle cx="280" cy="452" r="9" />
+          <circle cx="326" cy="452" r="9" />
+          <circle cx="372" cy="452" r="9" />
+          <circle cx="418" cy="452" r="9" />
+        </g>
+
+        <!-- internal traces hinting at the PCB -->
+        <g stroke="rgba(226,69,30,0.4)" stroke-width="1" fill="none">
+          <path d="M446 200 H472 V250" />
+          <path d="M240 320 H214 V360" />
+        </g>
+
+        <!-- software callout — the page is rendered by CrossPoint Reader -->
+        <path d="M343 150 V74" stroke="#d6d3d1" stroke-width="1" fill="none" />
+        <circle cx="343" cy="150" r="2.5" fill="#e2451e" />
+        <text x="343" y="54" text-anchor="middle" class="mono" fill="#78716c" font-size="11" font-weight="600">CROSSPOINT READER</text>
+        <text x="343" y="66" text-anchor="middle" class="mono" fill="#a8a29e" font-size="9.5">open EPUB reader</text>
+
+        <!-- callouts: line, flame node, label + value -->
+        <g class="mono">
+          <!-- E-PAPER -->
+          <path d="M446 160 L560 150" stroke="#d6d3d1" stroke-width="1" fill="none" />
+          <circle cx="446" cy="160" r="2.5" fill="#e2451e" />
+          <text x="566" y="148" text-anchor="start" fill="#78716c" font-size="11" font-weight="600">E-PAPER</text>
+          <text x="566" y="161" text-anchor="start" fill="#a8a29e" font-size="9.5">24-pin SPI</text>
+          <!-- ESP32-S3 -->
+          <path d="M472 250 L560 250" stroke="#d6d3d1" stroke-width="1" fill="none" />
+          <circle cx="472" cy="250" r="2.5" fill="#e2451e" />
+          <text x="566" y="248" text-anchor="start" fill="#78716c" font-size="11" font-weight="600">ESP32-S3</text>
+          <text x="566" y="261" text-anchor="start" fill="#a8a29e" font-size="9.5">WiFi · BLE · 16MB flash</text>
+          <!-- USB-C -->
+          <path d="M446 350 L560 350" stroke="#d6d3d1" stroke-width="1" fill="none" />
+          <circle cx="446" cy="350" r="2.5" fill="#e2451e" />
+          <text x="566" y="348" text-anchor="start" fill="#78716c" font-size="11" font-weight="600">USB-C</text>
+          <text x="566" y="361" text-anchor="start" fill="#a8a29e" font-size="9.5">charge + data</text>
+          <!-- FRONTLIGHT -->
+          <path d="M240 170 L120 160" stroke="#d6d3d1" stroke-width="1" fill="none" />
+          <circle cx="240" cy="170" r="2.5" fill="#e2451e" />
+          <text x="114" y="158" text-anchor="end" fill="#78716c" font-size="11" font-weight="600">FRONTLIGHT</text>
+          <text x="114" y="171" text-anchor="end" fill="#a8a29e" font-size="9.5">warm / cool</text>
+          <!-- microSD -->
+          <path d="M214 360 L120 360" stroke="#d6d3d1" stroke-width="1" fill="none" />
+          <circle cx="214" cy="360" r="2.5" fill="#e2451e" />
+          <text x="114" y="358" text-anchor="end" fill="#78716c" font-size="11" font-weight="600">microSD</text>
+          <text x="114" y="371" text-anchor="end" fill="#a8a29e" font-size="9.5">your library</text>
+          <!-- LiPo -->
+          <path d="M240 430 L120 440" stroke="#d6d3d1" stroke-width="1" fill="none" />
+          <circle cx="240" cy="430" r="2.5" fill="#e2451e" />
+          <text x="114" y="438" text-anchor="end" fill="#78716c" font-size="11" font-weight="600">LiPo 3.7V</text>
+          <text x="114" y="451" text-anchor="end" fill="#a8a29e" font-size="9.5">protected cell</text>
+        </g>
+      </svg>
+      <div class="cap">fig 1.0 · the open reader</div>
+    </div>
+  </body>
+</html>
