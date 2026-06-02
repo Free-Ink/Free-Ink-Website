@@ -3,8 +3,8 @@
 The website for **Free Ink** — an open-source collective building the software, firmware, and
 hardware for e-paper readers. An open ecosystem anyone can build on.
 
-Light mode by default with a manual dark-mode toggle, an e-ink "paper" palette, a single Red Hat
-red accent, and dot-matrix schematic graphics throughout.
+Light mode by default with a manual dark-mode toggle, an e-ink "paper" palette, a single warm
+vermilion accent, and dot-matrix schematic graphics throughout.
 
 Built with **React 19**, **Vite**, and **Tailwind CSS v4**.
 
@@ -52,9 +52,9 @@ public/
 
 ## Design notes
 
-- **Fonts** — Red Hat Display (headlines), Inter (body, loaded from rsms.me for optical sizing and
+- **Fonts** — Space Grotesk (headlines), Inter (body, loaded from rsms.me for optical sizing and
   OpenType features), IBM Plex Mono (technical labels, schematics, code).
-- **Color** — warm `stone` neutrals for the e-ink paper feel, with a single Red Hat red `flame`
+- **Color** — warm `stone` neutrals for the e-ink paper feel, with a single warm vermilion `flame`
   accent (custom palette defined in `src/index.css`).
 - **Dark mode** — class-based (`.dark` on `<html>`); defaults to light and is persisted to
   `localStorage`.

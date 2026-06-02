@@ -6,7 +6,7 @@
     <circle cx="9" cy="23" r="1.6"/><circle cx="16" cy="23" r="1.6"/><circle cx="23" cy="23" r="1.6"/><circle cx="30" cy="23" r="1.6"/>
     <circle cx="9" cy="30" r="1.6"/><circle cx="16" cy="30" r="1.6"/><circle cx="23" cy="30" r="1.6"/><circle cx="30" cy="30" r="1.6"/>
   </g>
-  <g fill="#ee0000">
+  <g fill="#e2451e">
     <circle cx="30" cy="9" r="1.6"/><circle cx="30" cy="9" r="1.6" opacity="0.5"/>
   </g>
 </svg>
