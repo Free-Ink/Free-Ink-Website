@@ -41,7 +41,7 @@ export function HeroSchematic({ className = '' }) {
   }
 
   return (
-    <svg viewBox="0 0 620 580" aria-hidden="true" className={className}>
+    <svg viewBox="-20 0 720 580" aria-hidden="true" className={className}>
       <defs>
         <pattern id="hero-dots" width="11" height="11" patternUnits="userSpaceOnUse">
           <circle cx="1.5" cy="1.5" r="1" className="fill-stone-300 dark:fill-stone-700" />
@@ -86,18 +86,18 @@ export function HeroSchematic({ className = '' }) {
           CROSSPOINT READER
         </text>
         <text x="343" y="66" textAnchor="middle" className="fill-stone-400 dark:fill-stone-500 font-mono" fontSize="9.5">
-          open EPUB reading software
+          open EPUB reader
         </text>
       </g>
 
       {/* callouts */}
-      <Callout x1={446} y1={160} x2={560} y2={150} anchor="start" label="E-PAPER" value="GoodDisplay · 24-pin SPI" />
-      <Callout x1={472} y1={250} x2={560} y2={250} anchor="start" label="ESP32-S3" value="WiFi · BLE · PSRAM" />
+      <Callout x1={446} y1={160} x2={560} y2={150} anchor="start" label="E-PAPER" value="24-pin SPI" />
+      <Callout x1={472} y1={250} x2={560} y2={250} anchor="start" label="ESP32-S3" value="WiFi · BLE · 16MB flash" />
       <Callout x1={446} y1={350} x2={560} y2={350} anchor="start" label="USB-C" value="charge + data" />
 
-      <Callout x1={240} y1={170} x2={120} y2={160} anchor="end" label="FRONTLIGHT" value="warm / cool PWM" />
-      <Callout x1={214} y1={360} x2={120} y2={360} anchor="end" label="microSD" value="your library, offline" />
-      <Callout x1={240} y1={430} x2={120} y2={440} anchor="end" label="LiPo 3.7V" value="protected charge path" />
+      <Callout x1={240} y1={170} x2={120} y2={160} anchor="end" label="FRONTLIGHT" value="warm / cool" />
+      <Callout x1={214} y1={360} x2={120} y2={360} anchor="end" label="microSD" value="your library" />
+      <Callout x1={240} y1={430} x2={120} y2={440} anchor="end" label="LiPo 3.7V" value="protected cell" />
     </svg>
   )
 }

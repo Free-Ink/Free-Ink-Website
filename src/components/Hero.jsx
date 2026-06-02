@@ -58,7 +58,7 @@ export default function Hero() {
             <HeroSchematic className="relative w-full" />
             <div className="absolute bottom-2 left-2 flex items-center gap-x-2 font-mono text-[0.6875rem] text-stone-400 dark:text-stone-500">
               <GitHubIcon className="size-3.5" />
-              fig 1.0 · the open reader, exploded
+              fig 1.0 · the open reader
             </div>
           </div>
         </div>
