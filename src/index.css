@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+/* Manual, class-based dark mode (light is the default) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Inter for body/UI, Red Hat Display for headlines, IBM Plex Mono for technical text */
+  --font-sans: "InterVariable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans--font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  --font-display: "Red Hat Display", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Red Hat flame — the single accent color */
+  --color-flame-50: #fff1f1;
+  --color-flame-100: #ffdede;
+  --color-flame-200: #ffc2c2;
+  --color-flame-300: #ff9b9b;
+  --color-flame-400: #ff5252;
+  --color-flame-500: #ee0000;
+  --color-flame-600: #cc0000;
+  --color-flame-700: #a80000;
+  --color-flame-800: #8a0606;
+  --color-flame-900: #720f0f;
+  --color-flame-950: #3e0000;
+}
+
+/* Warm "paper" scrollbar / native control coloring follows the toggle */
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+
+/* Dot-matrix field — the recurring e-ink texture. Color comes from currentColor. */
+@utility dot-field {
+  background-image: radial-gradient(currentColor 1px, transparent 1.5px);
+  background-size: 14px 14px;
+  background-position: center;
+}
+
+@utility dot-field-sm {
+  background-image: radial-gradient(currentColor 1px, transparent 1.2px);
+  background-size: 9px 9px;
+  background-position: center;
+}
+
+/* Faint engineering grid */
+@utility blueprint-grid {
+  background-image:
+    linear-gradient(to right, currentColor 1px, transparent 1px),
+    linear-gradient(to bottom, currentColor 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Slow marquee for the tech strip */
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@utility animate-ticker {
+  animation: ticker 38s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ticker { animation: none; }
+}
