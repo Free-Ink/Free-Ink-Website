@@ -23,5 +23,5 @@ npm run preview  # preview the production build
 - `src/index.css` — theme tokens (fonts, flame palette), dot-matrix utilities, class-based dark mode
 - Sections: `Hero`, `TechStrip`, `Software`, `Hardware`, `Firmware`, `Manifesto`, `Stats`, `Community`, `Footer`
 
-Copy and features are drawn from the CrossPoint Tools (software/firmware) and minRead / De-Link
+Copy and features are drawn from the CrossPoint Tools (software/firmware) and de-link
 (hardware) projects.

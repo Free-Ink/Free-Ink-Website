@@ -1,22 +1,47 @@
 import { Logo } from './Brand.jsx'
-import { GitHubIcon } from './icons.jsx'
+import GitHubMenu from './GitHubMenu.jsx'
+import { SOFTWARE_REPO, HARDWARE_REPO } from './repos.js'
+
+const SITE = 'https://crosspointreader.com'
+const DISCORD = 'https://discord.gg/y2q7WRnM4P'
+const PCB_REPO = 'https://github.com/iandchasse/de-link-pcb'
 
 const COLUMNS = [
   {
     title: 'Software',
-    links: ['CrossPoint Reader', 'Reader features', 'Fonts & themes', 'Release notes'],
+    links: [
+      { name: 'CrossPoint Reader', href: SITE },
+      { name: 'Font builder', href: `${SITE}/fonts` },
+      { name: 'User guide', href: `${SOFTWARE_REPO}/blob/master/USER_GUIDE.md` },
+      { name: 'Release notes', href: `${SOFTWARE_REPO}/releases` },
+    ],
   },
   {
     title: 'Hardware',
-    links: ['minRead board', 'Schematics', 'Bill of materials', 'Assembly guide'],
+    links: [
+      { name: 'de-link board', href: HARDWARE_REPO },
+      { name: 'Schematics', href: `${HARDWARE_REPO}tree/main/schematic` },
+      { name: 'KiCad / PCB', href: PCB_REPO },
+      { name: 'Cost breakdown', href: `${HARDWARE_REPO}blob/main/markdown/COST.md` },
+    ],
   },
   {
     title: 'Community',
-    links: ['GitHub', 'Contributing', 'Nightly builds', 'Themes'],
+    links: [
+      { name: 'Discord', href: DISCORD },
+      { name: 'Contributing', href: `${SOFTWARE_REPO}/tree/master/docs/contributing` },
+      { name: 'Nightly builds', href: `${SITE}/insider` },
+      { name: 'Roadmap', href: `${SITE}/roadmap` },
+    ],
   },
   {
     title: 'Project',
-    links: ['Manifesto', 'Documentation', 'License', 'Status'],
+    links: [
+      { name: 'Manifesto', href: '#manifesto' },
+      { name: 'Documentation', href: `${SOFTWARE_REPO}/tree/master/docs` },
+      { name: 'Governance', href: `${SOFTWARE_REPO}/blob/master/GOVERNANCE.md` },
+      { name: 'License', href: `${SOFTWARE_REPO}/blob/master/LICENSE` },
+    ],
   },
 ]
 
@@ -36,13 +61,13 @@ export default function Footer() {
               An open-source collective building e-reader software, firmware and hardware that anyone
               can build on.
             </p>
-            <a
-              href="https://github.com"
-              aria-label="Free Ink on GitHub"
-              className="mt-5 inline-flex text-stone-600 transition hover:text-stone-900 dark:text-stone-300 dark:hover:text-white"
-            >
-              <GitHubIcon className="size-5" />
-            </a>
+            <div className="mt-5">
+              <GitHubMenu
+                iconOnly
+                align="left"
+                className="inline-flex text-stone-600 transition hover:text-stone-900 dark:text-stone-300 dark:hover:text-white"
+              />
+            </div>
           </div>
 
           {COLUMNS.map((col) => (
@@ -52,12 +77,13 @@ export default function Footer() {
               </h3>
               <ul role="list" className="mt-4 space-y-3">
                 {col.links.map((link) => (
-                  <li key={link}>
+                  <li key={link.name}>
                     <a
-                      href="#"
+                      href={link.href}
+                      {...(link.href.startsWith('#') ? {} : { target: '_blank', rel: 'noreferrer' })}
                       className="text-sm font-normal text-stone-600 transition hover:text-stone-900 dark:text-stone-400 dark:hover:text-white"
                     >
-                      {link}
+                      {link.name}
                     </a>
                   </li>
                 ))}

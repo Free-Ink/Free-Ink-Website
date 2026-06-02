@@ -38,11 +38,12 @@ export function Section({ id, className = '', innerClassName = '', children }) {
 }
 
 // Inline "Read more →" text link, used consistently for low-key secondary actions.
-export function TextLink({ href = '#', children, className = '' }) {
+export function TextLink({ href = '#', children, className = '', ...props }) {
   return (
     <a
       href={href}
       className={`group inline-flex items-center gap-x-1.5 text-sm font-medium text-flame-600 hover:text-flame-700 dark:text-flame-500 dark:hover:text-flame-400 ${className}`}
+      {...props}
     >
       {children}
       <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">

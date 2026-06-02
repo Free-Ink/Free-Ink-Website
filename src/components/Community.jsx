@@ -1,5 +1,6 @@
 import { Button } from './ui.jsx'
-import { GitHubIcon } from './icons.jsx'
+import GitHubMenu from './GitHubMenu.jsx'
+import { SOFTWARE_REPO } from './repos.js'
 
 const WAYS = ['Write firmware', 'Lay out PCBs', 'Translate the UI', 'Design themes']
 
@@ -18,7 +19,7 @@ export default function Community() {
             <span aria-hidden="true" className="h-px w-6 bg-flame-500/60" />
           </p>
           <h2 className="mx-auto mt-5 max-w-[24ch] font-display text-4xl font-semibold tracking-tight text-balance text-stone-900 sm:text-5xl dark:text-white">
-            Help build the future of reading.
+            Help build the future of e-readers.
           </h2>
           <p className="mx-auto mt-6 max-w-[52ch] text-lg text-pretty text-stone-600 dark:text-stone-300">
             Open source only works when people show up. Whether you write code, design boards, or just
@@ -26,11 +27,8 @@ export default function Community() {
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Button as="a" href="https://github.com" variant="primary" className="px-4 py-2.5">
-              <GitHubIcon className="size-4" />
-              Browse the repos
-            </Button>
-            <Button as="a" href="#" variant="outline" className="px-4 py-2.5">
+            <GitHubMenu label="Browse the repos" variant="primary" align="center" className="px-4 py-2.5" />
+            <Button as="a" href={`${SOFTWARE_REPO}/tree/master/docs`} target="_blank" rel="noreferrer" variant="outline" className="px-4 py-2.5">
               Read the docs
             </Button>
           </div>

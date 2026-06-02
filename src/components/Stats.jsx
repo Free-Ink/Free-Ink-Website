@@ -2,7 +2,7 @@ import { Section, Eyebrow } from './ui.jsx'
 import { DotChart } from './Schematics.jsx'
 
 const STATS = [
-  { v: 'X3 / X4', k: 'Readers supported' },
+  { v: '~$60', k: 'Rough cost to build your own' },
   { v: '10+', k: 'Interface languages' },
   { v: 'USB-C', k: 'Standard-cable charging' },
   { v: '100%', k: 'Open schematics & BOM' },

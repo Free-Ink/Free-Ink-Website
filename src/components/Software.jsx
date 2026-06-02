@@ -1,4 +1,5 @@
 import { Section, Eyebrow, TextLink } from './ui.jsx'
+import { SOFTWARE_REPO } from './repos.js'
 import {
   BookOpenIcon,
   SwatchIcon,
@@ -17,7 +18,7 @@ const FEATURES = [
   {
     icon: SwatchIcon,
     title: 'Configurable typography',
-    body: 'Noto Serif, Noto Sans and Open Dyslexic built in, plus any font loaded from your SD card. Tune size, spacing, margins, hyphenation, alignment and anti-aliasing.',
+    body: 'Noto Serif and Noto Sans built in, plus any font loaded from your SD card. Tune size, spacing, margins, hyphenation, alignment and anti-aliasing.',
   },
   {
     icon: ArrowPathIcon,
@@ -46,10 +47,10 @@ export default function Software() {
     <Section id="software">
       <Eyebrow>The software · CrossPoint Reader</Eyebrow>
       <h2 className="mt-4 max-w-[20ch] font-display text-4xl font-semibold tracking-tight text-balance text-stone-900 sm:text-5xl dark:text-white">
-        A reading experience tuned to how you read.
+        An e-reader experience tuned to how you read.
       </h2>
       <p className="mt-6 max-w-[60ch] text-lg text-pretty text-stone-600 dark:text-stone-300">
-        Community-built, fully open-source firmware for budget e-ink readers, with more features,
+        Community-built, fully open-source firmware for budget e-paper readers, with more features,
         more control, and an open base anyone can build on.
       </p>
 
@@ -68,7 +69,7 @@ export default function Software() {
       </dl>
 
       <div className="mt-12">
-        <TextLink href="#">Explore the software</TextLink>
+        <TextLink href={SOFTWARE_REPO} target="_blank" rel="noreferrer">Explore the software</TextLink>
       </div>
     </Section>
   )

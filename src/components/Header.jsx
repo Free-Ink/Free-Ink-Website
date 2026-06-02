@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Wordmark } from './Brand.jsx'
 import ThemeToggle from './ThemeToggle.jsx'
 import { GitHubIcon } from './icons.jsx'
-import { Button } from './ui.jsx'
+import GitHubMenu from './GitHubMenu.jsx'
+import { REPOS } from './repos.js'
 
 const NAV = [
   { name: 'Software', href: '#software' },
@@ -33,10 +34,7 @@ export default function Header() {
 
         <div className="hidden items-center gap-x-3 lg:flex">
           <ThemeToggle />
-          <Button as="a" href="https://github.com" variant="outline" className="px-3 py-2">
-            <GitHubIcon className="size-4" />
-            GitHub
-          </Button>
+          <GitHubMenu align="right" className="px-3 py-2" />
         </div>
 
         <div className="flex items-center gap-x-2 lg:hidden">
@@ -68,13 +66,22 @@ export default function Header() {
                 {item.name}
               </a>
             ))}
-            <a
-              href="https://github.com"
-              className="mt-2 flex items-center gap-x-2 rounded-md px-3 py-2.5 text-base font-medium text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-white/5"
-            >
-              <GitHubIcon className="size-4" />
+            <p className="mt-3 px-3 pt-3 font-mono text-xs tracking-wide text-stone-400 uppercase dark:text-stone-500">
               GitHub
-            </a>
+            </p>
+            {REPOS.map((repo) => (
+              <a
+                key={repo.href}
+                href={repo.href}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-x-2 rounded-md px-3 py-2.5 text-base font-medium text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-white/5"
+              >
+                <GitHubIcon className="size-4" />
+                {repo.name}
+              </a>
+            ))}
           </div>
         </div>
       )}

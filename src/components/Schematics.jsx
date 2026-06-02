@@ -78,8 +78,20 @@ export function HeroSchematic({ className = '' }) {
         <path d="M240 320 H214 V360" />
       </g>
 
+      {/* software callout — the page is rendered by CrossPoint Reader */}
+      <g>
+        <path d="M343 150 V74" className={STROKE} strokeWidth="1" fill="none" />
+        <circle cx="343" cy="150" r="2.5" className="fill-flame-500" />
+        <text x="343" y="54" textAnchor="middle" className={LABEL} fontSize="11" fontWeight="600">
+          CROSSPOINT READER
+        </text>
+        <text x="343" y="66" textAnchor="middle" className="fill-stone-400 dark:fill-stone-500 font-mono" fontSize="9.5">
+          open EPUB reading software
+        </text>
+      </g>
+
       {/* callouts */}
-      <Callout x1={446} y1={160} x2={560} y2={150} anchor="start" label="E-INK 2.3″" value="grayscale · 16-level AA" />
+      <Callout x1={446} y1={160} x2={560} y2={150} anchor="start" label="E-PAPER" value="GoodDisplay · 24-pin SPI" />
       <Callout x1={472} y1={250} x2={560} y2={250} anchor="start" label="ESP32-S3" value="WiFi · BLE · PSRAM" />
       <Callout x1={446} y1={350} x2={560} y2={350} anchor="start" label="USB-C" value="charge + data" />
 
@@ -120,9 +132,9 @@ export function DotChart({ className = '' }) {
 // Compact PCB block diagram used in the hardware section.
 export function PcbDiagram({ className = '' }) {
   const blocks = [
-    { x: 30, y: 30, w: 120, h: 80, label: 'ESP32-S3', sub: 'WROOM-1' },
+    { x: 30, y: 30, w: 120, h: 80, label: 'ESP32-S3', sub: '240 MHz' },
     { x: 30, y: 140, w: 120, h: 56, label: 'microSD', sub: 'SDMMC' },
-    { x: 180, y: 30, w: 120, h: 56, label: 'E-INK DRV', sub: 'SPI / FPC' },
+    { x: 180, y: 30, w: 120, h: 56, label: 'E-PAPER', sub: '24-pin SPI' },
     { x: 180, y: 110, w: 120, h: 56, label: 'CHARGER', sub: 'MCP73832' },
     { x: 180, y: 188, w: 120, h: 40, label: 'PROTECT', sub: 'DW01A' },
     { x: 330, y: 30, w: 116, h: 56, label: 'USB-C', sub: '5V in' },
