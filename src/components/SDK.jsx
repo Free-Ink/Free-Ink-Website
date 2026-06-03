@@ -134,9 +134,9 @@ export default function SDK() {
           </table>
         </div>
 
-        <p className="mt-4 max-w-[60ch] text-sm/6 text-stone-500 dark:text-stone-400">
-          X3 and X4 share one ESP32-C3 binary, panel chosen at runtime. Distinct-MCU boards build
-          their own binary. New controllers slot in as a single standalone driver behind the facade.
+        <p className="mt-4 max-w-[62ch] text-sm/6 text-stone-500 dark:text-stone-400">
+          Related devices can share a single firmware build, detected and configured at runtime,
+          while new controllers slot in as a standalone driver behind the facade.
         </p>
       </div>
 
