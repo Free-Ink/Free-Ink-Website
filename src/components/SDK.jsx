@@ -13,7 +13,7 @@ const FEATURES = [
   {
     icon: CpuChipIcon,
     title: 'Hardware-independent by design',
-    body: 'Every device-specific detail lives behind small injectable interfaces: the display controller, waveforms and LUTs, GPIOs, bus speeds, touch, frontlight and audio. The firmware calls one generic API and gets device-specific behaviour.',
+    body: 'Every device-specific detail lives behind small injectable interfaces: the display controller, waveforms and LUTs, GPIOs, bus speeds, touch, frontlight and audio. The firmware calls one generic API and gets device-specific behavior.',
   },
   {
     icon: CodeBracketIcon,
@@ -28,7 +28,7 @@ const FEATURES = [
   {
     icon: PuzzleIcon,
     title: 'Composable builds',
-    body: 'A build is composed along two axes: devices and capabilities. Touch, frontlight, colour and audio are gated by flags and default on only when a device needs them, so each binary stays as tight as possible.',
+    body: 'A build is composed along two axes: devices and capabilities. Touch, frontlight, color and audio are gated by flags and default on only when a device needs them, so each binary stays as tight as possible.',
   },
   {
     icon: LightBulbIcon,
@@ -47,7 +47,7 @@ const DEVICES = [
   { name: 'Xteink X4', mcu: 'ESP32-C3', controller: 'SSD1677', panel: '800×480 B/W + 4-level gray', status: 'full' },
   { name: 'Xteink X3', mcu: 'ESP32-C3', controller: 'UC8253', panel: '792×528 B/W + 4-level gray', status: 'full' },
   { name: 'de-link', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + gray, frontlight', status: 'full' },
-  { name: 'M5Stack PaperColor', mcu: 'ESP32-S3', controller: 'ED2208', panel: '400×600 colour', status: 'wip' },
+  { name: 'M5Stack PaperColor', mcu: 'ESP32-S3', controller: 'ED2208', panel: '400×600 color', status: 'wip' },
   { name: 'Murphy M3', mcu: 'ESP32-S3', controller: 'UC8253', panel: '240×416 B/W, touch + frontlight', status: 'wip' },
 ]
 
