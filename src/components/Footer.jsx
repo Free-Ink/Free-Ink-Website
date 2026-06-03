@@ -1,6 +1,6 @@
 import { Logo } from './Brand.jsx'
 import GitHubMenu from './GitHubMenu.jsx'
-import { SOFTWARE_REPO, HARDWARE_REPO } from './repos.js'
+import { SOFTWARE_REPO, HARDWARE_REPO, SDK_REPO } from './repos.js'
 
 const SITE = 'https://crosspointreader.com'
 const DISCORD = 'https://discord.gg/y2q7WRnM4P'
@@ -11,9 +11,9 @@ const COLUMNS = [
     title: 'Software',
     links: [
       { name: 'CrossPoint Reader', href: SITE },
+      { name: 'FreeInk SDK', href: SDK_REPO },
       { name: 'Font builder', href: `${SITE}/fonts` },
       { name: 'User guide', href: `${SOFTWARE_REPO}/blob/master/USER_GUIDE.md` },
-      { name: 'Release notes', href: `${SOFTWARE_REPO}/releases` },
     ],
   },
   {

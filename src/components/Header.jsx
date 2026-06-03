@@ -7,6 +7,7 @@ import { REPOS } from './repos.js'
 
 const NAV = [
   { name: 'Software', href: '#software' },
+  { name: 'SDK', href: '#sdk' },
   { name: 'Hardware', href: '#hardware' },
   { name: 'Manifesto', href: '#manifesto' },
   { name: 'Community', href: '#community' },
