@@ -1,0 +1,54 @@
+import { Lead, P, H2, A, Ul, Li, Code, CodeBlock, Callout } from '../prose.jsx'
+
+export default function Networking() {
+  return (
+    <>
+      <Lead>
+        <Code>SecureNet</Code> brings its own TLS stack — wolfSSL compiled from source — so the reader
+        can reach TLS-1.3-only servers that the platform's stubbed mbedTLS can't.
+      </Lead>
+
+      <H2>The problem</H2>
+      <P>
+        The precompiled mbedTLS in the ESP-IDF / pioarduino package ships TLS 1.3 as empty stubs, so{' '}
+        <Code>WiFiClientSecure</Code> / <Code>esp_http_client</Code> cannot reach TLS-1.3-only servers —
+        e.g. KOSync at <Code>kosync.ak-team.com:3042</Code>, where the handshake fails with{' '}
+        <Code>-0x7780</Code>. A <Code>-D</Code> flag can't change a precompiled <Code>.a</Code>, and a
+        from-source ESP-IDF rebuild is a heavier path.
+      </P>
+
+      <H2>The solution</H2>
+      <P>
+        <Code>SecureNet</Code> bundles <strong>wolfSSL compiled from source</strong>, which supports TLS
+        1.3 + PSA and bypasses system mbedTLS entirely. It exposes two pieces:
+      </P>
+      <Ul>
+        <Li>
+          <Code>freeink::SecureClient</Code> — an Arduino <Code>Client</Code> doing TLS 1.3 over{' '}
+          <Code>WiFiClient</Code>.
+        </Li>
+        <Li>
+          <Code>freeink::SecureHttpClient</Code> — an <Code>HTTPClient</Code>-compatible shim so existing
+          call sites switch with minimal churn.
+        </Li>
+      </Ul>
+
+      <H2>Enabling it</H2>
+      <P>
+        It's opt-in: <Code>-DFREEINK_NET_WOLFSSL=1</Code> plus a wolfSSL source <Code>lib_dep</Code>.
+        With the flag off it compiles to an inert stub, so the rest of the SDK builds without wolfSSL.
+      </P>
+      <CodeBlock lang="platformio.ini">{`build_flags = -DFREEINK_NET_WOLFSSL=1
+lib_deps =
+  SecureNet=symlink://path/to/freeink-sdk/libs/network/SecureNet
+  ; + a wolfSSL source library dependency`}</CodeBlock>
+
+      <Callout title="Capability flag">
+        <p>
+          <Code>FREEINK_CAP_NET_TLS13</Code> is equivalent to <Code>FREEINK_NET_WOLFSSL</Code> in the{' '}
+          <A href="/docs/build-composition">capability matrix</A>. Both default off.
+        </p>
+      </Callout>
+    </>
+  )
+}

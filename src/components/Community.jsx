@@ -1,6 +1,6 @@
+import { Link } from 'react-router-dom'
 import { Button } from './ui.jsx'
 import GitHubMenu from './GitHubMenu.jsx'
-import { SOFTWARE_REPO } from './repos.js'
 
 const WAYS = ['Write firmware', 'Lay out PCBs', 'Translate the UI', 'Design themes']
 
@@ -28,7 +28,7 @@ export default function Community() {
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <GitHubMenu label="Browse the repos" variant="primary" align="center" className="px-4 py-2.5" />
-            <Button as="a" href={`${SOFTWARE_REPO}/tree/master/docs`} target="_blank" rel="noreferrer" variant="outline" className="px-4 py-2.5">
+            <Button as={Link} to="/docs" variant="outline" className="px-4 py-2.5">
               Read the docs
             </Button>
           </div>

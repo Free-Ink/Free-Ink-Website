@@ -1,5 +1,6 @@
 // Free Ink mark: an e-ink tile rendered as a dot grid, with the top-right
 // corner "breaking free" — dots lifting off and igniting flame red.
+import { Link } from 'react-router-dom'
 
 export function Logo({ className = 'size-8' }) {
   const dots = []
@@ -30,11 +31,11 @@ export function Logo({ className = 'size-8' }) {
 
 export function Wordmark({ className = '' }) {
   return (
-    <a href="/" aria-label="Homepage" className={`flex items-center gap-x-1.5 ${className}`}>
+    <Link to="/" aria-label="Homepage" className={`flex items-center gap-x-1.5 ${className}`}>
       <Logo className="size-6" />
       <span className="font-display text-lg font-semibold tracking-tight text-stone-900 dark:text-white">
         Free<span className="text-flame-600 dark:text-flame-500">Ink</span>
       </span>
-    </a>
+    </Link>
   )
 }

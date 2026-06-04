@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Section, Eyebrow, TextLink } from './ui.jsx'
 import { SDK_REPO } from './repos.js'
 import {
@@ -140,8 +141,19 @@ export default function SDK() {
         </p>
       </div>
 
-      <div className="mt-12">
-        <TextLink href={SDK_REPO} target="_blank" rel="noreferrer">Explore the SDK</TextLink>
+      <div className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-3">
+        <Link
+          to="/docs"
+          className="group inline-flex items-center gap-x-1.5 text-sm font-medium text-flame-600 hover:text-flame-700 dark:text-flame-500 dark:hover:text-flame-400"
+        >
+          Read the SDK docs
+          <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">
+            &rarr;
+          </span>
+        </Link>
+        <TextLink href={SDK_REPO} target="_blank" rel="noreferrer" className="text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200">
+          View on GitHub
+        </TextLink>
       </div>
     </Section>
   )

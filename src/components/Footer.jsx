@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Logo } from './Brand.jsx'
 import GitHubMenu from './GitHubMenu.jsx'
 import { SOFTWARE_REPO, HARDWARE_REPO, SDK_REPO } from './repos.js'
@@ -38,7 +39,7 @@ const COLUMNS = [
     title: 'Project',
     links: [
       { name: 'Manifesto', href: '#manifesto' },
-      { name: 'Documentation', href: `${SOFTWARE_REPO}/tree/master/docs` },
+      { name: 'SDK docs', href: '/docs', route: true },
       { name: 'Governance', href: `${SOFTWARE_REPO}/blob/master/GOVERNANCE.md` },
       { name: 'License', href: `${SOFTWARE_REPO}/blob/master/LICENSE` },
     ],
@@ -51,12 +52,12 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
         <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:grid-cols-6">
           <div className="col-span-2">
-            <a href="/" aria-label="Homepage" className="flex items-center gap-x-2.5">
+            <Link to="/" aria-label="Homepage" className="flex items-center gap-x-2.5">
               <Logo className="size-7" />
               <span className="font-display text-base font-semibold tracking-tight text-stone-900 dark:text-white">
                 Free<span className="text-flame-600 dark:text-flame-500">Ink</span>
               </span>
-            </a>
+            </Link>
             <p className="mt-4 max-w-[34ch] text-sm/6 text-stone-500 dark:text-stone-400">
               An open-source collective building e-reader software, firmware and hardware that anyone
               can build on.
@@ -76,17 +77,27 @@ export default function Footer() {
                 {col.title}
               </h3>
               <ul role="list" className="mt-4 space-y-3">
-                {col.links.map((link) => (
-                  <li key={link.name}>
-                    <a
-                      href={link.href}
-                      {...(link.href.startsWith('#') ? {} : { target: '_blank', rel: 'noreferrer' })}
-                      className="text-sm font-normal text-stone-600 transition hover:text-stone-900 dark:text-stone-400 dark:hover:text-white"
-                    >
-                      {link.name}
-                    </a>
-                  </li>
-                ))}
+                {col.links.map((link) => {
+                  const cls =
+                    'text-sm font-normal text-stone-600 transition hover:text-stone-900 dark:text-stone-400 dark:hover:text-white'
+                  return (
+                    <li key={link.name}>
+                      {link.route ? (
+                        <Link to={link.href} className={cls}>
+                          {link.name}
+                        </Link>
+                      ) : (
+                        <a
+                          href={link.href}
+                          {...(link.href.startsWith('#') ? {} : { target: '_blank', rel: 'noreferrer' })}
+                          className={cls}
+                        >
+                          {link.name}
+                        </a>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           ))}

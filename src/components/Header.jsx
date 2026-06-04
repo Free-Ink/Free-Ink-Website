@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Wordmark } from './Brand.jsx'
 import ThemeToggle from './ThemeToggle.jsx'
 import { GitHubIcon } from './icons.jsx'
@@ -9,6 +10,7 @@ const NAV = [
   { name: 'Firmware', href: '#software' },
   { name: 'SDK', href: '#sdk' },
   { name: 'Hardware', href: '#hardware' },
+  { name: 'Docs', href: '/docs', route: true },
   { name: 'Manifesto', href: '#manifesto' },
   { name: 'Community', href: '#community' },
 ]
@@ -22,15 +24,19 @@ export default function Header() {
         <Wordmark />
 
         <div className="hidden items-center gap-x-8 lg:flex">
-          {NAV.map((item) => (
-            <a
-              key={item.name}
-              href={item.href}
-              className="text-sm font-medium text-stone-600 transition hover:text-stone-900 dark:text-stone-300 dark:hover:text-white"
-            >
-              {item.name}
-            </a>
-          ))}
+          {NAV.map((item) => {
+            const cls =
+              'text-sm font-medium text-stone-600 transition hover:text-stone-900 dark:text-stone-300 dark:hover:text-white'
+            return item.route ? (
+              <Link key={item.name} to={item.href} className={cls}>
+                {item.name}
+              </Link>
+            ) : (
+              <a key={item.name} href={item.href} className={cls}>
+                {item.name}
+              </a>
+            )
+          })}
         </div>
 
         <div className="hidden items-center gap-x-3 lg:flex">
@@ -57,16 +63,19 @@ export default function Header() {
       {open && (
         <div className="border-t border-stone-200 lg:hidden dark:border-white/10">
           <div className="space-y-1 px-4 py-4">
-            {NAV.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="block rounded-md px-3 py-2.5 text-base font-medium text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-white/5"
-              >
-                {item.name}
-              </a>
-            ))}
+            {NAV.map((item) => {
+              const cls =
+                'block rounded-md px-3 py-2.5 text-base font-medium text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-white/5'
+              return item.route ? (
+                <Link key={item.name} to={item.href} onClick={() => setOpen(false)} className={cls}>
+                  {item.name}
+                </Link>
+              ) : (
+                <a key={item.name} href={item.href} onClick={() => setOpen(false)} className={cls}>
+                  {item.name}
+                </a>
+              )
+            })}
             <p className="mt-3 px-3 pt-3 font-mono text-xs tracking-wide text-stone-400 uppercase dark:text-stone-500">
               GitHub
             </p>
