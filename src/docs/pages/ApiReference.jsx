@@ -137,7 +137,12 @@ export default function ApiReference() {
       />
 
       <H2>SDCardManager</H2>
-      <P>A thin, app-friendly wrapper over SdFat, plus the raw <Code>FsFile</Code> API.</P>
+      <P>
+        A thin, app-friendly wrapper over storage, plus the raw <Code>FsFile</Code> API. Two
+        interchangeable backends sit behind one <Code>FsVolume&amp;</Code> seam — SdFat-over-SPI
+        (default) and a native 4-bit SDMMC block device (<Code>FREEINK_SD_SDMMC</Code>, e.g. de-link).
+        Both hand back ordinary <Code>FsFile</Code> objects, so the API below is identical for either.
+      </P>
       <Api
         rows={[
           ['begin() / ready()', 'Mount the card; report mount state.'],
@@ -173,6 +178,8 @@ export default function ApiReference() {
           ['ACTIVE', 'The runtime-active BoardProfile (defaults to DEFAULT_DEVICE).'],
           ['selectDevice(Board which) → bool', 'Set ACTIVE to a compiled-in device; false if not included.'],
           ['XTEINK_X4, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3', 'Built-in board profiles.'],
+          ['BoardProfile.orientation', 'Panel mount transform — NO_FLIP / MIRROR_X / MIRROR_Y / ROTATE_180 (applied in hardware by SSD1677).'],
+          ['BoardProfile.sdmmc', 'SdmmcPins for 4-bit SDMMC boards; busWidth 0 = use SPI/SdFat.'],
           ['hasTouch() / hasPwmFrontlight() / hasAudio()', 'Capability queries for the active board.'],
           ['isDeLink() / isMurphyM3() / isM5StackPaperColor()', 'Identity queries.'],
           ['LILYGO_T5_PRO_GT911', 'Ready-made GT911 touch config for a future LilyGo profile.'],

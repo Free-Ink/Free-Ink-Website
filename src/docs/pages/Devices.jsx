@@ -30,7 +30,7 @@ export default function Devices() {
         rows={[
           ['Xteink X4', 'ESP32-C3', 'SSD1677', '800×480 B/W + 4-level gray', <Status key="s" full>full</Status>],
           ['Xteink X3', 'ESP32-C3', 'UC8253', '792×528 B/W + 4-level gray', <Status key="s" full>full · runtime-selected</Status>],
-          ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight', <Status key="s" full>full</Status>],
+          ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD', <Status key="s" full>full</Status>],
           ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 color', <Status key="s">display driver stub</Status>],
           ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s">stub · touch + frontlight done</Status>],
         ]}
@@ -42,7 +42,12 @@ export default function Devices() {
         (S3) build their own binary, selected with a board macro.
       </P>
       <P>
-        de-link notes: SD over SPI today; 4-bit SDMMC is a follow-up.
+        de-link reuses the X4's SSD1677 panel on an ESP32-S3, adding a warm/cool frontlight and{' '}
+        <strong>native 4-bit SDMMC storage</strong>. SdFat can't drive SDIO, so FreeInk mounts a
+        volume on an esp-idf SDMMC block device (auto-enabled via <Code>FREEINK_SD_SDMMC</Code>) — see{' '}
+        <A href="/docs/build-composition">Build composition</A>. Its panel orientation is set in the
+        board profile rather than at compile time, so an upside-down PCB just sets{' '}
+        <Code>ROTATE_180</Code> and the driver mirrors in hardware.
       </P>
 
       <H2>M5Stack PaperColor refresh behavior</H2>

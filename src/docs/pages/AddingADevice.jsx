@@ -12,7 +12,8 @@ export default function AddingADevice() {
       <Ol>
         <Li>
           Add a <Code>BoardProfile</Code> to <Code>BoardConfig.h</Code> (pins, geometry, controller,
-          input style, optional touch/frontlight/audio) and a board macro for <Code>ACTIVE</Code>.
+          input style, optional touch/frontlight/audio, panel <Code>orientation</Code>, and SD
+          transport) and a board macro for <Code>ACTIVE</Code>.
         </Li>
         <Li>
           <strong>If it uses an existing controller</strong>, reuse that driver — inject a tuned config
@@ -37,6 +38,15 @@ export default function AddingADevice() {
           panel sets its size in its profile and its waveforms in a config.
         </p>
       </Callout>
+
+      <P>
+        Panel <strong>mount orientation</strong> is profile data too: set <Code>orientation</Code> to{' '}
+        <Code>NO_FLIP</Code>, <Code>MIRROR_X</Code>, <Code>MIRROR_Y</Code> or <Code>ROTATE_180</Code> and
+        the SSD1677 driver mirrors in hardware — no firmware-side rotate, no compile-time flag.
+        Likewise, a board wired for 4-bit SDMMC sets <Code>sdmmc</Code> (busWidth 1 or 4) and gets the
+        native SDMMC backend instead of SdFat-over-SPI; see{' '}
+        <A href="/docs/build-composition">Build composition</A>.
+      </P>
 
       <H2>When can two devices share a binary?</H2>
       <P>

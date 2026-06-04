@@ -63,7 +63,11 @@ export default function BuildComposition() {
           ],
           [
             <Code key="b">-DFREEINK_DISPLAY_FLIPPED</Code>,
-            <>(or <Code>-DFLIPPED</Code>) vertically flip an SSD1677 panel</>,
+            <>(or <Code>-DFLIPPED</Code>) back-compat alias for <Code>BoardProfile.orientation = MIRROR_Y</Code> on SSD1677</>,
+          ],
+          [
+            <Code key="sd">-DFREEINK_SD_SDMMC=1</Code>,
+            <>use the native 4-bit SDMMC backend (needs <Code>-DUSE_BLOCK_DEVICE_INTERFACE=1</Code>); auto-on for de-link</>,
           ],
           [
             <Code key="c">-DEINK_DISPLAY_SINGLE_BUFFER_MODE=1</Code>,
@@ -75,6 +79,14 @@ export default function BuildComposition() {
           ],
         ]}
       />
+
+      <P>
+        Panel <strong>orientation / mirroring is per-board data, not a flag</strong>: set{' '}
+        <Code>BoardProfile.orientation</Code> to <Code>NO_FLIP</Code>, <Code>MIRROR_X</Code>,{' '}
+        <Code>MIRROR_Y</Code> or <Code>ROTATE_180</Code>. The SSD1677 driver applies it in hardware
+        (mirrorX via RAM column addressing, mirrorY via gate scan). 90° / 270° need a software
+        transpose and are a follow-up. See <A href="/docs/adding-a-device">Adding a device</A>.
+      </P>
 
       <Callout title="One binary, two devices">
         <p>
