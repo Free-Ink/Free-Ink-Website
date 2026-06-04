@@ -77,7 +77,7 @@ void loop() {}`}</CodeBlock>
           and pushes them with <Code>displayBuffer</Code>; fonts and text layout are the firmware's job.
           The shape to remember: construct from the board profile, <Code>begin()</Code>, draw into the
           framebuffer, then <Code>displayBuffer()</Code> with a refresh mode. See the{' '}
-          <A href="/docs/api">API reference</A> for the full surface.
+          <A href="/docs/lib-display">EInkDisplay reference</A> for the full surface.
         </p>
       </Callout>
 

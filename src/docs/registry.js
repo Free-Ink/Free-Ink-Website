@@ -7,10 +7,17 @@ import Installation from './pages/Installation.jsx'
 import Architecture from './pages/Architecture.jsx'
 import BuildComposition from './pages/BuildComposition.jsx'
 import Devices from './pages/Devices.jsx'
-import Networking from './pages/Networking.jsx'
 import AddingADevice from './pages/AddingADevice.jsx'
 import McuPortability from './pages/McuPortability.jsx'
-import ApiReference from './pages/ApiReference.jsx'
+import LibrariesOverview from './pages/LibrariesOverview.jsx'
+import Display from './pages/libs/Display.jsx'
+import InputManager from './pages/libs/InputManager.jsx'
+import BatteryMonitor from './pages/libs/BatteryMonitor.jsx'
+import SdCard from './pages/libs/SdCard.jsx'
+import Frontlight from './pages/libs/Frontlight.jsx'
+import PowerManager from './pages/libs/PowerManager.jsx'
+import Networking from './pages/Networking.jsx'
+import BoardConfig from './pages/libs/BoardConfig.jsx'
 import RepositoryLayout from './pages/RepositoryLayout.jsx'
 
 export const DOC_GROUPS = [
@@ -58,11 +65,64 @@ export const DOC_GROUPS = [
         description: 'The device matrix, refresh behavior and touch support.',
         Content: Devices,
       },
+    ],
+  },
+  {
+    title: 'Libraries',
+    pages: [
+      {
+        slug: 'api',
+        title: 'Libraries overview',
+        description: 'The SDK is a set of self-contained libraries — pick one.',
+        Content: LibrariesOverview,
+      },
+      {
+        slug: 'lib-display',
+        title: 'Display · EInkDisplay',
+        description: 'The display facade: framebuffer, geometry, refresh and grayscale.',
+        Content: Display,
+      },
+      {
+        slug: 'lib-input',
+        title: 'Input & touch · InputManager',
+        description: 'Buttons and capacitive touch behind one object.',
+        Content: InputManager,
+      },
+      {
+        slug: 'lib-battery',
+        title: 'Battery · BatteryMonitor',
+        description: 'ADC battery gauge with optional charge-sense.',
+        Content: BatteryMonitor,
+      },
+      {
+        slug: 'lib-sd',
+        title: 'SD storage · SDCardManager',
+        description: 'SdFat-over-SPI or native 4-bit SDMMC, one API.',
+        Content: SdCard,
+      },
+      {
+        slug: 'lib-frontlight',
+        title: 'Frontlight · FrontlightManager',
+        description: 'PWM frontlight with warm/cool control.',
+        Content: Frontlight,
+      },
+      {
+        slug: 'lib-power',
+        title: 'Power & sleep · PowerManager',
+        description: 'Portable deep-sleep wake-on-power-button.',
+        Content: PowerManager,
+      },
       {
         slug: 'networking',
-        title: 'Networking · TLS 1.3',
-        description: 'SecureNet: a bundled wolfSSL TLS 1.3 transport.',
+        title: 'Networking · SecureNet',
+        description: 'Opt-in wolfSSL TLS 1.3 transport.',
         Content: Networking,
+      },
+      {
+        slug: 'lib-board',
+        title: 'Board config · BoardConfig',
+        description: 'Board profiles and the runtime-active device.',
+        Content: BoardConfig,
       },
     ],
   },
@@ -86,12 +146,6 @@ export const DOC_GROUPS = [
   {
     title: 'Reference',
     pages: [
-      {
-        slug: 'api',
-        title: 'API reference',
-        description: 'The library surface: display, input, battery, storage and more.',
-        Content: ApiReference,
-      },
       {
         slug: 'repository-layout',
         title: 'Repository layout',

@@ -34,7 +34,7 @@ esp_deep_sleep_start();`}</CodeBlock>
       <P>
         It compiles on both targets — the <Code>gpio</Code> branch links in the C3 build, the{' '}
         <Code>ext1</Code> branch in the S3 build. See the full surface in the{' '}
-        <A href="/docs/api">API reference</A>.
+        <A href="/docs/lib-power">PowerManager reference</A>.
       </P>
 
       <H2>Read pins from the runtime profile</H2>

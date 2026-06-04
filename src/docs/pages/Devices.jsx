@@ -90,7 +90,7 @@ export default function Devices() {
         coordinates are delivered raw-panel-oriented and the app owns rotation. A LilyGo T5 S3 Pro Lite
         GT911 touch config (<Code>BoardConfig::LILYGO_T5_PRO_GT911</Code>) is ready to drop into a
         LilyGo profile once that board's display driver lands. See the{' '}
-        <A href="/docs/api">API reference</A>.
+        <A href="/docs/lib-input">InputManager reference</A>.
       </P>
     </>
   )

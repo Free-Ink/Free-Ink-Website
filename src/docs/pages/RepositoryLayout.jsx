@@ -23,7 +23,7 @@ export default function RepositoryLayout() {
         compatibility shim, each controller's <Code>PanelDriver</Code> in its own file under{' '}
         <Code>src/driver/</Code>, the shared <Code>EpdBus</Code>, and the waveform LUTs under{' '}
         <Code>src/lut/</Code>. For how these layers relate, see <A href="/docs/architecture">Architecture</A>;
-        for the public surface of each library, see the <A href="/docs/api">API reference</A>.
+        for the public surface of each library, see the <A href="/docs/api">Libraries</A> overview.
       </P>
 
       <H2>Repository &amp; contributing</H2>

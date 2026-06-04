@@ -1,0 +1,86 @@
+import { Lead, P, H2, H3, A, Code, CodeBlock, ApiTable } from '../../prose.jsx'
+
+export default function Display() {
+  return (
+    <>
+      <Lead>
+        The display facade — <Code>freeink::FreeInkDisplay</Code>, aliased to <Code>EInkDisplay</Code>.
+        It owns the framebuffer and geometry and delegates to a panel driver selected at{' '}
+        <Code>begin()</Code>. See <A href="/docs/architecture">Architecture</A> for how the facade,
+        drivers and bus fit together.
+      </Lead>
+
+      <P>Construct it from the active board's display SPI pins:</P>
+      <CodeBlock lang="cpp">{`FreeInkDisplay(int8_t sclk, int8_t mosi, int8_t cs,
+               int8_t dc, int8_t rst, int8_t busy);`}</CodeBlock>
+
+      <H2>Lifecycle &amp; panel selection</H2>
+      <ApiTable
+        rows={[
+          ['begin()', 'Initialize the bus and select the panel driver for the active profile.'],
+          ['setDisplayX3()', 'Switch to the X3 profile + UC8253 driver (before begin(), on a C3 X3/X4 binary).'],
+          ['setDisplayM5PaperColor()', 'Switch to the M5 PaperColor profile + ED2208 driver.'],
+          ['requestCompleteWaveformNextRefresh()', 'M5 only: run the next refresh’s OTP waveform to completion (one-shot).'],
+          ['deepSleep()', 'Power the panel down.'],
+        ]}
+      />
+
+      <H2>Geometry</H2>
+      <ApiTable
+        rows={[
+          ['getDisplayWidth() / getDisplayHeight()', 'Active panel dimensions in pixels.'],
+          ['getDisplayWidthBytes()', 'Row stride in bytes.'],
+          ['getBufferSize()', 'Framebuffer size in bytes.'],
+          ['DISPLAY_WIDTH, DISPLAY_HEIGHT, BUFFER_SIZE, …', 'Compile-time constants (plus X3_* variants).'],
+        ]}
+      />
+
+      <H2>Drawing into the framebuffer</H2>
+      <ApiTable
+        rows={[
+          ['clearScreen(uint8_t color = 0xFF)', 'Fill the buffer (0xFF = white).'],
+          ['drawImage(data, x, y, w, h, fromProgmem = false)', 'Blit a 1-bpp bitmap.'],
+          ['drawImageTransparent(data, x, y, w, h, fromProgmem = false)', 'Blit, skipping background pixels (icons).'],
+          ['setFramebuffer(const uint8_t* bwBuffer)', 'Replace the B/W buffer wholesale.'],
+          ['getFrameBuffer()', 'Pointer to the active framebuffer.'],
+          ['swapBuffers()', 'Swap the double-buffered framebuffers.'],
+        ]}
+      />
+
+      <H2>Refresh</H2>
+      <P>
+        Refresh modes: <Code>FULL_REFRESH</Code> / <Code>HALF_REFRESH</Code> / <Code>FAST_REFRESH</Code>.
+      </P>
+      <ApiTable
+        rows={[
+          ['displayBuffer(mode = FAST_REFRESH, turnOffScreen = false)', 'Push the framebuffer to the panel.'],
+          ['displayWindow(x, y, w, h, turnOffScreen = false)', 'Partial update of a region.'],
+          ['refreshDisplay(mode = FAST_REFRESH, turnOffScreen = false)', 'Refresh without rewriting the buffer.'],
+          ['requestResync(uint8_t settlePasses = 0)', 'X3: one-shot full resync on next update.'],
+          ['skipInitialResync()', 'Skip the first-update resync.'],
+        ]}
+      />
+
+      <H2>Grayscale / anti-aliased</H2>
+      <ApiTable
+        rows={[
+          ['copyGrayscaleBuffers(lsb, msb)', 'Load both gray planes.'],
+          ['copyGrayscaleLsbBuffers(lsb) / copyGrayscaleMsbBuffers(msb)', 'Load one plane.'],
+          ['writeGrayscalePlaneStrip(plane, rows, yStart, numRows)', 'Stream a row band to controller RAM (plane = GRAY_PLANE_LSB/MSB).'],
+          ['supportsStripGrayscale()', 'Whether the active driver supports strip streaming.'],
+          ['displayGrayBuffer(turnOffScreen = false, lut = nullptr, factoryMode = false)', 'Push the gray planes.'],
+          ['cleanupGrayscaleBuffers(bwBuffer) / grayscaleRevert()', 'Clean up after an anti-aliased refresh.'],
+          ['setCustomLUT(bool enabled, lutData = nullptr)', 'Install / restore a custom LUT (VCOM-safe).'],
+        ]}
+      />
+
+      <H3>Orientation</H3>
+      <P>
+        Panel mount orientation is not a display call — it comes from{' '}
+        <Code>BoardProfile.orientation</Code> (<Code>NO_FLIP</Code> / <Code>MIRROR_X</Code> /{' '}
+        <Code>MIRROR_Y</Code> / <Code>ROTATE_180</Code>) and the SSD1677 driver applies it in hardware.
+        See <A href="/docs/lib-board">BoardConfig</A> and <A href="/docs/adding-a-device">Adding a device</A>.
+      </P>
+    </>
+  )
+}

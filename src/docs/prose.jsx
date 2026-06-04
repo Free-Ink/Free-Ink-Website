@@ -155,6 +155,17 @@ export function Table({ head, rows }) {
   )
 }
 
+// A two-column "Member / Description" table for documenting an API surface.
+// Each row is [signature, description]; the signature is rendered as code.
+export function ApiTable({ rows }) {
+  return (
+    <Table
+      head={['Member', 'Description']}
+      rows={rows.map(([sig, desc], i) => [<Code key={i}>{sig}</Code>, desc])}
+    />
+  )
+}
+
 export function Callout({ title, children, tone = 'note' }) {
   const tones = {
     note: 'border-flame-500/30 bg-flame-500/[0.06] text-flame-700 dark:text-flame-300',
