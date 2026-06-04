@@ -36,6 +36,11 @@ export default function BuildComposition() {
         after its own detection. The SDK doesn't ship a detector — X3/X4 detection stays in the
         consumer (e.g. CrossPoint's I2C fingerprint).
       </P>
+      <P>
+        Every SDK library compiles cleanly on <strong>both</strong> ESP32-C3 and ESP32-S3 — only a
+        consumer's own layer can block a multi-MCU build by hardcoding chip-specific code. See{' '}
+        <A href="/docs/mcu-portability">MCU portability</A>.
+      </P>
 
       <H2>Capabilities</H2>
       <P>

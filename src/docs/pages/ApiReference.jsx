@@ -168,6 +168,23 @@ export default function ApiReference() {
         ]}
       />
 
+      <H2>PowerManager</H2>
+      <P>
+        Portable deep-sleep wake-on-power-button. It picks the SoC-correct wakeup source at compile
+        time — RTC <Code>ext1</Code> on Xtensa (S3/S2, classic ESP32) vs the <Code>gpio</Code> source on
+        RISC-V (C3/C6/H2) — and reads the wake pin + polarity from{' '}
+        <Code>BoardConfig::ACTIVE.input</Code>, so consumers write no chip-specific power code. See{' '}
+        <A href="/docs/mcu-portability">MCU portability</A>. All methods are static.
+      </P>
+      <Api
+        rows={[
+          ['armPowerButtonWakeup() → bool', 'Arm wake-on-power-button (SoC-correct source + active pin/polarity). False if the board has no power pin.'],
+          ['waitForPowerButtonRelease()', 'Poll the power GPIO until released, so sleep isn’t cancelled by a still-held press.'],
+          ['deepSleep()', 'Isolate floating GPIOs, then enter deep sleep. Does not return (chip resets on wake).'],
+          ['deepSleepUntilPowerButton()', 'Convenience: wait for release, arm wakeup, then deep sleep.'],
+        ]}
+      />
+
       <H2>BoardConfig</H2>
       <P>
         The compile-time board descriptions and the runtime-active profile. Drivers read pins,

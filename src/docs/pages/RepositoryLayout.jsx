@@ -13,7 +13,8 @@ export default function RepositoryLayout() {
   hardware/BoardConfig/        board profiles & capability descriptors
   hardware/InputManager/       buttons + capacitive touch (CHSC6x, GT911)
   hardware/BatteryMonitor/     ADC battery + optional charge-sense
-  hardware/SDCardManager/      SdFat-backed storage
+  hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)
+  hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
   hardware/FrontlightManager/  PWM frontlight (de-link)
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)`}</CodeBlock>
 

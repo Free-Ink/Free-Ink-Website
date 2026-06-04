@@ -39,6 +39,7 @@ export default function Installation() {
   BatteryMonitor=symlink://path/to/freeink-sdk/libs/hardware/BatteryMonitor
   SDCardManager=symlink://path/to/freeink-sdk/libs/hardware/SDCardManager
   ; optional:
+  PowerManager=symlink://path/to/freeink-sdk/libs/hardware/PowerManager
   FrontlightManager=symlink://path/to/freeink-sdk/libs/hardware/FrontlightManager
   SecureNet=symlink://path/to/freeink-sdk/libs/network/SecureNet`}</CodeBlock>
       <P>

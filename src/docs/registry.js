@@ -9,6 +9,7 @@ import BuildComposition from './pages/BuildComposition.jsx'
 import Devices from './pages/Devices.jsx'
 import Networking from './pages/Networking.jsx'
 import AddingADevice from './pages/AddingADevice.jsx'
+import McuPortability from './pages/McuPortability.jsx'
 import ApiReference from './pages/ApiReference.jsx'
 import RepositoryLayout from './pages/RepositoryLayout.jsx'
 
@@ -73,6 +74,12 @@ export const DOC_GROUPS = [
         title: 'Adding a device',
         description: 'Bring up a new board: profile, driver config, build env.',
         Content: AddingADevice,
+      },
+      {
+        slug: 'mcu-portability',
+        title: 'MCU portability',
+        description: 'Keep a consumer building across ESP32-C3 and ESP32-S3.',
+        Content: McuPortability,
       },
     ],
   },
