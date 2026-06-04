@@ -73,7 +73,7 @@ export const DOC_GROUPS = [
       {
         slug: 'api',
         title: 'Libraries overview',
-        description: 'The API surface of every FreeInk library, one page each.',
+        description: 'Reference for the FreeInk libraries: APIs, defaults and build flags.',
         Content: LibrariesOverview,
       },
       {
