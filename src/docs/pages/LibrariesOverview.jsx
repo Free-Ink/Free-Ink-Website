@@ -3,22 +3,23 @@ import { Lead, P, A, Code } from '../prose.jsx'
 
 // Each library gets its own page; this is the index that links them all.
 const LIBS = [
-  { slug: 'lib-display', name: 'Display · EInkDisplay', blurb: 'The facade: framebuffer, geometry, refresh modes and grayscale.' },
-  { slug: 'lib-input', name: 'Input & touch · InputManager', blurb: 'Buttons plus capacitive touch (CHSC6x, GT911).' },
-  { slug: 'lib-battery', name: 'Battery · BatteryMonitor', blurb: 'ADC battery gauge with optional charge-sense.' },
-  { slug: 'lib-sd', name: 'SD storage · SDCardManager', blurb: 'SdFat-over-SPI or native 4-bit SDMMC, one API.' },
-  { slug: 'lib-frontlight', name: 'Frontlight · FrontlightManager', blurb: 'PWM frontlight with warm/cool control.' },
-  { slug: 'lib-power', name: 'Power & sleep · PowerManager', blurb: 'Portable deep-sleep wake-on-power-button.' },
-  { slug: 'networking', name: 'Networking · SecureNet', blurb: 'Opt-in wolfSSL TLS 1.3 transport.' },
-  { slug: 'lib-board', name: 'Board config · BoardConfig', blurb: 'Board profiles and the runtime-active device.' },
+  { slug: 'lib-display', name: 'EInkDisplay', blurb: 'The facade: framebuffer, geometry, refresh modes and grayscale.' },
+  { slug: 'lib-input', name: 'InputManager', blurb: 'Buttons plus capacitive touch (CHSC6x, GT911).' },
+  { slug: 'lib-battery', name: 'BatteryMonitor', blurb: 'ADC battery gauge with optional charge-sense.' },
+  { slug: 'lib-sd', name: 'SDCardManager', blurb: 'SdFat-over-SPI or native 4-bit SDMMC, one API.' },
+  { slug: 'lib-frontlight', name: 'FrontlightManager', blurb: 'PWM frontlight with warm/cool control.' },
+  { slug: 'lib-power', name: 'PowerManager', blurb: 'Portable deep-sleep wake-on-power-button.' },
+  { slug: 'networking', name: 'SecureNet', blurb: 'Opt-in wolfSSL TLS 1.3 transport.' },
+  { slug: 'lib-board', name: 'BoardConfig', blurb: 'Board profiles and the runtime-active device.' },
 ]
 
 export default function LibrariesOverview() {
   return (
     <>
       <Lead>
-        The SDK is a set of self-contained libraries, each its own PlatformIO dependency. Pick one for
-        its API, defaults and build flags. Everything lives in <Code>namespace freeink</Code>; the
+        The SDK is a set of self-contained libraries, each its own PlatformIO dependency. Add the ones
+        your device needs (<A href="/docs/installation">PlatformIO setup</A>) and reach for a page below
+        for its API, defaults and build flags. Everything lives in <Code>namespace freeink</Code>; the
         legacy type names (<Code>EInkDisplay</Code> and friends) are preserved by the compatibility shim.
       </Lead>
 
