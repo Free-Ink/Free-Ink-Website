@@ -17,10 +17,10 @@ export default function LibrariesOverview() {
   return (
     <>
       <Lead>
-        The SDK is a set of self-contained libraries, each its own PlatformIO dependency. Add the ones
-        your device needs (<A href="/docs/installation">PlatformIO setup</A>) and reach for a page below
-        for its API, defaults and build flags. Everything lives in <Code>namespace freeink</Code>; the
-        legacy type names (<Code>EInkDisplay</Code> and friends) are preserved by the compatibility shim.
+        The SDK is a set of self-contained libraries, each its own PlatformIO dependency — add the ones
+        your device needs (<A href="/docs/installation">PlatformIO setup</A>). Everything lives in{' '}
+        <Code>namespace freeink</Code>; the legacy type names (<Code>EInkDisplay</Code> and friends) are
+        preserved by the compatibility shim.
       </Lead>
 
       <P>
