@@ -29,10 +29,11 @@ export default function Devices() {
         head={['Device', 'MCU', 'Controller', 'Panel', 'Status']}
         rows={[
           ['Xteink X4', 'ESP32-C3', 'SSD1677', '800×480 B/W + 4-level gray', <Status key="s" full>full</Status>],
-          ['Xteink X3', 'ESP32-C3', 'UC8253', '792×528 B/W + 4-level gray', <Status key="s" full>full · runtime-selected</Status>],
+          ['Xteink X3', 'ESP32-C3', 'UC8253', '792×528 B/W + 4-level gray, BQ27220 I²C gauge', <Status key="s" full>full · runtime-selected</Status>],
           ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD', <Status key="s" full>full</Status>],
-          ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 color', <Status key="s">display driver stub</Status>],
-          ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s">stub · touch + frontlight done</Status>],
+          ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color', <Status key="s" full>full · native + M5GFX backend</Status>],
+          ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s">touch + frontlight done · display driver scaffold</Status>],
+          ['LilyGo T5 S3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '960×540 16-gray, GT911 touch, backlight, I²C gauge', <Status key="s" full>full · via LovyanGFX</Status>],
         ]}
       />
       <P>
@@ -48,6 +49,16 @@ export default function Devices() {
         <A href="/docs/build-composition">Build composition</A>. Its panel orientation is set in the
         board profile rather than at compile time, so an upside-down PCB just sets{' '}
         <Code>ROTATE_180</Code> and the driver mirrors in hardware.
+      </P>
+      <P>
+        The <strong>LilyGo T5 S3</strong> is a different display class: its ED047TC1 is a raw 960×540
+        16-gray parallel EPD with no on-glass controller, so FreeInk drives it through{' '}
+        <strong>LovyanGFX's <Code>Panel_EPD</Code></strong> (bundled in <Code>m5stack/M5GFX</Code>)
+        rather than emitting raw SPI. The <Code>LgfxEpdDriver</Code> reports{' '}
+        <Code>usesExternalBus()</Code> and holds an 8-bit grayscale canvas in PSRAM; the B/W and 16-gray
+        paths both push that sprite at the requested waveform. The <Code>BoardConfig::LILYGO_T5S3</Code>{' '}
+        profile carries its geometry, GT911 touch, PWM backlight and BQ27220/BQ25896 I²C battery gauge.
+        See <A href="/docs/adding-a-device">Adding a device</A> for the external-library driver pattern.
       </P>
 
       <H2>M5Stack PaperColor refresh behavior</H2>
@@ -87,9 +98,9 @@ export default function Devices() {
       <P>
         The InputManager exposes <Code>hasTouch</Code> / <Code>isTouchPressed</Code> /{' '}
         <Code>wasTouchPressed</Code> / <Code>wasTouchReleased</Code> / <Code>getTouchPoint</Code>;
-        coordinates are delivered raw-panel-oriented and the app owns rotation. A LilyGo T5 S3 Pro Lite
-        GT911 touch config (<Code>BoardConfig::LILYGO_T5_PRO_GT911</Code>) is ready to drop into a
-        LilyGo profile once that board's display driver lands. See the{' '}
+        coordinates are delivered raw-panel-oriented and the app owns rotation. The LilyGo T5 S3
+        profile uses the GT911 config (<Code>BoardConfig::LILYGO_T5_PRO_GT911</Code>) alongside its
+        raw-parallel <Code>LgfxEpdDriver</Code>. See the{' '}
         <A href="/docs/lib-input">InputManager reference</A>.
       </P>
     </>

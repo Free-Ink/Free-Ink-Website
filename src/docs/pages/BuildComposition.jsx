@@ -27,7 +27,8 @@ export default function BuildComposition() {
           [<Code key="c">-DFREEINK_DEVICE_DELINK</Code>, 'de-link (S3, SSD1677 + frontlight)'],
           [<Code key="d">-DFREEINK_DEVICE_M5</Code>, 'M5 PaperColor (S3, ED2208 + color)'],
           [<Code key="e">-DFREEINK_DEVICE_MURPHY</Code>, 'Murphy M3 (S3, UC8253 + touch + frontlight)'],
-          [<em key="f">(none)</em>, <>defaults from the legacy <Code>-DBOARD_*</Code> macro, else X3 + X4</>],
+          [<Code key="g">-DFREEINK_DEVICE_LILYGO</Code>, 'LilyGo T5 S3 (S3, ED047TC1 raw-parallel EPD via LovyanGFX)'],
+          [<em key="f">(none)</em>, <><strong>compile error</strong> — a build must select at least one device</>],
         ]}
       />
       <P>
@@ -63,16 +64,20 @@ export default function BuildComposition() {
         head={['Flag', 'Effect']}
         rows={[
           [
-            <Code key="a">-DBOARD_DELINK / _M5STACK_PAPERCOLOR / _MURPHY_M3</Code>,
-            <>legacy single-device selection (maps to the matching <Code>FREEINK_DEVICE_*</Code>)</>,
-          ],
-          [
             <Code key="b">-DFREEINK_DISPLAY_FLIPPED</Code>,
             <>(or <Code>-DFLIPPED</Code>) back-compat alias for <Code>BoardProfile.orientation = MIRROR_Y</Code> on SSD1677</>,
           ],
           [
             <Code key="sd">-DFREEINK_SD_SDMMC=1</Code>,
             <>use the native 4-bit SDMMC backend (needs <Code>-DUSE_BLOCK_DEVICE_INTERFACE=1</Code>); auto-on for de-link</>,
+          ],
+          [
+            <Code key="bg">-DFREEINK_BATTERY_I2C_GAUGE=1</Code>,
+            <>compile the I²C fuel-gauge backend (BQ27220/BQ25896); auto-on for X3 and LilyGo. Gauge-vs-ADC is then runtime per profile, so X3 (gauge) + X4 (ADC) coexist in one binary</>,
+          ],
+          [
+            <Code key="m5">-DFREEINK_M5_OFFICIAL=1</Code>,
+            <>M5 PaperColor only: use the M5Unified + M5GFX vendor backend instead of the native ED2208 driver (M5GFX owns the bus)</>,
           ],
           [
             <Code key="c">-DEINK_DISPLAY_SINGLE_BUFFER_MODE=1</Code>,

@@ -16,8 +16,8 @@ export default function Installation() {
           </A>{' '}
           — a complete, ready-to-copy configuration. It mirrors the toolchain and flags verified
           against the CrossPoint firmware and includes per-device build envs (<Code>xteink</Code>,{' '}
-          <Code>xteink_x4</Code>, <Code>m5paper</Code>, <Code>delink</Code>, <Code>murphy</Code>) wired
-          with the right <Code>FREEINK_DEVICE_*</Code> flags.
+          <Code>xteink_x4</Code>, <Code>m5paper</Code>, <Code>m5paper_official</Code>, <Code>delink</Code>,{' '}
+          <Code>murphy</Code>) wired with the right <Code>FREEINK_DEVICE_*</Code> flags.
         </Li>
         <Li>
           <A href="https://github.com/Free-Ink/freeink-sdk/blob/main/platformio.crosspoint.sample.ini">

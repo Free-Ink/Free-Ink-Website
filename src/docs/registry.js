@@ -91,7 +91,7 @@ export const DOC_GROUPS = [
       {
         slug: 'lib-battery',
         title: 'BatteryMonitor',
-        description: 'ADC battery gauge with optional charge-sense.',
+        description: 'ADC gauge or BQ27220 I²C fuel gauge, one API.',
         Content: BatteryMonitor,
       },
       {

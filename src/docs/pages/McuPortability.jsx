@@ -5,7 +5,7 @@ export default function McuPortability() {
     <>
       <Lead>
         The FreeInk SDK is MCU-agnostic: every library compiles cleanly on both ESP32-C3 (X3/X4) and
-        ESP32-S3 (de-link, M5, Murphy). Pins, geometry, waveforms, SD transport and orientation all
+        ESP32-S3 (de-link, M5, Murphy, LilyGo T5 S3). Pins, geometry, waveforms, SD transport and orientation all
         come from <Code>BoardConfig::ACTIVE</Code> or per-driver config, so the SDK never hardcodes a
         chip.
       </Lead>

@@ -14,6 +14,7 @@ export default function PowerManager() {
       <ApiTable
         rows={[
           ['armPowerButtonWakeup() → bool', 'Arm wake-on-power-button (SoC-correct source + active pin/polarity). False if the board has no power pin.'],
+          ['armWakeOnPins(uint64_t gpioMask, bool wakeLow = true)', 'Arm wake on an arbitrary set of GPIOs (a touch INT, a second button, an IO-expander INT) using the SoC-correct source. Pins must be RTC-capable on ext1 (Xtensa) parts.'],
           ['waitForPowerButtonRelease()', 'Poll the power GPIO until released, so sleep isn’t cancelled by a still-held press.'],
           ['deepSleep()', 'Isolate floating GPIOs, then enter deep sleep. Does not return (chip resets on wake).'],
           ['deepSleepUntilPowerButton()', 'Convenience: wait for release, arm wakeup, then deep sleep.'],

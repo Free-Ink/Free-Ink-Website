@@ -64,16 +64,19 @@ export default function AddingADevice() {
       <H2>Devices backed by external libraries</H2>
       <P>
         A <Code>PanelDriver</Code> doesn't have to emit raw SPI — it can wrap a third-party display
-        library. Some panels are best driven by an existing library (e.g. the LilyGo T5 S3 Pro and M5
-        Paper S3 use <A href="https://github.com/tonywestonuk/EPD_Painter">EPD_Painter</A>; GT911 touch
-        boards use <Code>SensorLib</Code>). FreeInk pulls these in <strong>per device</strong>, so builds
+        library. Some panels need this: a raw-parallel EPD with no on-glass controller (e.g. the LilyGo
+        T5 S3's ED047TC1) is driven by <strong>LovyanGFX's <Code>Panel_EPD</Code></strong> (bundled in{' '}
+        <Code>m5stack/M5GFX</Code>). FreeInk ships exactly that as <Code>LgfxEpdDriver</Code>{' '}
+        (<Code>usesExternalBus()</Code>), and the M5 PaperColor's optional <Code>M5OfficialDriver</Code>{' '}
+        wraps M5GFX the same way. FreeInk pulls these libraries in <strong>per device</strong>, so builds
         that don't use them stay lean:
       </P>
       <Ol>
         <Li>
-          Put the external <Code>#include</Code> and driver code inside the device's{' '}
-          <Code>#if FREEINK_DEVICE_&lt;NAME&gt;</Code> guard. PlatformIO's LDF (chain mode) only links
-          the external library when that device's code actually compiles — other devices are unaffected.
+          Put the external <Code>#include</Code> and driver code inside the driver's{' '}
+          <Code>#if FREEINK_DRIVER_&lt;NAME&gt;</Code> guard (the flag the registry derives from the
+          device — e.g. <Code>FREEINK_DRIVER_LGFX_EPD</Code>). PlatformIO's LDF (chain mode) only links
+          the external library when that driver actually compiles — other devices are unaffected.
         </Li>
         <Li>
           Add the external library to that device's env <Code>lib_deps</Code> in your{' '}
@@ -88,7 +91,12 @@ export default function AddingADevice() {
       </Ol>
       <P>
         This keeps the SDK's display surface uniform (<Code>EInkDisplay</Code> everywhere) while letting
-        each device bring whatever rendering stack it needs.
+        each device bring whatever rendering stack it needs. The LilyGo T5 S3 is the worked example — its{' '}
+        <A href="https://github.com/Free-Ink/freeink-sdk/blob/main/docs/lilygo-t5s3-support.md">
+          support doc
+        </A>{' '}
+        covers the board-injected <Code>LgfxEpdConfig</Code> + power hooks and the remaining
+        board-support gaps.
       </P>
     </>
   )
