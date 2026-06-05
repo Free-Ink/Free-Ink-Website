@@ -7,6 +7,7 @@ import Hardware from '../components/Hardware.jsx'
 import Manifesto from '../components/Manifesto.jsx'
 import Stats from '../components/Stats.jsx'
 import Community from '../components/Community.jsx'
+import GetInTouch from '../components/GetInTouch.jsx'
 import Footer from '../components/Footer.jsx'
 
 export default function HomePage() {
@@ -22,6 +23,7 @@ export default function HomePage() {
         <Manifesto />
         <Stats />
         <Community />
+        <GetInTouch />
       </main>
       <Footer />
     </>

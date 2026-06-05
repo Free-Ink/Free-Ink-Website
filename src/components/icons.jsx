@@ -28,6 +28,21 @@ function Micro({ children, className = 'size-4' }) {
 
 /* ---- Feature / section icons (24px outline) ---- */
 
+export const EnvelopeIcon = (p) => (
+  <Outline {...p}>
+    <path d="M2.25 6.75A1.5 1.5 0 0 1 3.75 5.25h16.5a1.5 1.5 0 0 1 1.5 1.5v10.5a1.5 1.5 0 0 1-1.5 1.5H3.75a1.5 1.5 0 0 1-1.5-1.5V6.75Z" />
+    <path d="m3 7 9 6 9-6" />
+  </Outline>
+)
+
+export const LifebuoyIcon = (p) => (
+  <Outline {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="3.75" />
+    <path d="m9.35 9.35-3.3-3.3M14.65 9.35l3.3-3.3M9.35 14.65l-3.3 3.3M14.65 14.65l3.3 3.3" />
+  </Outline>
+)
+
 export const CpuChipIcon = (p) => (
   <Outline {...p}>
     <path d="M8.25 3v1.5M12 3v1.5M15.75 3v1.5M8.25 19.5V21M12 19.5V21M15.75 19.5V21M3 8.25H4.5M3 12h1.5M3 15.75H4.5M19.5 8.25H21M19.5 12H21M19.5 15.75H21" />
