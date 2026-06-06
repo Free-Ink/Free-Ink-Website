@@ -32,7 +32,7 @@ export default function Devices() {
           ['Xteink X3', 'ESP32-C3', 'UC8253', '792×528 B/W + 4-level gray, BQ27220 I²C gauge', <Status key="s" full>full · runtime-selected</Status>],
           ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD', <Status key="s" full>full</Status>],
           ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color', <Status key="s" full>full · native + M5GFX backend</Status>],
-          ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s">touch + frontlight done · display driver scaffold</Status>],
+          ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s" full>full</Status>],
           ['LilyGo T5 S3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '960×540 16-gray, GT911 touch, backlight, I²C gauge', <Status key="s" full>full · via LovyanGFX</Status>],
         ]}
       />
@@ -59,6 +59,14 @@ export default function Devices() {
         paths both push that sprite at the requested waveform. The <Code>BoardConfig::LILYGO_T5S3</Code>{' '}
         profile carries its geometry, GT911 touch, PWM backlight and BQ27220/BQ25896 I²C battery gauge.
         See <A href="/docs/adding-a-device">Adding a device</A> for the external-library driver pattern.
+      </P>
+      <P>
+        The <strong>Murphy M3</strong> (CrowPanel 3.7″) pairs its UC8253 with a 90° hardware rotation:
+        the controller is a 240×416 portrait panel held landscape, so the facade owns a 416×240
+        framebuffer and the <Code>Uc8253MurphyDriver</Code> rotates each plane into controller RAM on
+        write. It loads dual waveform banks — a full 3-phase (ghost-clearing) LUT and a
+        destination-drive-only fast LUT — and promotes a fast refresh to a full one every few refreshes
+        to keep ghosting in check. CHSC6x touch and a PWM frontlight round out the board.
       </P>
 
       <H2>M5Stack PaperColor refresh behavior</H2>
@@ -93,6 +101,7 @@ export default function Devices() {
         </Li>
         <Li>
           <strong>GT911</strong> (LilyGo) — polled, raw register reads plus the reset/address dance.
+          Its capacitive home key is surfaced via <Code>wasHomeKeyPressed()</Code>.
         </Li>
       </Ul>
       <P>

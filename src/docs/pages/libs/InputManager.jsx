@@ -33,6 +33,7 @@ export default function InputManager() {
           ['getTouchPoint() → TouchPoint{ valid, x, y }', 'Current touch point.'],
           ['isTouchPressed()', 'Level: touched now.'],
           ['wasTouchPressed() / wasTouchReleased()', 'Edge: touch down / up.'],
+          ['wasHomeKeyPressed()', 'Edge: GT911 capacitive home key pressed (status bit 0x10). Always false on controllers without one.'],
         ]}
       />
     </>
