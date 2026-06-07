@@ -166,6 +166,16 @@ export const CheckIcon = (p) => (
   </Micro>
 )
 
+export const SearchIcon = (p) => (
+  <Micro {...p}>
+    <path
+      fillRule="evenodd"
+      d="M6.5 2a4.5 4.5 0 1 0 2.717 8.09l2.846 2.847a.75.75 0 1 0 1.061-1.06l-2.846-2.847A4.5 4.5 0 0 0 6.5 2ZM3.5 6.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0Z"
+      clipRule="evenodd"
+    />
+  </Micro>
+)
+
 export const ArrowRightIcon = (p) => (
   <Micro {...p}>
     <path
