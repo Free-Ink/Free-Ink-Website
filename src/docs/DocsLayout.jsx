@@ -1,13 +1,34 @@
-import { useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import { Logo } from '../components/Brand.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
 import GitHubMenu from '../components/GitHubMenu.jsx'
-import { ArrowRightIcon } from '../components/icons.jsx'
+import { ArrowRightIcon, SearchIcon } from '../components/icons.jsx'
 import DocsSidebar from './DocsSidebar.jsx'
+
+// Loaded on first open so the search UI stays out of the initial docs bundle.
+const SearchDialog = lazy(() => import('./SearchDialog.jsx'))
 
 export default function DocsLayout() {
   const [open, setOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  // ⌘K / Ctrl-K opens search from anywhere in the docs.
+  useEffect(() => {
+    function onKeyDown(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  const openSearch = () => {
+    setOpen(false)
+    setSearchOpen(true)
+  }
 
   return (
     <div className="min-h-dvh">
@@ -39,6 +60,18 @@ export default function DocsLayout() {
           </div>
 
           <div className="flex items-center gap-x-2 sm:gap-x-3">
+            <button
+              type="button"
+              onClick={openSearch}
+              className="inline-flex items-center gap-x-2 rounded-md py-1.5 pr-2 pl-2.5 text-sm text-stone-500 ring-1 ring-stone-300 transition hover:text-stone-900 sm:w-56 dark:text-stone-400 dark:ring-white/15 dark:hover:text-white"
+              aria-label="Search documentation"
+            >
+              <SearchIcon className="size-4 shrink-0" />
+              <span className="hidden sm:inline">Search…</span>
+              <kbd className="ml-auto hidden rounded border border-stone-300 px-1.5 py-0.5 font-mono text-[0.65rem] text-stone-400 sm:block dark:border-white/15">
+                ⌘K
+              </kbd>
+            </button>
             <Link
               to="/"
               className="hidden items-center gap-x-1.5 text-sm font-medium text-stone-600 transition hover:text-stone-900 sm:inline-flex dark:text-stone-300 dark:hover:text-white"
@@ -55,7 +88,7 @@ export default function DocsLayout() {
       <div className="mx-auto flex max-w-screen-2xl px-4 sm:px-6 lg:px-8">
         {/* Desktop sidebar */}
         <aside className="sticky top-[3.75rem] hidden h-[calc(100dvh-3.75rem)] w-64 shrink-0 overflow-y-auto py-10 pr-6 lg:block">
-          <DocsSidebar />
+          <DocsSidebar onOpenSearch={openSearch} />
         </aside>
 
         {/* Mobile drawer */}
@@ -67,7 +100,7 @@ export default function DocsLayout() {
               aria-hidden="true"
             />
             <div className="absolute top-[3.75rem] bottom-0 left-0 w-72 overflow-y-auto border-r border-stone-200 bg-stone-50 p-6 dark:border-white/10 dark:bg-stone-950">
-              <DocsSidebar onNavigate={() => setOpen(false)} />
+              <DocsSidebar onNavigate={() => setOpen(false)} onOpenSearch={openSearch} />
             </div>
           </div>
         )}
@@ -76,6 +109,12 @@ export default function DocsLayout() {
           <Outlet />
         </main>
       </div>
+
+      {searchOpen && (
+        <Suspense fallback={null}>
+          <SearchDialog onClose={() => setSearchOpen(false)} />
+        </Suspense>
+      )}
     </div>
   )
 }

@@ -1,0 +1,21 @@
+# Cloudflare Pages configuration.
+#
+# Pages reads this on git-connected builds to attach the Functions bindings used
+# by functions/api/search.js. The static site is built by `npm run build` into
+# ./dist; Pages serves that plus the functions/ directory.
+
+name = "free-ink-website"
+compatibility_date = "2026-06-06"
+pages_build_output_dir = "dist"
+
+# Workers AI — query embeddings.
+[ai]
+binding = "AI"
+
+# Vectorize — the docs vector index (see scripts/index-docs.mjs).
+# remote = true lets `wrangler pages dev` reach the real index (Vectorize has no
+# local simulator); production Pages bindings are always remote regardless.
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "freeink-docs"
+remote = true

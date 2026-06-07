@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ArrowRightIcon } from '../components/icons.jsx'
 import { getDocNeighbors } from './registry.js'
 
@@ -8,6 +8,7 @@ import { getDocNeighbors } from './registry.js'
 export default function DocPage({ page }) {
   const { Content, title, description, slug } = page
   const { prev, next } = getDocNeighbors(slug)
+  const { hash } = useLocation()
 
   // Keep the document title in sync for bookmarks / history.
   useEffect(() => {
@@ -16,6 +17,19 @@ export default function DocPage({ page }) {
       document.title = 'Free Ink · An open ecosystem for e-readers'
     }
   }, [title])
+
+  // Scroll to a heading anchor (e.g. when arriving from search); otherwise reset
+  // to the top when the page changes.
+  useEffect(() => {
+    if (hash) {
+      const el = document.getElementById(decodeURIComponent(hash.slice(1)))
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        return
+      }
+    }
+    window.scrollTo(0, 0)
+  }, [slug, hash])
 
   return (
     <article className="py-10 lg:py-14">

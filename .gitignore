@@ -5,6 +5,10 @@ node_modules
 dist
 dist-ssr
 
+# cloudflare / search index build scratch
+.wrangler
+.tmp-index
+
 # local env files & secrets
 .env
 .env.*
