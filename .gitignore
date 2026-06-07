@@ -21,3 +21,12 @@ yarn-error.log*
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
+
+# search index build scratch
+.tmp-index

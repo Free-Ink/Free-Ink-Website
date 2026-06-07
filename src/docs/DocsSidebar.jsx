@@ -1,11 +1,23 @@
 import { NavLink } from 'react-router-dom'
+import { SearchIcon } from '../components/icons.jsx'
 import { DOC_GROUPS } from './registry.js'
 
 // The persistent docs navigation. Rendered both in the desktop rail and inside
-// the mobile drawer; `onNavigate` lets the drawer close itself on selection.
-export default function DocsSidebar({ onNavigate }) {
+// the mobile drawer; `onNavigate` lets the drawer close itself on selection and
+// `onOpenSearch` opens the ⌘K search dialog.
+export default function DocsSidebar({ onNavigate, onOpenSearch }) {
   return (
     <nav className="space-y-8">
+      {onOpenSearch && (
+        <button
+          type="button"
+          onClick={onOpenSearch}
+          className="flex w-full items-center gap-x-2 rounded-md py-1.5 pr-2 pl-2.5 text-sm text-stone-500 ring-1 ring-stone-300 transition hover:text-stone-900 lg:hidden dark:text-stone-400 dark:ring-white/15 dark:hover:text-white"
+        >
+          <SearchIcon className="size-4 shrink-0" />
+          Search…
+        </button>
+      )}
       {DOC_GROUPS.map((group) => (
         <div key={group.title}>
           <p className="font-mono text-xs font-medium tracking-wide text-stone-400 uppercase dark:text-stone-500">
