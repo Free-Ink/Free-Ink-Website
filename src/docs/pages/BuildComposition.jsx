@@ -86,6 +86,10 @@ export default function BuildComposition() {
             'single framebuffer (uses controller RAM as the previous frame)',
           ],
           [
+            <Code key="fb">-DFREEINK_FB_PSRAM=1</Code>,
+            <>place the facade framebuffer(s) in PSRAM heap (<Code>MALLOC_CAP_SPIRAM</Code>, allocated in <Code>begin()</Code>) instead of static DRAM <Code>.bss</Code>; auto-on for M5Paper, off everywhere else. Needs <Code>-DBOARD_HAS_PSRAM</Code></>,
+          ],
+          [
             <Code key="d">-DFREEINK_NET_WOLFSSL=1</Code>,
             <>enable the wolfSSL TLS 1.3 transport in <Code>SecureNet</Code></>,
           ],
@@ -98,6 +102,17 @@ export default function BuildComposition() {
         <Code>MIRROR_Y</Code> or <Code>ROTATE_180</Code>. The SSD1677 driver applies it in hardware
         (mirrorX via RAM column addressing, mirrorY via gate scan). 90° / 270° need a software
         transpose and are a follow-up. See <A href="/docs/adding-a-device">Adding a device</A>.
+      </P>
+
+      <P>
+        <strong>Framebuffer placement.</strong> The facade's framebuffer(s) sit in static DRAM{' '}
+        <Code>.bss</Code> by default — fastest, and the panel sizes fit comfortably on the C3/S3 parts
+        (the largest, 960×540, is ~63 KB). M5Paper v1.1 is the exception: the classic ESP32 shares its
+        ~300 KB of DRAM with the IDF/WiFi stacks, so that 63 KB framebuffer overflows internal RAM.{' '}
+        <Code>FREEINK_FB_PSRAM</Code> defaults on there and heap-allocates the framebuffer in PSRAM
+        once, in <Code>begin()</Code>, with a DRAM fallback. DRAM is faster than cache-backed PSRAM and
+        the buffer is touched heavily during composition, so it stays off elsewhere — but any DRAM-tight
+        build (e.g. a feature-heavy LilyGo T5 S3) can opt in with <Code>-DFREEINK_FB_PSRAM=1</Code>.
       </P>
 
       <Callout title="One binary, two devices">
