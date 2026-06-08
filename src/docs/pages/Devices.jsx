@@ -81,7 +81,10 @@ export default function Devices() {
         IT8951's 4-bpp image buffer on the fly, refreshes with the controller's native{' '}
         <Code>GC16</Code> / <Code>DU</Code> / <Code>A2</Code> waveform modes, and auto-rotates the
         landscape framebuffer onto the portrait panel. GT911 touch and a GPIO35 ADC battery read
-        complete the board.
+        complete the board. Its only physical buttons are a 3-position rotary wheel: the two sides map
+        to <Code>BTN_UP</Code> / <Code>BTN_DOWN</Code> for page navigation and the push is{' '}
+        <Code>BTN_CONFIRM</Code>, which doubles as the power/wake button (it sits on an RTC GPIO, so it
+        drives the <Code>ext1</Code> deep-sleep wakeup). Back/Left/Right come from the touch panel.
       </P>
 
       <H2>M5Stack PaperColor refresh behavior</H2>
