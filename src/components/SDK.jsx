@@ -48,8 +48,10 @@ const DEVICES = [
   { name: 'Xteink X4', mcu: 'ESP32-C3', controller: 'SSD1677', panel: '800×480 B/W + 4-level gray', status: 'full' },
   { name: 'Xteink X3', mcu: 'ESP32-C3', controller: 'UC8253', panel: '792×528 B/W + 4-level gray', status: 'full' },
   { name: 'de-link', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + gray, frontlight', status: 'full' },
-  { name: 'M5Stack PaperColor', mcu: 'ESP32-S3', controller: 'ED2208', panel: '400×600 color', status: 'wip' },
-  { name: 'Murphy M3', mcu: 'ESP32-S3', controller: 'UC8253', panel: '240×416 B/W, touch + frontlight', status: 'wip' },
+  { name: 'M5Stack PaperColor', mcu: 'ESP32-S3', controller: 'ED2208', panel: '400×600 Spectra-6 color', status: 'full' },
+  { name: 'Murphy M3', mcu: 'ESP32-S3', controller: 'UC8253', panel: '240×416 B/W, touch + frontlight', status: 'full' },
+  { name: 'LilyGo T5 S3', mcu: 'ESP32-S3', controller: 'ED047TC1', panel: '960×540 16-gray, touch, I²C gauge', status: 'full' },
+  { name: 'M5Paper v1.1', mcu: 'ESP32 (classic)', controller: 'IT8951E', panel: '540×960 16-gray, GT911 touch', status: 'full' },
 ]
 
 function StatusBadge({ status }) {
