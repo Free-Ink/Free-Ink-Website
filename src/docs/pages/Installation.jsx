@@ -17,7 +17,8 @@ export default function Installation() {
           — a complete, ready-to-copy configuration. It mirrors the toolchain and flags verified
           against the CrossPoint firmware and includes per-device build envs (<Code>xteink</Code>,{' '}
           <Code>xteink_x4</Code>, <Code>m5paper</Code>, <Code>m5paper_official</Code>, <Code>delink</Code>,{' '}
-          <Code>murphy</Code>) wired with the right <Code>FREEINK_DEVICE_*</Code> flags.
+          <Code>murphy</Code>, <Code>m5paper_v11</Code>) wired with the right{' '}
+          <Code>FREEINK_DEVICE_*</Code> flags.
         </Li>
         <Li>
           <A href="https://github.com/Free-Ink/freeink-sdk/blob/main/platformio.crosspoint.sample.ini">
@@ -57,6 +58,21 @@ export default function Installation() {
       <P>
         builds the X3 + X4 ESP32-C3 binary against this SDK with <strong>no source changes</strong> —
         the compat shim preserves every include path and class name.
+      </P>
+
+      <H2>Arduino startup linker workaround</H2>
+      <P>
+        If a CrossPoint local override hits a final-link error for undefined <Code>app_main</Code> and{' '}
+        <Code>loopTaskHandle</Code>, add the Arduino startup object to that env's{' '}
+        <Code>build_flags</Code>:
+      </P>
+      <CodeBlock lang="platformio.ini">{`-Wl,.pio/build/default/FrameworkArduino/main.cpp.o`}</CodeBlock>
+      <P>
+        This is a PlatformIO/pioarduino archive-order quirk: Arduino's startup symbols live in{' '}
+        <Code>FrameworkArduino/main.cpp.o</Code>, and some local env overrides don't pull that member
+        from <Code>libFrameworkArduino.a</Code> before ESP-IDF asks for <Code>app_main</Code>. Change{' '}
+        <Code>default</Code> in the path if your env name differs. The CrossPoint sample includes the
+        same note.
       </P>
 
       <Callout title="Picking devices">

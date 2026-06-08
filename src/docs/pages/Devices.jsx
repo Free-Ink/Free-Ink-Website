@@ -34,13 +34,17 @@ export default function Devices() {
           ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color', <Status key="s" full>full · native + M5GFX backend</Status>],
           ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s" full>full</Status>],
           ['LilyGo T5 S3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '960×540 16-gray, GT911 touch, backlight, I²C gauge', <Status key="s" full>full · via LovyanGFX</Status>],
+          ['M5Paper v1.1', 'ESP32 (classic)', 'IT8951E', '540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery', <Status key="s" full>full · hand-rolled IT8951</Status>],
         ]}
       />
       <P>
         X3 and X4 share the ESP32-C3 and a pinout, so a single firmware binary drives both — it carries
         both board profiles (<Code>XTEINK_X4</Code> and <Code>XTEINK_X3</Code>) and picks one at runtime
         via <Code>setDisplayX3()</Code>, which swaps the active profile and driver. Distinct-MCU boards
-        (S3) build their own binary, selected with a board macro.
+        build their own binary, selected with a board macro. A build targets exactly one of{' '}
+        <strong>three MCU families</strong> — ESP32-C3 (X3/X4), ESP32-S3 (de-link, PaperColor, Murphy,
+        LilyGo) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects mixing families
+        at compile time.
       </P>
       <P>
         de-link reuses the X4's SSD1677 panel on an ESP32-S3, adding a warm/cool frontlight and{' '}
@@ -67,6 +71,17 @@ export default function Devices() {
         write. It loads dual waveform banks — a full 3-phase (ghost-clearing) LUT and a
         destination-drive-only fast LUT — and promotes a fast refresh to a full one every few refreshes
         to keep ghosting in check. CHSC6x touch and a PWM frontlight round out the board.
+      </P>
+      <P>
+        The <strong>M5Paper v1.1</strong> is FreeInk's first <strong>classic ESP32</strong> target — a
+        third MCU family alongside the C3 and S3 boards. Its 540×960 16-gray ED047TC1 sits behind an
+        on-glass <strong>IT8951E</strong> controller, so FreeInk drives it with a <strong>hand-rolled
+        IT8951 driver</strong> (<Code>It8951Driver</Code>) that owns its own SPI bus
+        (<Code>usesExternalBus()</Code>). It loads frames by packing the 1-bpp framebuffer into the
+        IT8951's 4-bpp image buffer on the fly, refreshes with the controller's native{' '}
+        <Code>GC16</Code> / <Code>DU</Code> / <Code>A2</Code> waveform modes, and auto-rotates the
+        landscape framebuffer onto the portrait panel. GT911 touch and a GPIO35 ADC battery read
+        complete the board.
       </P>
 
       <H2>M5Stack PaperColor refresh behavior</H2>
@@ -100,16 +115,16 @@ export default function Devices() {
           <strong>CHSC6x</strong> (Murphy M3) — IRQ-driven, ported from the upstream driver.
         </Li>
         <Li>
-          <strong>GT911</strong> (LilyGo) — polled, raw register reads plus the reset/address dance.
-          Its capacitive home key is surfaced via <Code>wasHomeKeyPressed()</Code>.
+          <strong>GT911</strong> (LilyGo T5 S3 and M5Paper v1.1) — polled, raw register reads plus the
+          reset/address dance. Its capacitive home key is surfaced via <Code>wasHomeKeyPressed()</Code>.
         </Li>
       </Ul>
       <P>
         The InputManager exposes <Code>hasTouch</Code> / <Code>isTouchPressed</Code> /{' '}
         <Code>wasTouchPressed</Code> / <Code>wasTouchReleased</Code> / <Code>getTouchPoint</Code>;
-        coordinates are delivered raw-panel-oriented and the app owns rotation. The LilyGo T5 S3
-        profile uses the GT911 config (<Code>BoardConfig::LILYGO_T5_PRO_GT911</Code>) alongside its
-        raw-parallel <Code>LgfxEpdDriver</Code>. See the{' '}
+        coordinates are delivered raw-panel-oriented and the app owns rotation. The GT911 boards set
+        their <Code>TouchConfig</Code> in the board profile (e.g.{' '}
+        <Code>BoardConfig::LILYGO_T5_PRO_GT911</Code>). See the{' '}
         <A href="/docs/lib-input">InputManager reference</A>.
       </P>
     </>

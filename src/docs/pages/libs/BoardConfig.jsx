@@ -14,12 +14,12 @@ export default function BoardConfig() {
         rows={[
           ['ACTIVE', 'The runtime-active BoardProfile (defaults to DEFAULT_DEVICE).'],
           ['selectDevice(Board which) → bool', 'Set ACTIVE to a compiled-in device; false if not included.'],
-          ['XTEINK_X4, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3', 'Built-in board profiles.'],
+          ['XTEINK_X4, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, LILYGO_T5S3, M5PAPER_V11', 'Built-in board profiles.'],
           ['BoardProfile.orientation', 'Panel mount transform — NO_FLIP / MIRROR_X / MIRROR_Y / ROTATE_180 (applied in hardware by SSD1677).'],
           ['BoardProfile.sdmmc', 'SdmmcPins for 4-bit SDMMC boards; busWidth 0 = use SPI/SdFat.'],
           ['hasTouch() / hasPwmFrontlight() / hasAudio()', 'Capability queries for the active board.'],
-          ['isDeLink() / isMurphyM3() / isM5StackPaperColor()', 'Identity queries.'],
-          ['LILYGO_T5_PRO_GT911', 'Ready-made GT911 touch config for a future LilyGo profile.'],
+          ['isDeLink() / isMurphyM3() / isM5StackPaperColor() / isM5PaperV11()', 'Identity queries.'],
+          ['LILYGO_T5_PRO_GT911', 'Ready-made GT911 touch config (used by the LilyGo T5 S3 profile).'],
         ]}
       />
 

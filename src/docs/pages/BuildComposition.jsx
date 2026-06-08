@@ -13,8 +13,8 @@ export default function BuildComposition() {
       <P>
         <Code>-DFREEINK_DEVICE_&lt;NAME&gt;</Code> declares which hardware the binary supports. Each
         device pulls in its panel driver, adds its board profile to the runtime registry, and turns on
-        its default capabilities. You can compose any set that shares an MCU — a C3-vs-S3 mix is a
-        compile error.
+        its default capabilities. You can compose any set that shares an MCU family — a build targets
+        exactly one of ESP32-C3, ESP32-S3 or classic ESP32, and mixing families is a compile error.
       </P>
       <Table
         head={['Pass', 'Result']}
@@ -28,6 +28,7 @@ export default function BuildComposition() {
           [<Code key="d">-DFREEINK_DEVICE_M5</Code>, 'M5 PaperColor (S3, ED2208 + color)'],
           [<Code key="e">-DFREEINK_DEVICE_MURPHY</Code>, 'Murphy M3 (S3, UC8253 + touch + frontlight)'],
           [<Code key="g">-DFREEINK_DEVICE_LILYGO</Code>, 'LilyGo T5 S3 (S3, ED047TC1 raw-parallel EPD via LovyanGFX)'],
+          [<Code key="h">-DFREEINK_DEVICE_M5PAPER</Code>, 'M5Paper v1.1 (classic ESP32, IT8951E + GT911 touch)'],
           [<em key="f">(none)</em>, <><strong>compile error</strong> — a build must select at least one device</>],
         ]}
       />
@@ -38,8 +39,9 @@ export default function BuildComposition() {
         consumer (e.g. CrossPoint's I2C fingerprint).
       </P>
       <P>
-        Every SDK library compiles cleanly on <strong>both</strong> ESP32-C3 and ESP32-S3 — only a
-        consumer's own layer can block a multi-MCU build by hardcoding chip-specific code. See{' '}
+        Every SDK library compiles cleanly on <strong>all three</strong> MCU families — ESP32-C3,
+        ESP32-S3 and the classic ESP32 — so only a consumer's own layer can block a multi-MCU build by
+        hardcoding chip-specific code. See{' '}
         <A href="/docs/mcu-portability">MCU portability</A>.
       </P>
 

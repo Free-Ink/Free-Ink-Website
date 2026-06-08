@@ -15,10 +15,13 @@ export default function Architecture() {
                     PanelDriver  (interface)
               ┌───────────┼───────────────┬───────────────┐
         Ssd1677Driver  Uc8253X3Driver  Ed2208M5Driver  Uc8253MurphyDriver
-         (X4/de-link)     (X3)          (M5, stub)       (Murphy, stub)
-                          │  all share
+         (X4/de-link)     (X3)            (M5)            (Murphy)
+                          │  native controllers share
                           ▼
-                       EpdBus  (SPI/GPIO framing, BUSY polarity, reset, mirror)`}</CodeBlock>
+                       EpdBus  (SPI/GPIO framing, BUSY polarity, reset, mirror)
+
+  External-bus drivers (M5OfficialDriver, LgfxEpdDriver/LilyGo, It8951Driver/M5Paper)
+  own their own bus and report usesExternalBus(), so the facade leaves EpdBus down.`}</CodeBlock>
 
       <H2>FreeInkDisplay — the facade</H2>
       <P>
