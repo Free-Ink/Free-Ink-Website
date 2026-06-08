@@ -78,10 +78,14 @@ export default function Devices() {
         on-glass <strong>IT8951E</strong> controller, so FreeInk drives it with a <strong>hand-rolled
         IT8951 driver</strong> (<Code>It8951Driver</Code>) that owns its own SPI bus
         (<Code>usesExternalBus()</Code>). It loads frames by packing the 1-bpp framebuffer into the
-        IT8951's 4-bpp image buffer on the fly, refreshes with the controller's native{' '}
-        <Code>GC16</Code> / <Code>DU</Code> / <Code>A2</Code> waveform modes, and auto-rotates the
-        landscape framebuffer onto the portrait panel. GT911 touch and a GPIO35 ADC battery read
-        complete the board. Its only physical buttons are a 3-position rotary wheel: the two sides map
+        IT8951's 4-bpp image buffer on the fly and auto-rotates the landscape framebuffer onto the
+        portrait panel. It drives the controller's native waveform modes — <Code>GC16</Code> for a full
+        clearing refresh, <Code>DU</Code> for fast B/W page turns, and <Code>DU4</Code> for 4-level
+        grayscale updates without a full-area flash — and the full anti-aliased grayscale path runs here
+        too, reconstructing the base plus LSB/MSB planes into the IT8951's native 16-level format. A
+        configurable <Code>ghostClearInterval</Code> periodically promotes a differential (DU/DU4)
+        refresh to a GC16 clear, so residue doesn't accumulate during navigation without any firmware
+        intervention. GT911 touch and a GPIO35 ADC battery read complete the board. Its only physical buttons are a 3-position rotary wheel: the two sides map
         to <Code>BTN_UP</Code> / <Code>BTN_DOWN</Code> for page navigation and the push is{' '}
         <Code>BTN_CONFIRM</Code>, which doubles as the power/wake button (it sits on an RTC GPIO, so it
         drives the <Code>ext1</Code> deep-sleep wakeup). Back/Left/Right come from the touch panel.
