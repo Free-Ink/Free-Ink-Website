@@ -163,7 +163,11 @@ freeink::ui::Frame<32> ui(target, device, input, interactions);
         panel space. Per-element rotation (side-bezel button hints) rides on{' '}
         <Code>TextStyle.rotation</Code> for labels and the <Code>rotation</Code> parameter of{' '}
         <Code>DrawTarget::bitmap()</Code> for icons (<Code>CW90</Code>, <Code>R180</Code>,{' '}
-        <Code>CCW90</Code>). Smaller displays scale through <strong>layout, not transforms</strong> —
+        <Code>CCW90</Code>). Touch follows along: orientation mapping is SDK-owned, so{' '}
+        <Code>touchToLogical()</Code> converts normalized panel-native portrait coordinates into the
+        logical frame for any orientation (with <Code>flipX</Code> / <Code>flipY</Code> for mirrored
+        panel mounting, a per-board property), and no app re-derives the transform by hand. Smaller
+        displays scale through <strong>layout, not transforms</strong> —
         rects and flex splits adapt, themes override sizes per device, and font slots bind smaller font
         ids, since fractional glyph scaling produces mush on a 1-bit panel. Bitmaps do scale: every{' '}
         <Code>BitmapMode</Code> (Center, Stretch, Contain, Cover, Tile, TileX, TileY) runs through a
@@ -184,7 +188,7 @@ freeink::ui::Frame<32> ui(target, device, input, interactions);
           ],
           [
             <Code key="b">FreeInkUIInputManager.h</Code>,
-            <>Builds the per-frame <Code>InputSnapshot</Code> from the SDK's <A href="/docs/lib-input">InputManager</A> via <Code>snapshotFrom(inputManager)</Code>. <Code>ButtonBindings</Code> overrides the default UP/DOWN→focus, LEFT/RIGHT→prev/next, CONFIRM/BACK mapping per board.</>,
+            <>Builds the per-frame <Code>InputSnapshot</Code> from the SDK's <A href="/docs/lib-input">InputManager</A> via <Code>snapshotFrom(inputManager)</Code>. <Code>ButtonBindings</Code> overrides the default UP/DOWN→focus, LEFT/RIGHT→prev/next, CONFIRM/BACK mapping per board. An orientation-aware <Code>snapshotFrom(input, device, flipX, flipY)</Code> overload returns taps already mapped to the logical frame.</>,
           ],
         ]}
       />
