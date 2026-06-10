@@ -11,6 +11,7 @@ const LIBS = [
   { slug: 'lib-power', name: 'PowerManager', blurb: 'Portable deep-sleep wake-on-power-button.' },
   { slug: 'networking', name: 'SecureNet', blurb: 'Opt-in wolfSSL TLS 1.3 transport.' },
   { slug: 'lib-board', name: 'BoardConfig', blurb: 'Board profiles and the runtime-active device.' },
+  { slug: 'lib-ui', name: 'FreeInkUI', blurb: 'Optional immediate-mode UI framework for e-paper.' },
 ]
 
 export default function LibrariesOverview() {

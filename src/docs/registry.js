@@ -18,6 +18,7 @@ import Frontlight from './pages/libs/Frontlight.jsx'
 import PowerManager from './pages/libs/PowerManager.jsx'
 import Networking from './pages/Networking.jsx'
 import BoardConfig from './pages/libs/BoardConfig.jsx'
+import FreeInkUI from './pages/libs/FreeInkUI.jsx'
 import RepositoryLayout from './pages/RepositoryLayout.jsx'
 
 export const DOC_GROUPS = [
@@ -123,6 +124,12 @@ export const DOC_GROUPS = [
         title: 'BoardConfig',
         description: 'Board profiles and the runtime-active device.',
         Content: BoardConfig,
+      },
+      {
+        slug: 'lib-ui',
+        title: 'FreeInkUI',
+        description: 'Optional immediate-mode UI framework for e-paper.',
+        Content: FreeInkUI,
       },
     ],
   },

@@ -16,7 +16,8 @@ export default function RepositoryLayout() {
   hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)
   hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
   hardware/FrontlightManager/  PWM frontlight (de-link)
-  network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)`}</CodeBlock>
+  network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)
+  ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)`}</CodeBlock>
 
       <P>
         The display package holds the facade (<Code>FreeInkDisplay</Code>), the <Code>EInkDisplay</Code>{' '}

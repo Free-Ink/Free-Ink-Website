@@ -50,17 +50,21 @@ export default function Overview() {
 
       <H2>Credit &amp; lineage</H2>
       <P>
-        FreeInk is an independent, clean-room reorganization <strong>based on</strong> the work of the
-        OpenX4 E-Paper Community SDK (<Code>open-x4-epaper/community-sdk</Code>, MIT) and its
-        contributors — in particular CidVonHighwind for the original <Code>EInkDisplay</Code> driver
-        and the X3/X4 waveform work, and the community device ports. The register sequences and
-        waveform LUTs for the SSD1677 and UC8253 panels are derived from that project.
+        FreeInk is an MIT-licensed <strong>re-architecture derived from</strong> the OpenX4 E-Paper
+        Community SDK (<Code>open-x4-epaper/community-sdk</Code>, MIT) and its contributors — in
+        particular CidVonHighwind for the original <Code>EInkDisplay</Code> driver and the X3/X4
+        waveform work, and the community device ports. The register sequences and waveform LUTs for
+        the SSD1677 and UC8253 panels are <strong>carried over and adapted</strong> from that project,
+        not reverse-engineered independently, so the community's panel tuning is preserved.
       </P>
       <P>
-        FreeInk is <strong>not a fork</strong> and has no build-time or runtime dependency on the
-        upstream repository — it has its own history and its own architecture. Where the upstream
-        interleaved every device in one monolithic driver, FreeInk splits each controller into a
-        standalone, compile-time-selectable driver behind a stable facade. Full attribution lives in{' '}
+        What FreeInk changes is the <strong>structure</strong>, not the panel work: where the upstream
+        interleaves every device in one monolithic driver, FreeInk splits each controller into a
+        standalone, compile-time-selectable driver behind a stable facade, with per-device behavior
+        supplied as injectable config. It is <strong>not a fork</strong> and has no build-time or
+        runtime dependency on the upstream — but the inherited waveforms are the upstream's, and the
+        re-architecture itself is comparatively new code that has had less multi-person field testing
+        than the upstream. Full attribution lives in{' '}
         <A href="https://github.com/Free-Ink/freeink-sdk/blob/main/NOTICE">NOTICE</A>.
       </P>
 
