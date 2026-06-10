@@ -96,7 +96,7 @@ if (auto event = ui.finish()) {
           [<Code key="g">metricCard / progressBar</Code>, 'Statistics value/label cells and horizontal bar charts (minFill keeps tiny values visible).'],
           [<Code key="h">batteryIndicator</Code>, 'Battery glyph; triangle-built lightning bolt while charging, or an app-supplied icon.'],
           [<Code key="i">header / gestureBar</Code>, 'Section headers and button-hint bars.'],
-          [<Code key="j">coverCarousel</Code>, 'Prev/center/next cover slots with selection chrome and tap/swipe/button routing; the app renders cover art into the returned rects.'],
+          [<Code key="j">coverCarousel</Code>, 'Lays out a prev/center/next cover row (distinct center/side sizing, optional wrap at the edges) with selection chrome and tap/swipe/prev-next routing; returns slots[3] and the app renders cover art into each slot.content rect, so image decoding and frame caching stay app-owned.'],
         ]}
       />
 
