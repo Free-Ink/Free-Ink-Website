@@ -15,6 +15,7 @@ import InputManager from './pages/libs/InputManager.jsx'
 import BatteryMonitor from './pages/libs/BatteryMonitor.jsx'
 import SdCard from './pages/libs/SdCard.jsx'
 import Frontlight from './pages/libs/Frontlight.jsx'
+import AudioManager from './pages/libs/AudioManager.jsx'
 import PowerManager from './pages/libs/PowerManager.jsx'
 import Networking from './pages/Networking.jsx'
 import BoardConfig from './pages/libs/BoardConfig.jsx'
@@ -106,6 +107,12 @@ export const DOC_GROUPS = [
         title: 'FrontlightManager',
         description: 'PWM frontlight with warm/cool control.',
         Content: Frontlight,
+      },
+      {
+        slug: 'lib-audio',
+        title: 'AudioManager',
+        description: 'WAV playback through an I2S codec (Murphy M3 ES8388).',
+        Content: AudioManager,
       },
       {
         slug: 'lib-power',

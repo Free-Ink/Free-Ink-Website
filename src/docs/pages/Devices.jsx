@@ -70,7 +70,8 @@ export default function Devices() {
         framebuffer and the <Code>Uc8253MurphyDriver</Code> rotates each plane into controller RAM on
         write. It loads dual waveform banks — a full 3-phase (ghost-clearing) LUT and a
         destination-drive-only fast LUT — and promotes a fast refresh to a full one every few refreshes
-        to keep ghosting in check. CHSC6x touch and a PWM frontlight round out the board.
+        to keep ghosting in check. CHSC6x touch, a PWM frontlight and an ES8388-compatible I2S audio
+        codec (driven by <A href="/docs/lib-audio">AudioManager</A>) round out the board.
       </P>
       <P>
         The <strong>M5Paper v1.1</strong> is FreeInk's first <strong>classic ESP32</strong> target — a

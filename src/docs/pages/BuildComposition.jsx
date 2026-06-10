@@ -56,7 +56,7 @@ export default function BuildComposition() {
           [<Code key="a">FREEINK_CAP_TOUCH</Code>, 'capacitive touch decoder (InputManager)', 'on if a device has touch'],
           [<Code key="b">FREEINK_CAP_FRONTLIGHT</Code>, 'PWM frontlight (FrontlightManager)', 'on if a device has a frontlight'],
           [<Code key="c">FREEINK_CAP_COLOR</Code>, 'color panel code', 'on for M5'],
-          [<Code key="d">FREEINK_CAP_AUDIO</Code>, 'audio output (scaffold)', 'off'],
+          [<Code key="d">FREEINK_CAP_AUDIO</Code>, 'WAV-over-I2S audio (AudioManager)', 'on for Murphy M3'],
           [<Code key="e">FREEINK_CAP_NET_TLS13</Code>, <>wolfSSL TLS 1.3 (≡ <Code>FREEINK_NET_WOLFSSL</Code>)</>, 'off'],
         ]}
       />
