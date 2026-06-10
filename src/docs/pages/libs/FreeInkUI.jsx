@@ -189,6 +189,17 @@ freeink::ui::Frame<32> ui(target, device, input, interactions);
         ]}
       />
       <P>
+        Writing your own <Code>DrawTarget</Code> is small: implement the drawing primitives over your
+        renderer (fills with per-corner radius masks, <Code>line()</Code>, <Code>triangle()</Code>,{' '}
+        <Code>text()</Code>, <Code>bitmap()</Code>). You do <strong>not</strong> have to write text
+        layout — <Code>layoutText()</Code> is an SDK-owned algorithm (greedy word wrap, hard{' '}
+        <Code>\n</Code> breaks, character breaking for over-wide words, ellipsis truncation, alignment
+        and vertical centering) built only on your <Code>measureText</Code>, so a target's{' '}
+        <Code>text()</Code> reduces to drawing the emitted single-line runs. Targets that already have a
+        native bidi/kerning-aware wrapping pipeline (like the <Code>GfxRenderer</Code> adapter) keep
+        using their own.
+      </P>
+      <P>
         So existing fonts, bidi, localization and page rendering stay where they are — FreeInkUI does
         not translate strings (apps pass already-localized, borrowed strings) and large image decoding
         stays app/renderer-owned.
