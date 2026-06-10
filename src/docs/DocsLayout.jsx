@@ -4,6 +4,7 @@ import { Logo } from '../components/Brand.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
 import GitHubMenu from '../components/GitHubMenu.jsx'
 import { ArrowRightIcon, SearchIcon } from '../components/icons.jsx'
+import { SPONSOR_URL } from '../components/sponsor.js'
 import DocsSidebar from './DocsSidebar.jsx'
 
 // Loaded on first open so the search UI stays out of the initial docs bundle.
@@ -79,6 +80,14 @@ export default function DocsLayout() {
               <ArrowRightIcon className="size-3.5 rotate-180" />
               Back to site
             </Link>
+            <a
+              href={SPONSOR_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="hidden items-center justify-center rounded-md bg-flame-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-flame-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600 md:inline-flex"
+            >
+              Sponsor us
+            </a>
             <ThemeToggle />
             <GitHubMenu align="right" className="px-3 py-2" />
           </div>
@@ -100,6 +109,15 @@ export default function DocsLayout() {
               aria-hidden="true"
             />
             <div className="absolute top-[3.75rem] bottom-0 left-0 w-72 overflow-y-auto border-r border-stone-200 bg-stone-50 p-6 dark:border-white/10 dark:bg-stone-950">
+              <a
+                href={SPONSOR_URL}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setOpen(false)}
+                className="mb-6 flex items-center justify-center rounded-md bg-flame-600 px-3 py-2.5 text-base font-semibold text-white shadow-sm hover:bg-flame-700"
+              >
+                Sponsor us
+              </a>
               <DocsSidebar onNavigate={() => setOpen(false)} onOpenSearch={openSearch} />
             </div>
           </div>

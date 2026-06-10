@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Logo } from './Brand.jsx'
 import GitHubMenu from './GitHubMenu.jsx'
 import { SOFTWARE_REPO, HARDWARE_REPO, SDK_REPO } from './repos.js'
+import { SPONSOR_URL } from './sponsor.js'
 
 const SITE = 'https://crosspointreader.com'
 const DISCORD = 'https://discord.gg/y2q7WRnM4P'
@@ -40,6 +41,7 @@ const COLUMNS = [
     links: [
       { name: 'Manifesto', href: '#manifesto' },
       { name: 'SDK docs', href: '/docs', route: true },
+      { name: 'Sponsor us', href: SPONSOR_URL },
       { name: 'Governance', href: `${SOFTWARE_REPO}/blob/master/GOVERNANCE.md` },
       { name: 'License', href: `${SOFTWARE_REPO}/blob/master/LICENSE` },
     ],

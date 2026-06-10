@@ -5,6 +5,7 @@ import ThemeToggle from './ThemeToggle.jsx'
 import { GitHubIcon } from './icons.jsx'
 import GitHubMenu from './GitHubMenu.jsx'
 import { REPOS } from './repos.js'
+import { SPONSOR_URL } from './sponsor.js'
 
 const NAV = [
   { name: 'Firmware', href: '#software' },
@@ -40,6 +41,14 @@ export default function Header() {
         </div>
 
         <div className="hidden items-center gap-x-3 lg:flex">
+          <a
+            href={SPONSOR_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center rounded-md bg-flame-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-flame-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame-600"
+          >
+            Sponsor us
+          </a>
           <ThemeToggle />
           <GitHubMenu align="right" className="px-3 py-2" />
         </div>
@@ -63,6 +72,15 @@ export default function Header() {
       {open && (
         <div className="border-t border-stone-200 lg:hidden dark:border-white/10">
           <div className="space-y-1 px-4 py-4">
+            <a
+              href={SPONSOR_URL}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setOpen(false)}
+              className="mb-3 flex items-center justify-center rounded-md bg-flame-600 px-3 py-2.5 text-base font-semibold text-white shadow-sm hover:bg-flame-700"
+            >
+              Sponsor us
+            </a>
             {NAV.map((item) => {
               const cls =
                 'block rounded-md px-3 py-2.5 text-base font-medium text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-white/5'
