@@ -25,6 +25,7 @@ Hardware-independent C++ firmware SDK for e-paper readers. Source: [github.com/F
 - [SDCardManager](https://freeink.org/docs/lib-sd): SdFat-over-SPI or native 4-bit SDMMC, one API.
 - [FrontlightManager](https://freeink.org/docs/lib-frontlight): PWM frontlight with warm/cool control.
 - [AudioManager](https://freeink.org/docs/lib-audio): WAV playback through an I2S codec (Murphy M3 ES8388, M5 PaperColor ES8311).
+- [LedManager](https://freeink.org/docs/lib-led): Addressable RGB LEDs: color, brightness and non-blocking flashes.
 - [PowerManager](https://freeink.org/docs/lib-power): Portable deep-sleep wake-on-power-button.
 - [SecureNet](https://freeink.org/docs/networking): Opt-in wolfSSL TLS 1.3 transport.
 - [BoardConfig](https://freeink.org/docs/lib-board): Board profiles and the runtime-active device.

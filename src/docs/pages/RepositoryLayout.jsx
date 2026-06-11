@@ -16,7 +16,8 @@ export default function RepositoryLayout() {
   hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)
   hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
   hardware/FrontlightManager/  PWM frontlight (de-link)
-  hardware/AudioManager/       WAV-over-I2S audio (Murphy M3 ES8388)
+  hardware/AudioManager/       WAV-over-I2S audio (Murphy M3 ES8388, M5 ES8311)
+  hardware/LedManager/         addressable RGB LEDs (M5 PaperColor, WS2812-compatible)
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)
   ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)`}</CodeBlock>
 

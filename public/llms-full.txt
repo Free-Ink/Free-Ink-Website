@@ -267,6 +267,7 @@ Every SDK library compiles cleanly on **all three** MCU families — ESP32-C3, E
 | `FREEINK_CAP_FRONTLIGHT` | PWM frontlight (FrontlightManager) | on if a device has a frontlight |
 | `FREEINK_CAP_COLOR` | color panel code | on for M5 |
 | `FREEINK_CAP_AUDIO` | WAV-over-I2S audio (AudioManager: ES8388 / ES8311 codec) | on for Murphy M3 and M5 PaperColor |
+| `FREEINK_CAP_LED` | addressable RGB LEDs (LedManager) | on for M5 PaperColor |
 | `FREEINK_CAP_NET_TLS13` | wolfSSL TLS 1.3 (≡ `FREEINK_NET_WOLFSSL`) | off |
 
 ## Other flags
@@ -307,7 +308,7 @@ FreeInk ships drivers and board profiles for the following devices. Related boar
 | Xteink X4 | ESP32-C3 | SSD1677 | 800×480 B/W + 4-level gray | full |
 | Xteink X3 | ESP32-C3 | UC8253 | 792×528 B/W + 4-level gray, BQ27220 I²C gauge | full · runtime-selected |
 | de-link | ESP32-S3 | SSD1677 | 800×480 B/W + gray, frontlight, SDMMC SD | full |
-| M5Stack PaperColor | ESP32-S3 | ED2208 | 400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp) | full · native + M5GFX backend |
+| M5Stack PaperColor | ESP32-S3 | ED2208 | 400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs | full · native + M5GFX backend |
 | Murphy M3 | ESP32-S3 | UC8253 | 240×416 B/W, CHSC6x touch, PWM frontlight | full |
 | LilyGo T5 S3 | ESP32-S3 | ED047TC1 (raw parallel) | 960×540 16-gray, GT911 touch, backlight, I²C gauge | full · via LovyanGFX |
 | M5Paper v1.1 | ESP32 (classic) | IT8951E | 540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery | full · hand-rolled IT8951 |
@@ -324,7 +325,11 @@ The **M5Paper v1.1** is FreeInk's first **classic ESP32** target — a third MCU
 
 ## M5Stack PaperColor refresh behavior
 
-The PaperColor is natively a **six-color (Spectra 6), full-refresh** panel: a complete OTP waveform takes **~15 s** — unusable for reading. To get reading-compatible speeds, FreeInk's native driver **interrupts the refresh at ~340 ms**. The colors settle in order with white settling last, so cutting off early leaves logical-white pixels **yellow** rather than settled white — and FreeInk's default light "paper" UI embraces that, drawing dark text on the warm yellow ground for a fast, high-contrast monochrome image. Passing `-DFREEINK_M5_DARK_FAST_REFRESH=1` instead selects the upstream community-SDK "dark hack" (logical white written as the controller's black), giving an inverted black-background UI on fast refreshes. Either way, a true white background / full color requires running the complete waveform (`requestCompleteWaveformNextRefresh()`), which settles truthfully. The board also carries a **built-in speaker** — an ES8311 codec into an AW8737A amp, driven by [AudioManager](https://freeink.org/docs/lib-audio).
+The PaperColor is natively a **six-color (Spectra 6), full-refresh** panel: a complete OTP waveform takes **~15 s** — unusable for reading. To get reading-compatible speeds, FreeInk's native driver **interrupts the refresh at ~340 ms**. The colors settle in order with white settling last, so cutting off early leaves logical-white pixels **yellow** rather than settled white — and FreeInk's default light "paper" UI embraces that, drawing dark text on the warm yellow ground for a fast, high-contrast monochrome image. Passing `-DFREEINK_M5_DARK_FAST_REFRESH=1` instead selects the upstream community-SDK "dark hack" (logical white written as the controller's black), giving an inverted black-background UI on fast refreshes. Either way, a true white background / full color requires running the complete waveform (`requestCompleteWaveformNextRefresh()`), which settles truthfully. The board also carries a **built-in speaker** — an ES8311 codec into an AW8737A amp, driven by [AudioManager](https://freeink.org/docs/lib-audio) — and **two RGB LEDs** via [LedManager](https://freeink.org/docs/lib-led).
+
+> **DC balance — schedule periodic complete waveforms**
+>
+> E-paper waveforms are DC-balanced only when they run to completion; the interrupted path leaves a small net charge on every pixel each refresh. That charge **accumulates** — over hours of interrupted-only operation the panel visibly darkens and color intensity fades (the driver's every-6th-refresh full-panel pass is itself interrupted, so it clears geometric ghosting, not charge). Consumers must periodically promote a refresh to the complete waveform via `requestCompleteWaveformNextRefresh()` — roughly hourly works well — timed around their own UX, since the complete waveform blocks for ~15 s.
 
 Two backends are selectable for this device:
 
@@ -352,7 +357,7 @@ The SDK is a set of self-contained libraries, each its own PlatformIO dependency
 
 Signatures track the SDK headers under `libs/`. For exact types and defaults, read the header for each library — see [Repository layout](https://freeink.org/docs/repository-layout).
 
-> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC gauge or BQ27220 I²C fuel gauge, one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)
+> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC gauge or BQ27220 I²C fuel gauge, one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)
 
 ---
 
@@ -582,6 +587,59 @@ Two control codecs are supported, selected per board by `AudioConfig::output` �
 | `I2sEs8311 — M5 PaperColor` | ES8311 mono codec at I²C 0x18 on the system bus, mirroring M5Unified’s speaker bring-up. The codec derives its MCLK from BCLK (no MCLK line), so one init is sample-rate-agnostic. A separate AW8737A speaker amp (ampEnable / SPK_EN) is raised only while playing. |
 
 See [BoardConfig](https://freeink.org/docs/lib-board) for the `AudioConfig` fields (including `ampEnable`) and [Build composition](https://freeink.org/docs/build-composition) for the capability flag.
+
+---
+
+# LedManager
+
+> Addressable RGB LEDs: color, brightness and non-blocking flashes.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-led
+
+Color, brightness and non-blocking flashes for a board's addressable RGB LEDs, described by `BoardConfig::ACTIVE.leds`. Gated by `FREEINK_CAP_LED`, which defaults on for the M5 PaperColor (two GRB LEDs on GPIO21) and off elsewhere; inert on boards with no LEDs.
+
+The API is deliberately small and independent of M5Unified. The driver **bit-bangs a WS2812 / SK6812-compatible 800 kHz signal** directly on the data GPIO with cycle-accurate timing (`T0H` ≈ 350 ns, `T1H` ≈ 700 ns, 1.25 µs bit cell), so interrupts are masked for only ~60 µs per `show()` with two LEDs. Colors are stored unscaled; `setBrightness()` applies a global scale at write time.
+
+## API
+
+| Member | Description |
+| --- | --- |
+| `begin() → bool` | Enable the LED power rail (if any) and initialize the data line. False when the active board has no LEDs. |
+| `present() → bool` | Whether the active board has an LED path. |
+| `count() → uint8_t` | Number of LEDs on the active board. |
+| `setBrightness(uint8_t) / brightness()` | Global 0–255 brightness scale applied at write time; stored colors stay full-range. |
+| `setColor(uint8_t index, LedColor) / setAll(LedColor)` | Set one LED, or every LED, in the buffer (call show() to push). |
+| `color(uint8_t index) → LedColor` | Read back a buffered color. |
+| `show() / clear()` | Push the buffer to the physical LEDs; clear() blanks the buffer and shows it. |
+| `flash(LedColor, count=1, onMs=120, offMs=120)` | Start a non-blocking blink sequence (saves the current colors first). |
+| `update()` | Advance any in-progress flash; call once per loop(). |
+| `isFlashing() / stopFlash(bool restore=true)` | Query/stop a flash; restore returns the saved colors. |
+
+## LedColor
+
+A plain `{ r, g, b }` struct (0–255 each) with named helpers — `LedColor::red()`, `green()`, `blue()`, `white()`, `yellow()`, `cyan()`, `magenta()`, `black()` — plus `LedColor::rgb(r, g, b)`. The board profile's `colorOrder` (GRB or RGB) decides the wire order, so app code always works in RGB.
+
+## Non-blocking flashes
+
+`flash()` snapshots the current colors, blinks the requested color a number of times, then restores the snapshot on completion (or on `stopFlash(true)`). Nothing blocks — `update()` advances the sequence each loop, so a status blink rides alongside normal rendering.
+
+```cpp
+LedManager leds;
+if (leds.begin()) {            // false if the board has no LEDs
+  leds.setBrightness(64);
+  leds.setAll(LedColor::blue());
+  leds.show();
+  leds.flash(LedColor::green(), 3);   // blink 3× then restore blue
+}
+
+void loop() {
+  leds.update();              // advances non-blocking flashes
+}
+```
+
+## Wiring and power
+
+The board profile carries the data pin, LED count, color order and a `pmicRgbPower` flag. On the PaperColor the two LEDs sit behind the **M5PM1 PMIC's RGB LDO rail**, so `begin()` enables that rail over the internal I²C bus before driving any data. It also waits out the LEDs' power-on reset and issues a **double clear** — a frame sent too early mis-latches into a stuck (typically green, the first GRB byte) pixel, and the second clear one latch period later makes init reliable on marginal silicon. See [BoardConfig](https://freeink.org/docs/lib-board) for the `LedConfig` fields and [Build composition](https://freeink.org/docs/build-composition) for the capability flag.
 
 ---
 
@@ -919,7 +977,8 @@ libs/
   hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)
   hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
   hardware/FrontlightManager/  PWM frontlight (de-link)
-  hardware/AudioManager/       WAV-over-I2S audio (Murphy M3 ES8388)
+  hardware/AudioManager/       WAV-over-I2S audio (Murphy M3 ES8388, M5 ES8311)
+  hardware/LedManager/         addressable RGB LEDs (M5 PaperColor, WS2812-compatible)
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)
   ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)
 ```

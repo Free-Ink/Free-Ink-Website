@@ -1,4 +1,4 @@
-import { Lead, P, H2, A, Ul, Li, Code, Table } from '../prose.jsx'
+import { Lead, P, H2, A, Ul, Li, Code, Table, Callout } from '../prose.jsx'
 
 function Status({ full, children }) {
   return (
@@ -31,7 +31,7 @@ export default function Devices() {
           ['Xteink X4', 'ESP32-C3', 'SSD1677', '800×480 B/W + 4-level gray', <Status key="s" full>full</Status>],
           ['Xteink X3', 'ESP32-C3', 'UC8253', '792×528 B/W + 4-level gray, BQ27220 I²C gauge', <Status key="s" full>full · runtime-selected</Status>],
           ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD', <Status key="s" full>full</Status>],
-          ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp)', <Status key="s" full>full · native + M5GFX backend</Status>],
+          ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs', <Status key="s" full>full · native + M5GFX backend</Status>],
           ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s" full>full</Status>],
           ['LilyGo T5 S3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '960×540 16-gray, GT911 touch, backlight, I²C gauge', <Status key="s" full>full · via LovyanGFX</Status>],
           ['M5Paper v1.1', 'ESP32 (classic)', 'IT8951E', '540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery', <Status key="s" full>full · hand-rolled IT8951</Status>],
@@ -105,8 +105,20 @@ export default function Devices() {
         black-background UI on fast refreshes. Either way, a true white background / full color requires
         running the complete waveform (<Code>requestCompleteWaveformNextRefresh()</Code>), which settles
         truthfully. The board also carries a <strong>built-in speaker</strong> — an ES8311 codec into an
-        AW8737A amp, driven by <A href="/docs/lib-audio">AudioManager</A>.
+        AW8737A amp, driven by <A href="/docs/lib-audio">AudioManager</A> — and{' '}
+        <strong>two RGB LEDs</strong> via <A href="/docs/lib-led">LedManager</A>.
       </P>
+      <Callout title="DC balance — schedule periodic complete waveforms" tone="warn">
+        <p>
+          E-paper waveforms are DC-balanced only when they run to completion; the interrupted path
+          leaves a small net charge on every pixel each refresh. That charge <strong>accumulates</strong>{' '}
+          — over hours of interrupted-only operation the panel visibly darkens and color intensity fades
+          (the driver's every-6th-refresh full-panel pass is itself interrupted, so it clears geometric
+          ghosting, not charge). Consumers must periodically promote a refresh to the complete waveform
+          via <Code>requestCompleteWaveformNextRefresh()</Code> — roughly hourly works well — timed
+          around their own UX, since the complete waveform blocks for ~15 s.
+        </p>
+      </Callout>
       <P>Two backends are selectable for this device:</P>
       <Ul>
         <Li>

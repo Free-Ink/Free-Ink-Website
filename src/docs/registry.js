@@ -16,6 +16,7 @@ import BatteryMonitor from './pages/libs/BatteryMonitor.jsx'
 import SdCard from './pages/libs/SdCard.jsx'
 import Frontlight from './pages/libs/Frontlight.jsx'
 import AudioManager from './pages/libs/AudioManager.jsx'
+import LedManager from './pages/libs/LedManager.jsx'
 import PowerManager from './pages/libs/PowerManager.jsx'
 import Networking from './pages/Networking.jsx'
 import BoardConfig from './pages/libs/BoardConfig.jsx'
@@ -113,6 +114,12 @@ export const DOC_GROUPS = [
         title: 'AudioManager',
         description: 'WAV playback through an I2S codec (Murphy M3 ES8388, M5 PaperColor ES8311).',
         Content: AudioManager,
+      },
+      {
+        slug: 'lib-led',
+        title: 'LedManager',
+        description: 'Addressable RGB LEDs: color, brightness and non-blocking flashes.',
+        Content: LedManager,
       },
       {
         slug: 'lib-power',

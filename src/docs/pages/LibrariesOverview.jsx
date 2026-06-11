@@ -9,6 +9,7 @@ const LIBS = [
   { slug: 'lib-sd', name: 'SDCardManager', blurb: 'SdFat-over-SPI or native 4-bit SDMMC, one API.' },
   { slug: 'lib-frontlight', name: 'FrontlightManager', blurb: 'PWM frontlight with warm/cool control.' },
   { slug: 'lib-audio', name: 'AudioManager', blurb: 'WAV playback through an I2S codec (ES8388 / ES8311).' },
+  { slug: 'lib-led', name: 'LedManager', blurb: 'Addressable RGB LEDs: color, brightness, non-blocking flashes.' },
   { slug: 'lib-power', name: 'PowerManager', blurb: 'Portable deep-sleep wake-on-power-button.' },
   { slug: 'networking', name: 'SecureNet', blurb: 'Opt-in wolfSSL TLS 1.3 transport.' },
   { slug: 'lib-board', name: 'BoardConfig', blurb: 'Board profiles and the runtime-active device.' },
