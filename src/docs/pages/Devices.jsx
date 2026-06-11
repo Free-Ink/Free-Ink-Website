@@ -106,7 +106,8 @@ export default function Devices() {
         running the complete waveform (<Code>requestCompleteWaveformNextRefresh()</Code>), which settles
         truthfully. The board also carries a <strong>built-in speaker</strong> — an ES8311 codec into an
         AW8737A amp, driven by <A href="/docs/lib-audio">AudioManager</A> — and{' '}
-        <strong>two RGB LEDs</strong> via <A href="/docs/lib-led">LedManager</A>.
+        <strong>two RGB LEDs</strong> via <A href="/docs/lib-led">LedManager</A>. Its rails, battery
+        charging and LEDs all hang off one PMIC (see below).
       </P>
       <Callout title="DC balance — schedule periodic complete waveforms" tone="warn">
         <p>
@@ -128,6 +129,39 @@ export default function Devices() {
           <strong>M5 official</strong> (<Code>-DFREEINK_M5_OFFICIAL=1</Code>) — wraps M5's own
           M5Unified + M5GFX stack for users who prefer the vendor path (slower, but standard). This
           pulls the M5 libraries only on that env; M5GFX owns the bus (<Code>usesExternalBus()</Code>).
+        </Li>
+      </Ul>
+
+      <H2>Power management (M5PM1)</H2>
+      <P>
+        The PaperColor's rails, battery charging and RGB LEDs all hang off one PMIC — the{' '}
+        <strong>M5PM1</strong> (a PY32L020) on the board's internal I²C bus. Two FreeInk modules drive it
+        (the ED2208 display driver and <A href="/docs/lib-led">LedManager</A>), and they share one
+        physical config register, so the register map, bus init and boot power policy live in a single{' '}
+        <strong>header-only driver</strong> (<Code>M5Pm1.h</Code>) rather than private copies that drift
+        apart. Both libraries pick it up through their existing <Code>BoardConfig</Code> dependency.
+      </P>
+      <P>
+        The PMIC's <Code>PWR_CFG</Code> register <strong>auto-clears on every reset</strong>, so the
+        display driver re-establishes the board's standing power state at each boot:
+      </P>
+      <Ul>
+        <Li>
+          <strong>Battery charging on</strong> (<Code>CHG_EN</Code>) — the PM1 only charges the 1250 mAh
+          cell when this bit is set, and regulates the curve itself (charges only while USB is present,
+          stops at full), so asserting it unconditionally is safe. Without it the battery never tops up
+          over USB.
+        </Li>
+        <Li>
+          <strong>5 V boost off</strong> (<Code>BOOST_EN</Code>) — the Grove/5VINOUT boost is unused on
+          this board.
+        </Li>
+        <Li>
+          <strong>RGB rail off + PM1 NeoPixel engine disabled</strong> — the 3.3 V LDO that feeds the
+          WS2812 chain (<Code>LDO_EN</Code>) is owned by LedManager and raised lazily only while an LED
+          is lit; the PM1's own built-in NeoPixel engine is switched off so the ESP owns the chain.
+          Left on, that engine renders its own status pixel — the <strong>stuck green LED</strong> seen
+          at boot — even while the ESP sleeps, and the state survives a USB reflash.
         </Li>
       </Ul>
 

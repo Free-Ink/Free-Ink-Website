@@ -24,7 +24,7 @@ export default function AudioManager() {
           ['begin() → bool', 'Bring up the codec + enable pin. False when the active board has no audio path (treat audio as absent).'],
           ['present() → bool', 'Whether the active board has an audio path.'],
           ['setVolume(uint8_t percent)', 'Output volume 0–100, mapped onto the active codec’s volume registers (ES8388 OUT1/OUT2 pairs, or the single ES8311 DAC register).'],
-          ['play(const WavSource& source, bool loop) → bool', 'Start WAV playback (16-bit PCM, mono/stereo, 8–48 kHz). Stops any current playback first; unmutes the DAC and raises the speaker amp; loop replays until stop().'],
+          ['play(const WavSource& source, bool loop) → bool', 'Start WAV playback (16-bit PCM, mono/stereo, 8–48 kHz). Stops any current playback first; unmutes the DAC, primes the I2S line with silence, then raises the speaker amp (priming first avoids an audible amp pop); loop replays until stop().'],
           ['playBuffer(const uint8_t* data, size_t len, bool loop) → bool', 'Convenience: play from a memory buffer (e.g. an embedded default sound).'],
           ['stop() / isPlaying()', 'Stop playback (drops the amp and mutes the DAC so nothing residual reaches the output); query whether the task is streaming.'],
           ['powerDown()', 'Full power-down: stop, drop the speaker amp, and cut the codec rail (ES8388 CHIPPOWER off). begin() restores it.'],

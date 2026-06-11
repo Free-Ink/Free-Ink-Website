@@ -325,7 +325,7 @@ The **M5Paper v1.1** is FreeInk's first **classic ESP32** target — a third MCU
 
 ## M5Stack PaperColor refresh behavior
 
-The PaperColor is natively a **six-color (Spectra 6), full-refresh** panel: a complete OTP waveform takes **~15 s** — unusable for reading. To get reading-compatible speeds, FreeInk's native driver **interrupts the refresh at ~340 ms**. The colors settle in order with white settling last, so cutting off early leaves logical-white pixels **yellow** rather than settled white — and FreeInk's default light "paper" UI embraces that, drawing dark text on the warm yellow ground for a fast, high-contrast monochrome image. Passing `-DFREEINK_M5_DARK_FAST_REFRESH=1` instead selects the upstream community-SDK "dark hack" (logical white written as the controller's black), giving an inverted black-background UI on fast refreshes. Either way, a true white background / full color requires running the complete waveform (`requestCompleteWaveformNextRefresh()`), which settles truthfully. The board also carries a **built-in speaker** — an ES8311 codec into an AW8737A amp, driven by [AudioManager](https://freeink.org/docs/lib-audio) — and **two RGB LEDs** via [LedManager](https://freeink.org/docs/lib-led).
+The PaperColor is natively a **six-color (Spectra 6), full-refresh** panel: a complete OTP waveform takes **~15 s** — unusable for reading. To get reading-compatible speeds, FreeInk's native driver **interrupts the refresh at ~340 ms**. The colors settle in order with white settling last, so cutting off early leaves logical-white pixels **yellow** rather than settled white — and FreeInk's default light "paper" UI embraces that, drawing dark text on the warm yellow ground for a fast, high-contrast monochrome image. Passing `-DFREEINK_M5_DARK_FAST_REFRESH=1` instead selects the upstream community-SDK "dark hack" (logical white written as the controller's black), giving an inverted black-background UI on fast refreshes. Either way, a true white background / full color requires running the complete waveform (`requestCompleteWaveformNextRefresh()`), which settles truthfully. The board also carries a **built-in speaker** — an ES8311 codec into an AW8737A amp, driven by [AudioManager](https://freeink.org/docs/lib-audio) — and **two RGB LEDs** via [LedManager](https://freeink.org/docs/lib-led). Its rails, battery charging and LEDs all hang off one PMIC (see below).
 
 > **DC balance — schedule periodic complete waveforms**
 >
@@ -335,6 +335,16 @@ Two backends are selectable for this device:
 
 - **Native ED2208 (default)** — the fast interrupted-refresh path above.
 - **M5 official** (`-DFREEINK_M5_OFFICIAL=1`) — wraps M5's own M5Unified + M5GFX stack for users who prefer the vendor path (slower, but standard). This pulls the M5 libraries only on that env; M5GFX owns the bus (`usesExternalBus()`).
+
+## Power management (M5PM1)
+
+The PaperColor's rails, battery charging and RGB LEDs all hang off one PMIC — the **M5PM1** (a PY32L020) on the board's internal I²C bus. Two FreeInk modules drive it (the ED2208 display driver and [LedManager](https://freeink.org/docs/lib-led)), and they share one physical config register, so the register map, bus init and boot power policy live in a single **header-only driver** (`M5Pm1.h`) rather than private copies that drift apart. Both libraries pick it up through their existing `BoardConfig` dependency.
+
+The PMIC's `PWR_CFG` register **auto-clears on every reset**, so the display driver re-establishes the board's standing power state at each boot:
+
+- **Battery charging on** (`CHG_EN`) — the PM1 only charges the 1250 mAh cell when this bit is set, and regulates the curve itself (charges only while USB is present, stops at full), so asserting it unconditionally is safe. Without it the battery never tops up over USB.
+- **5 V boost off** (`BOOST_EN`) — the Grove/5VINOUT boost is unused on this board.
+- **RGB rail off + PM1 NeoPixel engine disabled** — the 3.3 V LDO that feeds the WS2812 chain (`LDO_EN`) is owned by LedManager and raised lazily only while an LED is lit; the PM1's own built-in NeoPixel engine is switched off so the ESP owns the chain. Left on, that engine renders its own status pixel — the **stuck green LED** seen at boot — even while the ESP sleeps, and the state survives a USB reflash.
 
 ## Capacitive touch
 
@@ -558,7 +568,7 @@ Playback runs in a dedicated FreeRTOS task, so `play()` returns immediately. Wit
 | `begin() → bool` | Bring up the codec + enable pin. False when the active board has no audio path (treat audio as absent). |
 | `present() → bool` | Whether the active board has an audio path. |
 | `setVolume(uint8_t percent)` | Output volume 0–100, mapped onto the active codec’s volume registers (ES8388 OUT1/OUT2 pairs, or the single ES8311 DAC register). |
-| `play(const WavSource& source, bool loop) → bool` | Start WAV playback (16-bit PCM, mono/stereo, 8–48 kHz). Stops any current playback first; unmutes the DAC and raises the speaker amp; loop replays until stop(). |
+| `play(const WavSource& source, bool loop) → bool` | Start WAV playback (16-bit PCM, mono/stereo, 8–48 kHz). Stops any current playback first; unmutes the DAC, primes the I2S line with silence, then raises the speaker amp (priming first avoids an audible amp pop); loop replays until stop(). |
 | `playBuffer(const uint8_t* data, size_t len, bool loop) → bool` | Convenience: play from a memory buffer (e.g. an embedded default sound). |
 | `stop() / isPlaying()` | Stop playback (drops the amp and mutes the DAC so nothing residual reaches the output); query whether the task is streaming. |
 | `powerDown()` | Full power-down: stop, drop the speaker amp, and cut the codec rail (ES8388 CHIPPOWER off). begin() restores it. |
@@ -598,7 +608,7 @@ Group: Libraries · URL: https://freeink.org/docs/lib-led
 
 Color, brightness and non-blocking flashes for a board's addressable RGB LEDs, described by `BoardConfig::ACTIVE.leds`. Gated by `FREEINK_CAP_LED`, which defaults on for the M5 PaperColor (two GRB LEDs on GPIO21) and off elsewhere; inert on boards with no LEDs.
 
-The API is deliberately small and independent of M5Unified. The driver **bit-bangs a WS2812 / SK6812-compatible 800 kHz signal** directly on the data GPIO with cycle-accurate timing (`T0H` ≈ 350 ns, `T1H` ≈ 700 ns, 1.25 µs bit cell), so interrupts are masked for only ~60 µs per `show()` with two LEDs. Colors are stored unscaled; `setBrightness()` applies a global scale at write time.
+The API is deliberately small and independent of M5Unified. The driver **bit-bangs a WS2812 / SK6812-compatible 800 kHz signal** directly on the data GPIO with cycle-accurate timing (`T0H` ≈ 350 ns, `T1H` ≈ 700 ns, 1.25 µs bit cell), so interrupts are masked for only ~60 µs per `show()` with two LEDs. The timing-critical path runs from `IRAM` over a byte stream computed before interrupts are masked, so cache contention can't corrupt a frame. Colors are stored unscaled; `setBrightness()` applies a global scale at write time.
 
 ## API
 
@@ -639,7 +649,7 @@ void loop() {
 
 ## Wiring and power
 
-The board profile carries the data pin, LED count, color order and a `pmicRgbPower` flag. On the PaperColor the two LEDs sit behind the **M5PM1 PMIC's RGB LDO rail**, so `begin()` enables that rail over the internal I²C bus before driving any data. It also waits out the LEDs' power-on reset and issues a **double clear** — a frame sent too early mis-latches into a stuck (typically green, the first GRB byte) pixel, and the second clear one latch period later makes init reliable on marginal silicon. See [BoardConfig](https://freeink.org/docs/lib-board) for the `LedConfig` fields and [Build composition](https://freeink.org/docs/build-composition) for the capability flag.
+The board profile carries the data pin, LED count, color order and a `pmicRgbPower` flag. On the PaperColor the two LEDs sit behind the **M5PM1 PMIC's 3.3 V RGB LDO rail**, which `LedManager` powers **lazily**: the rail stays off until the first lit frame and drops again once every LED is black, so dark LEDs draw nothing. `begin()` lights nothing — it **evicts the PM1's own NeoPixel engine** (which otherwise drives a status pixel onto the same chain — the classic stuck-green LED — and survives a USB reflash) and forces the rail down. See [BoardConfig](https://freeink.org/docs/lib-board) for the `LedConfig` fields and [Build composition](https://freeink.org/docs/build-composition) for the capability flag.
 
 ---
 

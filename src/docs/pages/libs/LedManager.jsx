@@ -13,8 +13,10 @@ export default function LedManager() {
         The API is deliberately small and independent of M5Unified. The driver <strong>bit-bangs a
         WS2812 / SK6812-compatible 800 kHz signal</strong> directly on the data GPIO with cycle-accurate
         timing (<Code>T0H</Code> ≈ 350 ns, <Code>T1H</Code> ≈ 700 ns, 1.25 µs bit cell), so interrupts
-        are masked for only ~60 µs per <Code>show()</Code> with two LEDs. Colors are stored unscaled;{' '}
-        <Code>setBrightness()</Code> applies a global scale at write time.
+        are masked for only ~60 µs per <Code>show()</Code> with two LEDs. The timing-critical path runs
+        from <Code>IRAM</Code> over a byte stream computed before interrupts are masked, so cache
+        contention can't corrupt a frame. Colors are stored unscaled; <Code>setBrightness()</Code>{' '}
+        applies a global scale at write time.
       </P>
 
       <H2>API</H2>
@@ -65,12 +67,13 @@ void loop() {
       <P>
         The board profile carries the data pin, LED count, color order and a{' '}
         <Code>pmicRgbPower</Code> flag. On the PaperColor the two LEDs sit behind the{' '}
-        <strong>M5PM1 PMIC's RGB LDO rail</strong>, so <Code>begin()</Code> enables that rail over the
-        internal I²C bus before driving any data. It also waits out the LEDs' power-on reset and issues a{' '}
-        <strong>double clear</strong> — a frame sent too early mis-latches into a stuck (typically green,
-        the first GRB byte) pixel, and the second clear one latch period later makes init reliable on
-        marginal silicon. See <A href="/docs/lib-board">BoardConfig</A> for the <Code>LedConfig</Code>{' '}
-        fields and <A href="/docs/build-composition">Build composition</A> for the capability flag.
+        <strong>M5PM1 PMIC's 3.3 V RGB LDO rail</strong>, which <Code>LedManager</Code> powers{' '}
+        <strong>lazily</strong>: the rail stays off until the first lit frame and drops again once every
+        LED is black, so dark LEDs draw nothing. <Code>begin()</Code> lights nothing — it{' '}
+        <strong>evicts the PM1's own NeoPixel engine</strong> (which otherwise drives a status pixel onto
+        the same chain — the classic stuck-green LED — and survives a USB reflash) and forces the rail
+        down. See <A href="/docs/lib-board">BoardConfig</A> for the <Code>LedConfig</Code> fields and{' '}
+        <A href="/docs/build-composition">Build composition</A> for the capability flag.
       </P>
     </>
   )
