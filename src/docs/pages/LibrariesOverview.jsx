@@ -5,7 +5,7 @@ import { Lead, P, A, Code } from '../prose.jsx'
 const LIBS = [
   { slug: 'lib-display', name: 'EInkDisplay', blurb: 'The facade: framebuffer, geometry, refresh modes and grayscale.' },
   { slug: 'lib-input', name: 'InputManager', blurb: 'Buttons plus capacitive touch (CHSC6x, GT911).' },
-  { slug: 'lib-battery', name: 'BatteryMonitor', blurb: 'ADC gauge or BQ27220 I²C fuel gauge, one API.' },
+  { slug: 'lib-battery', name: 'BatteryMonitor', blurb: 'ADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.' },
   { slug: 'lib-sd', name: 'SDCardManager', blurb: 'SdFat-over-SPI or native 4-bit SDMMC, one API.' },
   { slug: 'lib-frontlight', name: 'FrontlightManager', blurb: 'PWM frontlight with warm/cool control.' },
   { slug: 'lib-audio', name: 'AudioManager', blurb: 'WAV playback through an I2S codec (ES8388 / ES8311).' },

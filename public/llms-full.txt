@@ -319,7 +319,7 @@ de-link reuses the X4's SSD1677 panel on an ESP32-S3, adding a warm/cool frontli
 
 The **LilyGo T5 S3** is a different display class: its ED047TC1 is a raw 960×540 16-gray parallel EPD with no on-glass controller, so FreeInk drives it through **LovyanGFX's `Panel_EPD`** (bundled in `m5stack/M5GFX`) rather than emitting raw SPI. The `LgfxEpdDriver` reports `usesExternalBus()` and holds an 8-bit grayscale canvas in PSRAM; the B/W and 16-gray paths both push that sprite at the requested waveform. The `BoardConfig::LILYGO_T5S3` profile carries its geometry, GT911 touch, PWM backlight and BQ27220/BQ25896 I²C battery gauge. See [Adding a device](https://freeink.org/docs/adding-a-device) for the external-library driver pattern.
 
-The **Murphy M3** (CrowPanel 3.7″) pairs its UC8253 with a 90° hardware rotation: the controller is a 240×416 portrait panel held landscape, so the facade owns a 416×240 framebuffer and the `Uc8253MurphyDriver` rotates each plane into controller RAM on write. It loads dual waveform banks — a full 3-phase (ghost-clearing) LUT and a destination-drive-only fast LUT — and promotes a fast refresh to a full one every few refreshes to keep ghosting in check. CHSC6x touch, a PWM frontlight and an ES8388-compatible I2S audio codec (driven by [AudioManager](https://freeink.org/docs/lib-audio)) round out the board.
+The **Murphy M3** (CrowPanel 3.7″) pairs its UC8253 with a 90° hardware rotation: the controller is a 240×416 portrait panel held landscape, so the facade owns a 416×240 framebuffer and the `Uc8253MurphyDriver` rotates each plane into controller RAM on write. It loads dual waveform banks — a full 3-phase (ghost-clearing) LUT and a destination-drive-only fast LUT — and promotes a fast refresh to a full one every few refreshes to keep ghosting in check. CHSC6x touch, a PWM frontlight, an ES8388-compatible I2S audio codec (driven by [AudioManager](https://freeink.org/docs/lib-audio)) and a battery ADC on GPIO9 (read through [BatteryMonitor](https://freeink.org/docs/lib-battery)) round out the board.
 
 The **M5Paper v1.1** is FreeInk's first **classic ESP32** target — a third MCU family alongside the C3 and S3 boards. Its 540×960 16-gray ED047TC1 sits behind an on-glass **IT8951E** controller, so FreeInk drives it with a **hand-rolled IT8951 driver** (`It8951Driver`) that owns its own SPI bus (`usesExternalBus()`). It loads frames by packing the 1-bpp framebuffer into the IT8951's 4-bpp image buffer on the fly and auto-rotates the landscape framebuffer onto the portrait panel. It drives the controller's native waveform modes — `GC16` for a full clearing refresh, `DU` for fast B/W page turns, and `DU4` for 4-level grayscale updates without a full-area flash — and the full anti-aliased grayscale path runs here too, reconstructing the base plus LSB/MSB planes into the IT8951's native 16-level format. A configurable `ghostClearInterval` periodically promotes a differential (DU/DU4) refresh to a GC16 clear, so residue doesn't accumulate during navigation without any firmware intervention. GT911 touch and a GPIO35 ADC battery read complete the board. Its only physical buttons are a 3-position rotary wheel: the two sides map to `BTN_UP` / `BTN_DOWN` for page navigation and the push is `BTN_CONFIRM`, which doubles as the power/wake button (it sits on an RTC GPIO, so it drives the `ext1` deep-sleep wakeup). Back/Left/Right come from the touch panel.
 
@@ -346,6 +346,8 @@ The PMIC's `PWR_CFG` register **auto-clears on every reset**, so the display dri
 - **5 V boost off** (`BOOST_EN`) — the Grove/5VINOUT boost is unused on this board.
 - **RGB rail off + PM1 NeoPixel engine disabled** — the 3.3 V LDO that feeds the WS2812 chain (`LDO_EN`) is owned by LedManager and raised lazily only while an LED is lit; the PM1's own built-in NeoPixel engine is switched off so the ESP owns the chain. Left on, that engine renders its own status pixel — the **stuck green LED** seen at boot — even while the ESP sleeps, and the state survives a USB reflash.
 
+The same PMIC also reports power telemetry, which [BatteryMonitor](https://freeink.org/docs/lib-battery) surfaces (auto-detected, no flag): battery voltage and percentage from `VBAT`, plus external-power presence on the DC input and the bidirectional USB-C rail. It has no charge-phase bit, so charging state stays unknown on this board.
+
 ## Capacitive touch
 
 Touch is implemented for two controllers (gated by `FREEINK_CAP_TOUCH`):
@@ -367,7 +369,7 @@ The SDK is a set of self-contained libraries, each its own PlatformIO dependency
 
 Signatures track the SDK headers under `libs/`. For exact types and defaults, read the header for each library — see [Repository layout](https://freeink.org/docs/repository-layout).
 
-> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC gauge or BQ27220 I²C fuel gauge, one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)
+> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)
 
 ---
 
@@ -482,11 +484,11 @@ Gated by `FREEINK_CAP_TOUCH`; inert on boards without a touch controller. Two co
 
 # BatteryMonitor
 
-> ADC gauge or BQ27220 I²C fuel gauge, one API.
+> ADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.
 
 Group: Libraries · URL: https://freeink.org/docs/lib-battery
 
-Two backends behind one API: an ADC gauge (default) or an I²C fuel gauge.
+Battery state behind one API, across three backends: an ADC gauge (default), an I²C fuel gauge, or the M5PM1 PMIC. The backend is chosen from the board profile, so construction and the public methods are identical everywhere.
 
 ```cpp
 BatteryMonitor(uint8_t adcPin, float dividerMultiplier = 2.0f,
@@ -495,14 +497,31 @@ BatteryMonitor(uint8_t adcPin, float dividerMultiplier = 2.0f,
 
 The **ADC** backend reads a divided LiPo voltage off an ADC pin; an optional charge-status pin (MCP73832 `/STAT`, active-LOW) drives `isCharging()`. The **I²C fuel-gauge** backend (`-DFREEINK_BATTERY_I2C_GAUGE=1`) reads SoC / voltage / charge from a BQ27220 gauge (+ optional BQ25896 charger) and ignores the ADC pin/divider — used by X3 and the LilyGo T5 S3. Config comes from `BoardConfig::ACTIVE.batteryGauge`, and gauge-vs-ADC is chosen at *runtime* (gauge address non-zero), so X3 (gauge) and X4 (ADC) work from one C3 binary.
 
+The **M5PM1** backend is **auto-detected** on the M5 [PaperColor](https://freeink.org/docs/devices) (no flag) — the same PMIC that owns the board's rails also reports battery state over the internal I²C bus. It reads `VBAT` for voltage and percentage, and watches both the DC input rail (`VIN`) and the bidirectional USB-C rail (`5VINOUT`) for external power. The PM1 is a PY32 MCU emulating an I²C slave, so reads are bursts with a 500 µs settle between the pointer write and the data phase (skip it and the slave serves stale samples — e.g. VBAT at 150 mV). It exposes no separate charge-phase bit, so `charging` stays unknown there.
+
+## API
+
 | Member | Description |
 | --- | --- |
+| `readStatus() → Status` | Read every battery field the active board can report, in one call. Per-field validity flags distinguish a valid false/zero from unsupported or failed I/O (see below). |
 | `readPercentage()` | Estimated charge, 0–100. |
-| `readPercentageChecked(uint16_t& out) → bool` | Like readPercentage(), but returns false on a transient I²C-gauge failure and leaves out unchanged (caller keeps its last good value). The ADC path always succeeds. |
-| `readMillivolts()` | Battery voltage in mV. |
-| `readVolts()` | Battery voltage in volts. |
-| `isCharging()` | Charge-sense / charger state. |
+| `readPercentageChecked(uint16_t& out) → bool` | Like readPercentage(), but returns false on a transient I²C-gauge / PMIC failure and leaves out unchanged (caller keeps its last good value). The ADC path always succeeds. |
+| `readMillivolts() / readVolts()` | Battery voltage in mV / volts (ADC paths account for the divider). |
+| `isCharging()` | Charge-sense / charger state (ADC charge-status pin or I²C charger). |
 | `percentageFromMillivolts(mv)` | Static mV → percentage curve. |
+
+## Status
+
+`readStatus()` returns a unified `Status` that spans every backend. Because some boards can't report some fields — and an I²C read can fail transiently — each value carries a `…Known` validity flag, so a valid `false` / `0` is never confused with unsupported or failed I/O. `supported` is `false` when the board profile has no battery telemetry path at all.
+
+| Member | Description |
+| --- | --- |
+| `supported` | The board has a battery-telemetry path. |
+| `percentage / percentageKnown` | Estimated charge 0–100, and whether it was read. |
+| `millivolts / millivoltsKnown` | Battery voltage in mV, and whether it was read. |
+| `charging / chargingKnown` | Active-charge state, and whether it is reportable (unknown on the PM1 — no charge-phase bit). |
+| `externalPower / externalPowerKnown` | Whether a USB/DC supply is present (PM1: VIN or 5VINOUT above threshold, or the PWR_SRC report). |
+| `pm1VinMv / pm1VinOutMv / pm1PowerSource` | Raw M5PM1 diagnostics — DC input mV, USB-C rail mV, and the PWR_SRC field; −1 on non-PM1 boards or failed I/O. |
 
 ---
 

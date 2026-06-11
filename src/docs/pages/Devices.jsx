@@ -70,8 +70,9 @@ export default function Devices() {
         framebuffer and the <Code>Uc8253MurphyDriver</Code> rotates each plane into controller RAM on
         write. It loads dual waveform banks — a full 3-phase (ghost-clearing) LUT and a
         destination-drive-only fast LUT — and promotes a fast refresh to a full one every few refreshes
-        to keep ghosting in check. CHSC6x touch, a PWM frontlight and an ES8388-compatible I2S audio
-        codec (driven by <A href="/docs/lib-audio">AudioManager</A>) round out the board.
+        to keep ghosting in check. CHSC6x touch, a PWM frontlight, an ES8388-compatible I2S audio
+        codec (driven by <A href="/docs/lib-audio">AudioManager</A>) and a battery ADC on GPIO9 (read
+        through <A href="/docs/lib-battery">BatteryMonitor</A>) round out the board.
       </P>
       <P>
         The <strong>M5Paper v1.1</strong> is FreeInk's first <strong>classic ESP32</strong> target — a
@@ -164,6 +165,13 @@ export default function Devices() {
           at boot — even while the ESP sleeps, and the state survives a USB reflash.
         </Li>
       </Ul>
+      <P>
+        The same PMIC also reports power telemetry, which{' '}
+        <A href="/docs/lib-battery">BatteryMonitor</A> surfaces (auto-detected, no flag): battery voltage
+        and percentage from <Code>VBAT</Code>, plus external-power presence on the DC input and the
+        bidirectional USB-C rail. It has no charge-phase bit, so charging state stays unknown on this
+        board.
+      </P>
 
       <H2>Capacitive touch</H2>
       <P>

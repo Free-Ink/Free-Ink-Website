@@ -21,7 +21,7 @@ Hardware-independent C++ firmware SDK for e-paper readers. Source: [github.com/F
 - [Libraries overview](https://freeink.org/docs/api): Reference for the FreeInk libraries: APIs, defaults and build flags.
 - [EInkDisplay](https://freeink.org/docs/lib-display): The display facade: framebuffer, geometry, refresh and grayscale.
 - [InputManager](https://freeink.org/docs/lib-input): Buttons and capacitive touch behind one object.
-- [BatteryMonitor](https://freeink.org/docs/lib-battery): ADC gauge or BQ27220 I²C fuel gauge, one API.
+- [BatteryMonitor](https://freeink.org/docs/lib-battery): ADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.
 - [SDCardManager](https://freeink.org/docs/lib-sd): SdFat-over-SPI or native 4-bit SDMMC, one API.
 - [FrontlightManager](https://freeink.org/docs/lib-frontlight): PWM frontlight with warm/cool control.
 - [AudioManager](https://freeink.org/docs/lib-audio): WAV playback through an I2S codec (Murphy M3 ES8388, M5 PaperColor ES8311).

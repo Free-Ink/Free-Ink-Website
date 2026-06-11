@@ -94,7 +94,7 @@ export const DOC_GROUPS = [
       {
         slug: 'lib-battery',
         title: 'BatteryMonitor',
-        description: 'ADC gauge or BQ27220 I²C fuel gauge, one API.',
+        description: 'ADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.',
         Content: BatteryMonitor,
       },
       {
