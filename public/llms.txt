@@ -1,0 +1,40 @@
+# FreeInk SDK
+
+> FreeInk is an MIT-licensed, hardware-independent C++ SDK for ESP32-class e-paper readers. It hides e-paper controllers, waveforms and board wiring behind injectable interfaces, so one firmware can drive many panels. Libraries are self-contained PlatformIO dependencies you add à la carte; a single binary can carry several boards and pick one at runtime.
+
+Hardware-independent C++ firmware SDK for e-paper readers. Source: [github.com/Free-Ink/freeink-sdk](https://github.com/Free-Ink/freeink-sdk). The full text of every page below is also available as one file: [https://freeink.org/llms-full.txt](https://freeink.org/llms-full.txt).
+
+## Getting started
+
+- [Overview](https://freeink.org/docs/overview): What FreeInk is, why it exists, and how the pieces fit together.
+- [Quickstart](https://freeink.org/docs/quickstart): Drive an e-paper panel with FreeInk in a few minutes.
+- [PlatformIO setup](https://freeink.org/docs/installation): Add the FreeInk libraries to a PlatformIO project.
+
+## Concepts
+
+- [Architecture](https://freeink.org/docs/architecture): The facade, panel drivers, the bus, and board config.
+- [Build composition](https://freeink.org/docs/build-composition): Compose a binary along two axes: devices × capabilities.
+- [Supported devices](https://freeink.org/docs/devices): The device matrix, refresh behavior and touch support.
+
+## Libraries
+
+- [Libraries overview](https://freeink.org/docs/api): Reference for the FreeInk libraries: APIs, defaults and build flags.
+- [EInkDisplay](https://freeink.org/docs/lib-display): The display facade: framebuffer, geometry, refresh and grayscale.
+- [InputManager](https://freeink.org/docs/lib-input): Buttons and capacitive touch behind one object.
+- [BatteryMonitor](https://freeink.org/docs/lib-battery): ADC gauge or BQ27220 I²C fuel gauge, one API.
+- [SDCardManager](https://freeink.org/docs/lib-sd): SdFat-over-SPI or native 4-bit SDMMC, one API.
+- [FrontlightManager](https://freeink.org/docs/lib-frontlight): PWM frontlight with warm/cool control.
+- [AudioManager](https://freeink.org/docs/lib-audio): WAV playback through an I2S codec (Murphy M3 ES8388, M5 PaperColor ES8311).
+- [PowerManager](https://freeink.org/docs/lib-power): Portable deep-sleep wake-on-power-button.
+- [SecureNet](https://freeink.org/docs/networking): Opt-in wolfSSL TLS 1.3 transport.
+- [BoardConfig](https://freeink.org/docs/lib-board): Board profiles and the runtime-active device.
+- [FreeInkUI](https://freeink.org/docs/lib-ui): Optional immediate-mode UI framework for e-paper.
+
+## Guides
+
+- [Adding a device](https://freeink.org/docs/adding-a-device): Bring up a new board: profile, driver config, build env.
+- [MCU portability](https://freeink.org/docs/mcu-portability): Keep a consumer building across ESP32-C3 and ESP32-S3.
+
+## Reference
+
+- [Repository layout](https://freeink.org/docs/repository-layout): Where each library lives in the SDK tree.

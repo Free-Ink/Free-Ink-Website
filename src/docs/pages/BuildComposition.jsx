@@ -56,7 +56,7 @@ export default function BuildComposition() {
           [<Code key="a">FREEINK_CAP_TOUCH</Code>, 'capacitive touch decoder (InputManager)', 'on if a device has touch'],
           [<Code key="b">FREEINK_CAP_FRONTLIGHT</Code>, 'PWM frontlight (FrontlightManager)', 'on if a device has a frontlight'],
           [<Code key="c">FREEINK_CAP_COLOR</Code>, 'color panel code', 'on for M5'],
-          [<Code key="d">FREEINK_CAP_AUDIO</Code>, 'WAV-over-I2S audio (AudioManager)', 'on for Murphy M3'],
+          [<Code key="d">FREEINK_CAP_AUDIO</Code>, 'WAV-over-I2S audio (AudioManager: ES8388 / ES8311 codec)', 'on for Murphy M3 and M5 PaperColor'],
           [<Code key="e">FREEINK_CAP_NET_TLS13</Code>, <>wolfSSL TLS 1.3 (≡ <Code>FREEINK_NET_WOLFSSL</Code>)</>, 'off'],
         ]}
       />
@@ -80,6 +80,10 @@ export default function BuildComposition() {
           [
             <Code key="m5">-DFREEINK_M5_OFFICIAL=1</Code>,
             <>M5 PaperColor only: use the M5Unified + M5GFX vendor backend instead of the native ED2208 driver (M5GFX owns the bus)</>,
+          ],
+          [
+            <Code key="m5dark">-DFREEINK_M5_DARK_FAST_REFRESH=1</Code>,
+            <>M5 PaperColor only: render a dark, inverted UI on fast (interrupted) refreshes — the upstream community-SDK "dark hack" (logical white written as controller black). Default <Code>0</Code> keeps the native light "paper" UI, where the cut-off waveform leaves logical-white pixels yellow. Complete waveforms stay truthful either way</>,
           ],
           [
             <Code key="c">-DEINK_DISPLAY_SINGLE_BUFFER_MODE=1</Code>,

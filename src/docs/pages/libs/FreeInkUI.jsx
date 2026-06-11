@@ -77,6 +77,15 @@ if (auto event = ui.finish()) {
                  freeink::ui::InputFocus |
                  freeink::ui::InputConfirm,
 });`}</CodeBlock>
+      <P>
+        Touch hit areas are declarative and decoupled from the visual rect, composed in one place
+        (<Code>ensureMinTouchRect</Code>): <Code>minTouchSize</Code> center-expands a small target to a
+        comfortable minimum, <Code>ButtonProps.hitPadding</Code> extends a button's tap band per edge so
+        adjacent controls (a stepper's <Code>−</Code> / <Code>+</Code>) get contiguous, non-overlapping
+        bands instead of overlapping centered expansion, and any hit rect within ~12 px of a screen edge
+        snaps to the bezel — eliminating the dead zone between an edge control and the physical border
+        (Fitts's law). The visual rect is unchanged by all three.
+      </P>
 
       <H2>Built-in components</H2>
       <P>

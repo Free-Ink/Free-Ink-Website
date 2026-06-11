@@ -111,7 +111,7 @@ export const DOC_GROUPS = [
       {
         slug: 'lib-audio',
         title: 'AudioManager',
-        description: 'WAV playback through an I2S codec (Murphy M3 ES8388).',
+        description: 'WAV playback through an I2S codec (Murphy M3 ES8388, M5 PaperColor ES8311).',
         Content: AudioManager,
       },
       {
