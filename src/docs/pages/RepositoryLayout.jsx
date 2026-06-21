@@ -9,15 +9,22 @@ export default function RepositoryLayout() {
       </Lead>
 
       <CodeBlock>{`libs/
+  assets/Icons/                freeink::Icon format + vendored Lucide SVGs + generator
   display/FreeInkDisplay/      facade + EInkDisplay shim + per-controller drivers + LUTs
   hardware/BoardConfig/        board profiles & capability descriptors
+  hardware/BoardT5S3/          LilyGo T5 S3 board support (PCA9535 expander, TPS65185 PMIC)
   hardware/InputManager/       buttons + capacitive touch (CHSC6x, GT911)
-  hardware/BatteryMonitor/     ADC battery + optional charge-sense
+  hardware/BatteryMonitor/     ADC / I²C gauge / M5PM1 battery telemetry
   hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)
   hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
   hardware/FrontlightManager/  PWM frontlight (de-link)
   hardware/AudioManager/       WAV-over-I2S audio (Murphy M3 ES8388, M5 ES8311)
   hardware/LedManager/         addressable RGB LEDs (M5 PaperColor, WS2812-compatible)
+  hardware/Buzzer/             LEDC PWM tone buzzer (Sticky, Murphy)
+  hardware/Microphone/         PDM mic capture (Sticky)
+  hardware/Rtc/                PCF8563 real-time clock (Sticky)
+  hardware/EnvironmentSensor/  SHT40 temperature + humidity (Sticky)
+  hardware/Imu/                LSM6DS3TR-C 6-axis IMU (Sticky)
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)
   ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)`}</CodeBlock>
 

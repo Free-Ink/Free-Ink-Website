@@ -6,8 +6,8 @@ export default function Overview() {
       <Lead>
         FreeInk is a hardware-independent SDK for building e-paper reader firmware. It abstracts every
         device-specific detail — display controller, waveforms and LUTs, GPIOs, bus speeds, input
-        style, touch, frontlight and audio — behind small, injectable interfaces, so the firmware
-        calls one generic API and gets device-specific behavior.
+        style, touch, frontlight, audio, LEDs and on-board sensors — behind small, injectable
+        interfaces, so the firmware calls one generic API and gets device-specific behavior.
       </Lead>
 
       <P>

@@ -29,6 +29,7 @@ export default function BuildComposition() {
           [<Code key="e">-DFREEINK_DEVICE_MURPHY</Code>, 'Murphy M3 (S3, UC8253 + touch + frontlight)'],
           [<Code key="g">-DFREEINK_DEVICE_LILYGO</Code>, 'LilyGo T5 S3 (S3, ED047TC1 raw-parallel EPD via LovyanGFX)'],
           [<Code key="h">-DFREEINK_DEVICE_M5PAPER</Code>, 'M5Paper v1.1 (classic ESP32, IT8951E + GT911 touch)'],
+          [<Code key="s">-DFREEINK_DEVICE_STICKY</Code>, 'Sticky (S3, SSD1677 800×480 + GT911 touch + PDM mic + sensor suite)'],
           [<em key="f">(none)</em>, <><strong>compile error</strong> — a build must select at least one device</>],
         ]}
       />
@@ -58,6 +59,11 @@ export default function BuildComposition() {
           [<Code key="c">FREEINK_CAP_COLOR</Code>, 'color panel code', 'on for M5'],
           [<Code key="d">FREEINK_CAP_AUDIO</Code>, 'WAV-over-I2S audio (AudioManager: ES8388 / ES8311 codec)', 'on for Murphy M3 and M5 PaperColor'],
           [<Code key="led">FREEINK_CAP_LED</Code>, 'addressable RGB LEDs (LedManager)', 'on for M5 PaperColor'],
+          [<Code key="buz">FREEINK_CAP_BUZZER</Code>, 'LEDC PWM tone buzzer (Buzzer)', 'on for Sticky and Murphy M3'],
+          [<Code key="mic">FREEINK_CAP_MIC</Code>, 'PDM microphone capture (Microphone)', 'on for Sticky'],
+          [<Code key="rtc">FREEINK_CAP_RTC</Code>, 'PCF8563 real-time clock (Rtc)', 'on for Sticky'],
+          [<Code key="th">FREEINK_CAP_TEMP_HUMIDITY</Code>, 'SHT40 temperature + humidity (EnvironmentSensor)', 'on for Sticky'],
+          [<Code key="imu">FREEINK_CAP_IMU</Code>, 'LSM6DS3TR-C 6-axis IMU (Imu)', 'on for Sticky'],
           [<Code key="e">FREEINK_CAP_NET_TLS13</Code>, <>wolfSSL TLS 1.3 (≡ <Code>FREEINK_NET_WOLFSSL</Code>)</>, 'off'],
         ]}
       />
@@ -76,7 +82,7 @@ export default function BuildComposition() {
           ],
           [
             <Code key="bg">-DFREEINK_BATTERY_I2C_GAUGE=1</Code>,
-            <>compile the I²C fuel-gauge backend (BQ27220/BQ25896); auto-on for X3 and LilyGo. Gauge-vs-ADC is then runtime per profile, so X3 (gauge) + X4 (ADC) coexist in one binary</>,
+            <>compile the I²C fuel-gauge backend (BQ27220/BQ25896); auto-on for X3, LilyGo and Sticky. Gauge-vs-ADC is then runtime per profile, so X3 (gauge) + X4 (ADC) coexist in one binary</>,
           ],
           [
             <Code key="m5">-DFREEINK_M5_OFFICIAL=1</Code>,
@@ -107,6 +113,17 @@ export default function BuildComposition() {
         <Code>MIRROR_Y</Code> or <Code>ROTATE_180</Code>. The SSD1677 driver applies it in hardware
         (mirrorX via RAM column addressing, mirrorY via gate scan). 90° / 270° need a software
         transpose and are a follow-up. See <A href="/docs/adding-a-device">Adding a device</A>.
+      </P>
+
+      <P>
+        <strong>Power-enable rails and the I²C bus are board data too.</strong> A profile can name an
+        active-high <Code>powerEnable</Code> GPIO for the panel (<Code>DisplayPins</Code>), the SD card
+        rail (<Code>SdPins</Code>), the touch controller (<Code>TouchConfig</Code>) or the mic
+        (<Code>MicConfig</Code>); the SDK raises each at <Code>begin()</Code> with a settle delay, and a
+        profile that leaves it unassigned just skips it. On multi-bus SoCs (ESP32-S3), a profile picks{' '}
+        <Code>Wire</Code> vs <Code>Wire1</Code> per peripheral via an <Code>i2cBus</Code> field, so the
+        Sticky keeps its touch controller and its sensor cluster on separate physical buses. None of
+        this is a build flag — it's data in <A href="/docs/lib-board">BoardConfig</A>.
       </P>
 
       <P>

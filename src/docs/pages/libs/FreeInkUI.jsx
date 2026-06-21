@@ -14,7 +14,10 @@ export default function FreeInkUI() {
         FreeInkUI (<Code>libs/ui/FreeInkUI</Code>) is <strong>optional</strong> — it ships as its own
         library and the rest of the SDK builds without it. It is freestanding C++17 with no Arduino or
         ESP-IDF dependency, so the layout, routing, focus and virtualization logic run in plain host
-        unit tests (<Code>libs/ui/FreeInkUI/test/host/run.sh</Code>).
+        unit tests (<Code>libs/ui/FreeInkUI/test/host/run.sh</Code>). It now ships a{' '}
+        <strong>built-in renderer</strong> (<Code>DisplayTarget</Code>) and a bundled font, so it draws
+        a complete UI into a FreeInkDisplay framebuffer with no external graphics library; bridging to an
+        app's own drawing stack is optional.
       </P>
 
       <H2>Design constraints</H2>
@@ -40,7 +43,10 @@ export default function FreeInkUI() {
       </P>
       <CodeBlock lang="cpp">{`freeink::ui::InteractionBuffer<32> interactions;
 freeink::ui::InputSnapshot input = readInput();
-freeink::ui::GfxRendererTarget draw(renderer);   // FreeInkUIGfxRenderer.h
+
+// Built-in renderer: draws straight into FreeInkDisplay's framebuffer, no deps.
+freeink::ui::DisplayTarget draw(display.getFrameBuffer(), display.getDisplayWidth(),
+                                display.getDisplayHeight(), display.getDisplayWidthBytes());
 freeink::ui::DeviceContext device = draw.deviceContext();
 
 freeink::ui::Frame<32> ui(draw, device, input, interactions);
@@ -64,6 +70,25 @@ if (auto event = ui.finish()) {
         when it resolves styles.
       </P>
 
+      <H2>Rendering</H2>
+      <P>
+        The built-in <Code>DisplayTarget</Code> (<Code>FreeInkUIDisplayTarget.h</Code>) is a
+        self-contained <Code>DrawTarget</Code> that writes directly into a 1-bpp framebuffer — the same
+        layout <Code>FreeInkDisplay::getFrameBuffer()</Code> hands back — with <strong>no external
+        graphics library</strong>, so the exact same render runs in firmware and in host unit tests. It
+        bundles a <strong>Noto Sans bitmap font</strong> across eight font slots; point a slot (or all of
+        them) at your own <Code>BitmapFont</Code> with <Code>setFont()</Code>, generated from any TTF/OTF
+        by <Code>tools/gen_font.py</Code>. On a 1-bit panel the four UI grays
+        (<Code>Black</Code> / <Code>DarkGray</Code> / <Code>LightGray</Code> / <Code>White</Code>) are
+        reproduced with an ordered Bayer dither.
+      </P>
+      <P>
+        Bridging to an app's own drawing stack is optional: the header-only{' '}
+        <Code>GfxRendererTarget</Code> adapter (below) compiles only where a CrossPoint{' '}
+        <Code>GfxRenderer</Code> is on the include path, for firmwares that already own a text/bidi
+        pipeline. New apps just use <Code>DisplayTarget</Code>.
+      </P>
+
       <H2>Actions, not hardware</H2>
       <P>
         Interactive components register semantic actions and an <Code>inputMask</Code>. The same
@@ -85,6 +110,13 @@ if (auto event = ui.finish()) {
         bands instead of overlapping centered expansion, and any hit rect within ~12 px of a screen edge
         snaps to the bezel — eliminating the dead zone between an edge control and the physical border
         (Fitts's law). The visual rect is unchanged by all three.
+      </P>
+      <P>
+        <strong>Swipes route the same way.</strong> The app detects a flick with{' '}
+        <A href="/docs/lib-input">InputManager</A>'s <Code>wasSwipe()</Code>, picks the dominant axis,
+        sets <Code>InputSnapshot.swipeLeft</Code> / <Code>swipeRight</Code>, and components that opt in
+        with the <Code>InputSwipeLeft</Code> / <Code>InputSwipeRight</Code> mask bits fire their action
+        — so a list can be paged by swipe and by GPIO with one declaration.
       </P>
 
       <H2>Built-in components</H2>
@@ -129,6 +161,15 @@ freeink::ui::list(ui, rect, props);`}</CodeBlock>
         <Code>listTopIndexFor</Code> scrolls the window the minimal amount to keep the selection
         visible and clamps to range, so GPIO up/down navigation gets correct scrolling for free.
       </P>
+      <P>
+        A set of selection helpers own the index math so apps don't re-derive it per input source, each
+        returning whether the index changed (so the app only redraws on a real move):{' '}
+        <Code>listClampedIndex(index, count)</Code> clamps to range;{' '}
+        <Code>listSelectIndex(sel, requested, count)</Code> jumps to a row (a tap or gesture);{' '}
+        <Code>listMoveIndex(sel, delta, count)</Code> steps with wraparound (GPIO up/down);{' '}
+        <Code>listPageIndex(sel, deltaPages, count, pageItems)</Code> moves by a screenful without
+        wrapping.
+      </P>
 
       <H2>Styling and themes</H2>
       <P>
@@ -155,7 +196,8 @@ freeink::ui::list(ui, rect, props);`}</CodeBlock>
         through it — black↔white, light↔dark gray, dithers included — so component defaults, theme
         styles and app-drawn chrome all invert together.
       </P>
-      <CodeBlock lang="cpp">{`freeink::ui::GfxRendererTarget real(renderer);
+      <CodeBlock lang="cpp">{`freeink::ui::DisplayTarget real(display.getFrameBuffer(), display.getDisplayWidth(),
+                               display.getDisplayHeight(), display.getDisplayWidthBytes());
 freeink::ui::InvertedDrawTarget target(real, settings.darkMode);
 freeink::ui::Frame<32> ui(target, device, input, interactions);
 // ... render exactly as in light mode ...`}</CodeBlock>
@@ -178,15 +220,20 @@ freeink::ui::Frame<32> ui(target, device, input, interactions);
         panel mounting, a per-board property), and no app re-derives the transform by hand. Smaller
         displays scale through <strong>layout, not transforms</strong> —
         rects and flex splits adapt, themes override sizes per device, and font slots bind smaller font
-        ids, since fractional glyph scaling produces mush on a 1-bit panel. Bitmaps do scale: every{' '}
+        ids, since fractional glyph scaling produces mush on a 1-bit panel. The board profile carries a{' '}
+        <Code>uiScale</Code> multiplier (<A href="/docs/lib-board">BoardConfig</A>) the app folds into its
+        theme metrics and minimum touch sizes — a big finger-driven touch panel like the Sticky bumps
+        chrome and fonts up, a button-driven e-ink reader leaves it at 1.0. Bitmaps do scale: every{' '}
         <Code>BitmapMode</Code> (Center, Stretch, Contain, Cover, Tile, TileX, TileY) runs through a
-        shared nearest-neighbor sampler.
+        shared nearest-neighbor sampler, and <A href="/docs/lib-icons">icons</A> ship per size so a
+        scaled-up UI gets a genuinely higher-resolution asset rather than a blocky upscale.
       </P>
 
       <H2>Adapters</H2>
       <P>
-        FreeInkUI itself has no dependencies. Optional header-only adapters bridge it to common stacks
-        and only compile in firmwares that include them.
+        FreeInkUI itself has no dependencies, and the built-in <Code>DisplayTarget</Code> renderer
+        (above) needs no bridge at all. These optional header-only adapters wire it to an app's existing
+        stacks instead, and only compile in firmwares that include them.
       </P>
       <Table
         head={['Adapter', 'Bridges']}

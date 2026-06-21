@@ -12,7 +12,7 @@ This file concatenates every documentation page from https://freeink.org/docs fo
 
 Group: Getting started · URL: https://freeink.org/docs/overview
 
-FreeInk is a hardware-independent SDK for building e-paper reader firmware. It abstracts every device-specific detail — display controller, waveforms and LUTs, GPIOs, bus speeds, input style, touch, frontlight and audio — behind small, injectable interfaces, so the firmware calls one generic API and gets device-specific behavior.
+FreeInk is a hardware-independent SDK for building e-paper reader firmware. It abstracts every device-specific detail — display controller, waveforms and LUTs, GPIOs, bus speeds, input style, touch, frontlight, audio, LEDs and on-board sensors — behind small, injectable interfaces, so the firmware calls one generic API and gets device-specific behavior.
 
 Adding a new device means adding *data* — a board profile plus a driver config — not editing the generic code. One codebase drives many panels, and a new board is a profile and a config, not a rewrite.
 
@@ -251,6 +251,7 @@ A FreeInk build is composed along two axes: the **devices** a binary supports an
 | `-DFREEINK_DEVICE_MURPHY` | Murphy M3 (S3, UC8253 + touch + frontlight) |
 | `-DFREEINK_DEVICE_LILYGO` | LilyGo T5 S3 (S3, ED047TC1 raw-parallel EPD via LovyanGFX) |
 | `-DFREEINK_DEVICE_M5PAPER` | M5Paper v1.1 (classic ESP32, IT8951E + GT911 touch) |
+| `-DFREEINK_DEVICE_STICKY` | Sticky (S3, SSD1677 800×480 + GT911 touch + PDM mic + sensor suite) |
 | *(none)* | **compile error** — a build must select at least one device |
 
 Multiple different-pinout devices on one MCU are runtime-selected: `ACTIVE` defaults to a compile-time default and the consumer calls `BoardConfig::selectDevice(...)` after its own detection. The SDK doesn't ship a detector — X3/X4 detection stays in the consumer (e.g. CrossPoint's I2C fingerprint).
@@ -268,6 +269,11 @@ Every SDK library compiles cleanly on **all three** MCU families — ESP32-C3, E
 | `FREEINK_CAP_COLOR` | color panel code | on for M5 |
 | `FREEINK_CAP_AUDIO` | WAV-over-I2S audio (AudioManager: ES8388 / ES8311 codec) | on for Murphy M3 and M5 PaperColor |
 | `FREEINK_CAP_LED` | addressable RGB LEDs (LedManager) | on for M5 PaperColor |
+| `FREEINK_CAP_BUZZER` | LEDC PWM tone buzzer (Buzzer) | on for Sticky and Murphy M3 |
+| `FREEINK_CAP_MIC` | PDM microphone capture (Microphone) | on for Sticky |
+| `FREEINK_CAP_RTC` | PCF8563 real-time clock (Rtc) | on for Sticky |
+| `FREEINK_CAP_TEMP_HUMIDITY` | SHT40 temperature + humidity (EnvironmentSensor) | on for Sticky |
+| `FREEINK_CAP_IMU` | LSM6DS3TR-C 6-axis IMU (Imu) | on for Sticky |
 | `FREEINK_CAP_NET_TLS13` | wolfSSL TLS 1.3 (≡ `FREEINK_NET_WOLFSSL`) | off |
 
 ## Other flags
@@ -276,7 +282,7 @@ Every SDK library compiles cleanly on **all three** MCU families — ESP32-C3, E
 | --- | --- |
 | `-DFREEINK_DISPLAY_FLIPPED` | (or `-DFLIPPED`) back-compat alias for `BoardProfile.orientation = MIRROR_Y` on SSD1677 |
 | `-DFREEINK_SD_SDMMC=1` | use the native 4-bit SDMMC backend (needs `-DUSE_BLOCK_DEVICE_INTERFACE=1`); auto-on for de-link |
-| `-DFREEINK_BATTERY_I2C_GAUGE=1` | compile the I²C fuel-gauge backend (BQ27220/BQ25896); auto-on for X3 and LilyGo. Gauge-vs-ADC is then runtime per profile, so X3 (gauge) + X4 (ADC) coexist in one binary |
+| `-DFREEINK_BATTERY_I2C_GAUGE=1` | compile the I²C fuel-gauge backend (BQ27220/BQ25896); auto-on for X3, LilyGo and Sticky. Gauge-vs-ADC is then runtime per profile, so X3 (gauge) + X4 (ADC) coexist in one binary |
 | `-DFREEINK_M5_OFFICIAL=1` | M5 PaperColor only: use the M5Unified + M5GFX vendor backend instead of the native ED2208 driver (M5GFX owns the bus) |
 | `-DFREEINK_M5_DARK_FAST_REFRESH=1` | M5 PaperColor only: render a dark, inverted UI on fast (interrupted) refreshes — the upstream community-SDK "dark hack" (logical white written as controller black). Default `0` keeps the native light "paper" UI, where the cut-off waveform leaves logical-white pixels yellow. Complete waveforms stay truthful either way |
 | `-DEINK_DISPLAY_SINGLE_BUFFER_MODE=1` | single framebuffer (uses controller RAM as the previous frame) |
@@ -284,6 +290,8 @@ Every SDK library compiles cleanly on **all three** MCU families — ESP32-C3, E
 | `-DFREEINK_NET_WOLFSSL=1` | enable the wolfSSL TLS 1.3 transport in `SecureNet` |
 
 Panel **orientation / mirroring is per-board data, not a flag**: set `BoardProfile.orientation` to `NO_FLIP`, `MIRROR_X`, `MIRROR_Y` or `ROTATE_180`. The SSD1677 driver applies it in hardware (mirrorX via RAM column addressing, mirrorY via gate scan). 90° / 270° need a software transpose and are a follow-up. See [Adding a device](https://freeink.org/docs/adding-a-device).
+
+**Power-enable rails and the I²C bus are board data too.** A profile can name an active-high `powerEnable` GPIO for the panel (`DisplayPins`), the SD card rail (`SdPins`), the touch controller (`TouchConfig`) or the mic (`MicConfig`); the SDK raises each at `begin()` with a settle delay, and a profile that leaves it unassigned just skips it. On multi-bus SoCs (ESP32-S3), a profile picks `Wire` vs `Wire1` per peripheral via an `i2cBus` field, so the Sticky keeps its touch controller and its sensor cluster on separate physical buses. None of this is a build flag — it's data in [BoardConfig](https://freeink.org/docs/lib-board).
 
 **Framebuffer placement.** The facade's framebuffer(s) sit in static DRAM `.bss` by default — fastest, and the panel sizes fit comfortably on the C3/S3 parts (the largest, 960×540, is ~63 KB). M5Paper v1.1 is the exception: the classic ESP32 shares its ~300 KB of DRAM with the IDF/WiFi stacks, so that 63 KB framebuffer overflows internal RAM. `FREEINK_FB_PSRAM` defaults on there and heap-allocates the framebuffer in PSRAM once, in `begin()`, with a DRAM fallback. DRAM is faster than cache-backed PSRAM and the buffer is touched heavily during composition, so it stays off elsewhere — but any DRAM-tight build (e.g. a feature-heavy LilyGo T5 S3) can opt in with `-DFREEINK_FB_PSRAM=1`.
 
@@ -312,16 +320,19 @@ FreeInk ships drivers and board profiles for the following devices. Related boar
 | Murphy M3 | ESP32-S3 | UC8253 | 240×416 B/W, CHSC6x touch, PWM frontlight | full |
 | LilyGo T5 S3 | ESP32-S3 | ED047TC1 (raw parallel) | 960×540 16-gray, GT911 touch, backlight, I²C gauge | full · via LovyanGFX |
 | M5Paper v1.1 | ESP32 (classic) | IT8951E | 540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery | full · hand-rolled IT8951 |
+| Sticky | ESP32-S3 | SSD1677 | 3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer | upcoming · validating |
 
-X3 and X4 share the ESP32-C3 and a pinout, so a single firmware binary drives both — it carries both board profiles (`XTEINK_X4` and `XTEINK_X3`) and picks one at runtime via `setDisplayX3()`, which swaps the active profile and driver. Distinct-MCU boards build their own binary, selected with a board macro. A build targets exactly one of **three MCU families** — ESP32-C3 (X3/X4), ESP32-S3 (de-link, PaperColor, Murphy, LilyGo) or classic ESP32 (M5Paper v1.1) — and `BoardConfig` rejects mixing families at compile time.
+X3 and X4 share the ESP32-C3 and a pinout, so a single firmware binary drives both — it carries both board profiles (`XTEINK_X4` and `XTEINK_X3`) and picks one at runtime via `setDisplayX3()`, which swaps the active profile and driver. Distinct-MCU boards build their own binary, selected with a board macro. A build targets exactly one of **three MCU families** — ESP32-C3 (X3/X4), ESP32-S3 (de-link, PaperColor, Murphy, LilyGo, Sticky) or classic ESP32 (M5Paper v1.1) — and `BoardConfig` rejects mixing families at compile time.
 
 de-link reuses the X4's SSD1677 panel on an ESP32-S3, adding a warm/cool frontlight and **native 4-bit SDMMC storage**. SdFat can't drive SDIO, so FreeInk mounts a volume on an esp-idf SDMMC block device (auto-enabled via `FREEINK_SD_SDMMC`) — see [Build composition](https://freeink.org/docs/build-composition). Its panel orientation is set in the board profile rather than at compile time, so an upside-down PCB just sets `ROTATE_180` and the driver mirrors in hardware.
 
-The **LilyGo T5 S3** is a different display class: its ED047TC1 is a raw 960×540 16-gray parallel EPD with no on-glass controller, so FreeInk drives it through **LovyanGFX's `Panel_EPD`** (bundled in `m5stack/M5GFX`) rather than emitting raw SPI. The `LgfxEpdDriver` reports `usesExternalBus()` and holds an 8-bit grayscale canvas in PSRAM; the B/W and 16-gray paths both push that sprite at the requested waveform. The `BoardConfig::LILYGO_T5S3` profile carries its geometry, GT911 touch, PWM backlight and BQ27220/BQ25896 I²C battery gauge. See [Adding a device](https://freeink.org/docs/adding-a-device) for the external-library driver pattern.
+The **LilyGo T5 S3** is a different display class: its ED047TC1 is a raw 960×540 16-gray parallel EPD with no on-glass controller, so FreeInk drives it through **LovyanGFX's `Panel_EPD`** (bundled in `m5stack/M5GFX`) rather than emitting raw SPI. The `LgfxEpdDriver` reports `usesExternalBus()` and holds an 8-bit grayscale canvas in PSRAM; the B/W and 16-gray paths both push that sprite at the requested waveform. The `BoardConfig::LILYGO_T5S3` profile carries its geometry, GT911 touch, PWM backlight and BQ27220/BQ25896 I²C battery gauge. A dedicated `BoardT5S3` support library now fills the board-level gaps — it drives the PCA9535 I²C IO expander (the user button) and the TPS65185 EPD PMIC, exposes mutex-guarded I²C access, and supplies the board-injected `LgfxEpdConfig` + power hooks. See [Adding a device](https://freeink.org/docs/adding-a-device) for the external-library driver pattern.
 
 The **Murphy M3** (CrowPanel 3.7″) pairs its UC8253 with a 90° hardware rotation: the controller is a 240×416 portrait panel held landscape, so the facade owns a 416×240 framebuffer and the `Uc8253MurphyDriver` rotates each plane into controller RAM on write. It loads dual waveform banks — a full 3-phase (ghost-clearing) LUT and a destination-drive-only fast LUT — and promotes a fast refresh to a full one every few refreshes to keep ghosting in check. CHSC6x touch, a PWM frontlight, an ES8388-compatible I2S audio codec (driven by [AudioManager](https://freeink.org/docs/lib-audio)) and a battery ADC on GPIO9 (read through [BatteryMonitor](https://freeink.org/docs/lib-battery)) round out the board.
 
 The **M5Paper v1.1** is FreeInk's first **classic ESP32** target — a third MCU family alongside the C3 and S3 boards. Its 540×960 16-gray ED047TC1 sits behind an on-glass **IT8951E** controller, so FreeInk drives it with a **hand-rolled IT8951 driver** (`It8951Driver`) that owns its own SPI bus (`usesExternalBus()`). It loads frames by packing the 1-bpp framebuffer into the IT8951's 4-bpp image buffer on the fly and auto-rotates the landscape framebuffer onto the portrait panel. It drives the controller's native waveform modes — `GC16` for a full clearing refresh, `DU` for fast B/W page turns, and `DU4` for 4-level grayscale updates without a full-area flash — and the full anti-aliased grayscale path runs here too, reconstructing the base plus LSB/MSB planes into the IT8951's native 16-level format. A configurable `ghostClearInterval` periodically promotes a differential (DU/DU4) refresh to a GC16 clear, so residue doesn't accumulate during navigation without any firmware intervention. GT911 touch and a GPIO35 ADC battery read complete the board. Its only physical buttons are a 3-position rotary wheel: the two sides map to `BTN_UP` / `BTN_DOWN` for page navigation and the push is `BTN_CONFIRM`, which doubles as the power/wake button (it sits on an RTC GPIO, so it drives the `ext1` deep-sleep wakeup). Back/Left/Right come from the touch panel.
+
+The **Sticky** (Seeed) is an **upcoming** ESP32-S3 device and the most sensor-rich board in the matrix. It reuses the X4-class **SSD1677** driver for its 3.97″ 800×480 B/W panel (its 24-pin FPC needs vendor full/fast update sequences and border tracking, supplied as driver config), with GT911 touch. Beyond the display it carries a whole peripheral suite, each behind its own opt-in library: a **PDM microphone** ([Microphone](https://freeink.org/docs/lib-mic)), a **PCF8563 RTC** ([Rtc](https://freeink.org/docs/lib-rtc)), an **SHT40** temperature/humidity sensor ([EnvironmentSensor](https://freeink.org/docs/lib-env)), an **LSM6DS3TR-C** 6-axis IMU ([Imu](https://freeink.org/docs/lib-imu)), a **BQ27220** I²C fuel gauge ([BatteryMonitor](https://freeink.org/docs/lib-battery)), a LEDC **buzzer** ([Buzzer](https://freeink.org/docs/lib-buzzer)), and an SPI MicroSD that shares the display bus. It is the SDK's first **multi-bus I²C** board: the GT911 touch controller sits on `Wire`, while the gauge and the whole sensor cluster share `Wire1`, kept apart so neither stalls the other. Power-enable GPIOs gate the panel, touch controller, SD rail and mic rail independently (the board profile names each pin; the SDK raises them at `begin()`). Its GT911 is mounted rotated, corrected SDK-side by the touch profile's `swapXY` / `flipX` / `flipY` flags. Orientation and the display/SD bus-sharing are pending hardware validation.
 
 ## M5Stack PaperColor refresh behavior
 
@@ -353,9 +364,11 @@ The same PMIC also reports power telemetry, which [BatteryMonitor](https://freei
 Touch is implemented for two controllers (gated by `FREEINK_CAP_TOUCH`):
 
 - **CHSC6x** (Murphy M3) — IRQ-driven, ported from the upstream driver.
-- **GT911** (LilyGo T5 S3 and M5Paper v1.1) — polled, raw register reads plus the reset/address dance. Its capacitive home key is surfaced via `wasHomeKeyPressed()`.
+- **GT911** (LilyGo T5 S3, M5Paper v1.1 and Sticky) — raw register reads plus the reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive home key is surfaced via `wasHomeKeyPressed()`.
 
-The InputManager exposes `hasTouch` / `isTouchPressed` / `wasTouchPressed` / `wasTouchReleased` / `getTouchPoint`; coordinates are delivered raw-panel-oriented and the app owns rotation. The GT911 boards set their `TouchConfig` in the board profile (e.g. `BoardConfig::LILYGO_T5_PRO_GT911`). See the [InputManager reference](https://freeink.org/docs/lib-input).
+The InputManager exposes `hasTouch` / `isTouchPressed` / `wasTouchPressed` / `wasTouchReleased` / `getTouchPoint`, plus tap, swipe and activity edges (see the [InputManager reference](https://freeink.org/docs/lib-input)). GT911 boards set their `TouchConfig` in the board profile (e.g. `BoardConfig::LILYGO_T5_PRO_GT911`).
+
+**Digitizer mounting is corrected SDK-side.** A panel whose touch sensor is rotated or mirrored relative to the glass sets `swapXY`, `flipX` and `flipY` in its `TouchConfig` (the Sticky's portrait sensor on a landscape panel sets all three), and the raw range fields describe the *post-swap* axes — so the InputManager hands back panel-native coordinates and the app's orientation mapping follows rotation automatically. A `TouchConfig.powerEnable` pin lets a board gate the touch controller's power rail, raised before reset/probe.
 
 ---
 
@@ -369,7 +382,7 @@ The SDK is a set of self-contained libraries, each its own PlatformIO dependency
 
 Signatures track the SDK headers under `libs/`. For exact types and defaults, read the header for each library — see [Repository layout](https://freeink.org/docs/repository-layout).
 
-> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)
+> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
 
 ---
 
@@ -429,6 +442,7 @@ Refresh modes: `FULL_REFRESH` / `HALF_REFRESH` / `FAST_REFRESH`.
 | `refreshDisplay(mode = FAST_REFRESH, turnOffScreen = false)` | Refresh without rewriting the buffer. |
 | `requestResync(uint8_t settlePasses = 0)` | X3: one-shot full resync on next update. |
 | `skipInitialResync()` | Skip the first-update resync. |
+| `setFastRefreshCutoffMs(uint16_t ms) / fastRefreshCutoffMs()` | M5 PaperColor: tune the interrupted-refresh cutoff in ms (0 = driver default). The cut now anchors to the BUSY falling edge — when the drive actually starts — so the timing is deterministic and sweepable on a live panel. |
 
 ## Grayscale / anti-aliased
 
@@ -439,8 +453,10 @@ Refresh modes: `FULL_REFRESH` / `HALF_REFRESH` / `FAST_REFRESH`.
 | `writeGrayscalePlaneStrip(plane, rows, yStart, numRows)` | Stream a row band to controller RAM (plane = GRAY_PLANE_LSB/MSB). |
 | `supportsStripGrayscale()` | Whether the active driver supports strip streaming. |
 | `displayGrayBuffer(turnOffScreen = false, lut = nullptr, factoryMode = false)` | Push the gray planes. |
+| `displayGrayscaleBase(fallback = HALF_REFRESH, turnOffScreen = false)` | Display the framebuffer as the base frame under a grayscale overlay. On X3 this fires the OEM differential base pass; other panels fall back to a normal refresh in the fallback mode. |
+| `preconditionGrayscale() / preconditionGrayscale(x, y, w, h)` | X3: fire the settle pass (full or windowed) that leaves pixels receptive to a weak grayscale nudge before an anti-aliased refresh. |
 | `cleanupGrayscaleBuffers(bwBuffer) / grayscaleRevert()` | Clean up after an anti-aliased refresh. |
-| `setCustomLUT(bool enabled, lutData = nullptr)` | Install / restore a custom LUT (VCOM-safe). |
+| `setCustomLUT(bool enabled, lutData = nullptr)` | Install / restore a custom waveform LUT (VCOM-safe). A board injects its own grayscale LUT through its driver config — custom LUT is the supported path now that the OTP gray4 mode has been removed. |
 
 ### Orientation
 
@@ -469,7 +485,7 @@ Buttons plus optional capacitive touch behind one object. Call `update()` each l
 
 ## Touch
 
-Gated by `FREEINK_CAP_TOUCH`; inert on boards without a touch controller. Two controllers are supported — CHSC6x (IRQ-driven) and GT911 (polled). Coordinates are raw-panel-oriented, so the app owns rotation. See [Supported devices](https://freeink.org/docs/devices) for per-board touch details.
+Gated by `FREEINK_CAP_TOUCH`; inert on boards without a touch controller. Two controllers are supported — CHSC6x and GT911 (either IRQ-driven or polled per board). The InputManager returns **panel-native** coordinates and the app owns rotation; a rotated or mirrored digitizer is corrected SDK-side by the board profile's `TouchConfig` (`swapXY` / `flipX` / `flipY`). See [Supported devices](https://freeink.org/docs/devices) for per-board touch details.
 
 | Member | Description |
 | --- | --- |
@@ -477,7 +493,11 @@ Gated by `FREEINK_CAP_TOUCH`; inert on boards without a touch controller. Two co
 | `getTouchPoint() → TouchPoint{ valid, x, y }` | Current touch point. |
 | `isTouchPressed()` | Level: touched now. |
 | `wasTouchPressed() / wasTouchReleased()` | Edge: touch down / up. |
+| `wasTouchActivity() → bool` | Edge: any touch press or release happened this frame — the touch analogue of wasAnyPressed(), for resetting idle/sleep timers. False on non-touch boards. |
 | `wasTouchTap(float& nx, float& ny) → bool` | Edge: a tap gesture released this frame, returning the normalized panel-native touch-down position (not the lift point — the reported centroid drifts 10–20 px as a finger rolls off, so routing to touch-down keeps small targets like steppers accurate). The app maps the coords to its logical frame. False (outputs untouched) if no release this frame or no touch HW. |
+| `wasTouchPressedAt(float& nx, float& ny) → bool` | Press-edge analogue of wasTouchTap: true on the frame a touch begins, returning the normalized touch-down position — so a control can highlight under the finger on press, then activate on release. |
+| `wasSwipe(float& nxStart, float& nyStart, float& nxEnd, float& nyEnd) → bool` | Edge: a flick released this frame (contact moved ≥60 px within 700 ms), returning normalized start (touch-down) and end (release) positions. A swipe also raises wasTouchTap(); check wasSwipe() first to disambiguate. The app maps both points and takes the dominant axis for direction. |
+| `lastTouchHeldMs() → unsigned long` | Duration of the last touch contact, latched on release — a raw primitive for an app-side tap-vs-long-press policy. 0 with no touch HW. |
 | `wasHomeKeyPressed()` | Edge: GT911 capacitive home key pressed (status bit 0x10). Always false on controllers without one. |
 
 ---
@@ -672,6 +692,172 @@ The board profile carries the data pin, LED count, color order and a `pmicRgbPow
 
 ---
 
+# Buzzer
+
+> LEDC PWM square-wave tones on a passive buzzer.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-buzzer
+
+Square-wave tones on a passive buzzer via the ESP32 LEDC PWM, on the `audio.buzzer` pin in the board profile. Gated by `FREEINK_CAP_BUZZER`, which defaults on for the [Sticky](https://freeink.org/docs/devices) and Murphy M3, and off elsewhere.
+
+This is a **tone device**, not a PCM codec — it's independent of [AudioManager](https://freeink.org/docs/lib-audio), and a board can carry both (the Murphy M3 has an ES8388 codec *and* a buzzer). `tone()` with a duration blocks and self-stops; with no duration it runs until `noTone()`.
+
+## API
+
+| Member | Description |
+| --- | --- |
+| `begin() → bool` | Attach LEDC PWM to the buzzer pin. False when the board has no buzzer. |
+| `present() → bool` | Whether the buzzer initialized. |
+| `tone(uint32_t freqHz, uint32_t durationMs = 0)` | Play a square-wave tone. durationMs > 0 blocks then stops; 0 runs continuously until noTone(). |
+| `beep()` | A short default beep (2 kHz, 80 ms). |
+| `noTone()` | Silence a continuous tone. |
+| `end()` | Release the LEDC channel and pin. begin() re-attaches. |
+
+```cpp
+Buzzer buzzer;
+if (buzzer.begin()) {
+  buzzer.beep();              // short confirmation blip
+  buzzer.tone(880, 200);     // an A5 for 200 ms
+}
+```
+
+See [BoardConfig](https://freeink.org/docs/lib-board) for the `audio.buzzer` pin and [Build composition](https://freeink.org/docs/build-composition) for the capability flag.
+
+---
+
+# Microphone
+
+> PDM microphone capture to 16-bit PCM.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-mic
+
+PDM microphone capture to 16-bit PCM, described by `BoardConfig::ACTIVE.mic`. Gated by `FREEINK_CAP_MIC`, which defaults on for the [Sticky](https://freeink.org/docs/devices) and off elsewhere; inert on boards with no microphone.
+
+It wraps the ESP-IDF `i2s_pdm` RX driver: `begin()` raises the mic power rail, settles, and starts the PDM clock; `read()` pulls mono 16-bit samples out of the I2S FIFO. The SDK stays storage-agnostic — the caller owns whatever it does with the samples (ring buffer, WAV file, on-device wake-word).
+
+## API
+
+| Member | Description |
+| --- | --- |
+| `begin(uint32_t sampleRate = 16000) → bool` | Power the mic rail and start PDM RX at the given rate. False when the active board has no mic or init fails. |
+| `present() → bool` | Whether the active board has a mic and begin() succeeded. |
+| `read(int16_t* dst, size_t maxSamples, uint32_t timeoutMs = 100) → int` | Read up to maxSamples mono 16-bit PCM samples; blocks up to timeoutMs. Returns the count (0 = timeout, <0 = error / not begun). |
+| `end()` | Stop RX and drop the mic rail. begin() restarts it. |
+| `sampleRate() → uint32_t` | The active sample rate. |
+
+```cpp
+Microphone mic;
+if (mic.begin(16000)) {           // false if the board has no mic
+  int16_t buf[256];
+  int n = mic.read(buf, 256);     // mono 16-bit PCM
+  // ... consume n samples ...
+  mic.end();
+}
+```
+
+Pins (PDM clock out, data in, and an active-polarity power-enable) come from the `MicConfig` in the board profile, so nothing mic-specific is hardcoded in generic code. See [BoardConfig](https://freeink.org/docs/lib-board) and [Build composition](https://freeink.org/docs/build-composition).
+
+---
+
+# Rtc
+
+> PCF8563 real-time clock over I²C.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-rtc
+
+Wall-clock time from a PCF8563 real-time clock over I²C, described by `BoardConfig::ACTIVE.sensors`. Gated by `FREEINK_CAP_RTC`, which defaults on for the [Sticky](https://freeink.org/docs/devices) and off elsewhere; inert on boards with no RTC.
+
+`begin()` brings up the I²C bus and disables the chip's CLKOUT; `now()` and `set()` read and write a `DateTime`. The driver handles the BCD register encoding and the oscillator-stopped flag, so a `now()` that returns false means the clock was never set (or browned out) rather than a silent bad time.
+
+## API
+
+| Member | Description |
+| --- | --- |
+| `begin() → bool` | Bring up the bus, disable CLKOUT. False when the board has no RTC or it doesn’t ACK. |
+| `present() → bool` | Whether the RTC initialized. |
+| `now(DateTime& out) → bool` | Read the current time. False on I²C error or if the oscillator reports stopped (never set / low voltage). |
+| `set(const DateTime& dt) → bool` | Set the clock. False on I²C error. |
+| `DateTime { year, month, day, hour, minute, second, weekday }` | Full year (e.g. 2026), 1-based month/day, 24h time, weekday 0=Sunday. |
+
+```cpp
+Rtc rtc;
+if (rtc.begin()) {
+  Rtc::DateTime t;
+  if (rtc.now(t)) {
+    // ... use t.year / t.month / t.hour ...
+  }
+}
+```
+
+The PCF8563 shares the sensor I²C bus with the temperature/humidity sensor and IMU. On multi-bus SoCs the board profile picks `Wire` or `Wire1` via `SensorsConfig.i2cBus` — on the Sticky the sensor cluster sits on a second bus, away from the touch controller. See [BoardConfig](https://freeink.org/docs/lib-board).
+
+---
+
+# EnvironmentSensor
+
+> SHT40 temperature + humidity over I²C.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-env
+
+Temperature and relative humidity from a Sensirion SHT40 over I²C, described by `BoardConfig::ACTIVE.sensors`. Gated by `FREEINK_CAP_TEMP_HUMIDITY`, which defaults on for the [Sticky](https://freeink.org/docs/devices) and off elsewhere; inert on boards with no sensor.
+
+`read()` runs a single high-precision measurement, validates the SHT40's per-value CRC-8, converts the raw 16-bit codes to physical units (°C and %RH, humidity clamped to 0–100), and returns false on an I²C error or a CRC mismatch — so a successful read is a checked read.
+
+## API
+
+| Member | Description |
+| --- | --- |
+| `begin() → bool` | Soft-reset and probe the sensor. False when the board has no sensor or it doesn’t ACK. |
+| `present() → bool` | Whether the sensor initialized. |
+| `read(float& tempC, float& humidityPct) → bool` | Single-shot high-precision measurement with CRC validation. False on I²C error or CRC mismatch. |
+
+```cpp
+EnvironmentSensor env;
+if (env.begin()) {
+  float tempC, rh;
+  if (env.read(tempC, rh)) {
+    // ... use tempC and rh ...
+  }
+}
+```
+
+The SHT40 shares the sensor I²C bus with the [RTC](https://freeink.org/docs/lib-rtc) and [IMU](https://freeink.org/docs/lib-imu); the board profile selects the bus via `SensorsConfig.i2cBus` on multi-bus SoCs. See [BoardConfig](https://freeink.org/docs/lib-board).
+
+---
+
+# Imu
+
+> LSM6DS3TR-C 6-axis accelerometer + gyroscope.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-imu
+
+6-axis motion from an ST LSM6DS3TR-C accelerometer + gyroscope over I²C, described by `BoardConfig::ACTIVE.sensors`. Gated by `FREEINK_CAP_IMU`, which defaults on for the [Sticky](https://freeink.org/docs/devices) and off elsewhere; inert on boards with no IMU.
+
+`begin()` checks the `WHO_AM_I` id and configures both sensors at 104 Hz (accel ±2 g, gyro ±245 dps). `read()` returns one `Sample` already scaled to physical units — acceleration in g and angular rate in degrees/second — so the app gets usable values without touching raw LSB scaling.
+
+## API
+
+| Member | Description |
+| --- | --- |
+| `begin() → bool` | Probe WHO_AM_I and configure accel + gyro. False when the board has no IMU or the part doesn’t identify. |
+| `present() → bool` | Whether the IMU initialized. |
+| `read(Sample& out) → bool` | Read one accel + gyro sample. False on I²C error. |
+| `Sample { ax, ay, az, gx, gy, gz }` | Acceleration in g; angular rate in °/s. |
+
+```cpp
+Imu imu;
+if (imu.begin()) {
+  Imu::Sample s;
+  if (imu.read(s)) {
+    // ... s.ax/ay/az (g), s.gx/gy/gz (deg/s) ...
+  }
+}
+```
+
+Fixed 104 Hz output, no dynamic rate selection. The IMU shares the sensor I²C bus with the [RTC](https://freeink.org/docs/lib-rtc) and [EnvironmentSensor](https://freeink.org/docs/lib-env); the board profile picks the bus via `SensorsConfig.i2cBus` on multi-bus SoCs. See [BoardConfig](https://freeink.org/docs/lib-board).
+
+---
+
 # PowerManager
 
 > Portable deep-sleep wake-on-power-button.
@@ -757,12 +943,26 @@ The compile-time board descriptions and the runtime-active profile. Drivers read
 | --- | --- |
 | `ACTIVE` | The runtime-active BoardProfile (defaults to DEFAULT_DEVICE). |
 | `selectDevice(Board which) → bool` | Set ACTIVE to a compiled-in device; false if not included. |
-| `XTEINK_X4, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, LILYGO_T5S3, M5PAPER_V11` | Built-in board profiles. |
+| `XTEINK_X4, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, LILYGO_T5S3, M5PAPER_V11, STICKY` | Built-in board profiles. |
 | `BoardProfile.orientation` | Panel mount transform — NO_FLIP / MIRROR_X / MIRROR_Y / ROTATE_180 (applied in hardware by SSD1677). |
 | `BoardProfile.sdmmc` | SdmmcPins for 4-bit SDMMC boards; busWidth 0 = use SPI/SdFat. |
+| `BoardProfile.uiScale` | Per-device UI scale multiplier (1.0 default; touch boards like Sticky bump it for finger-sized chrome). Read by the app/theme layer. |
 | `hasTouch() / hasPwmFrontlight() / hasAudio()` | Capability queries for the active board. |
 | `isDeLink() / isMurphyM3() / isM5StackPaperColor() / isM5PaperV11()` | Identity queries. |
 | `LILYGO_T5_PRO_GT911` | Ready-made GT911 touch config (used by the LilyGo T5 S3 profile). |
+
+## Peripheral config
+
+Each peripheral library reads a small config struct off `ACTIVE`, so nothing peripheral-specific is hardcoded in generic code:
+
+| Member | Description |
+| --- | --- |
+| `TouchConfig` | Controller, pins, raw axis ranges, swapXY / flipX / flipY digitizer correction, and an optional powerEnable rail. See InputManager. |
+| `MicConfig` | PDM mic: input type, clock/data pins, and an active-polarity enable pin. See Microphone. |
+| `SensorsConfig` | Shared I²C sensor bus (SDA/SCL/Hz) + the RTC / temp-humidity / IMU addresses (0 = absent), driving Rtc / EnvironmentSensor / Imu. |
+| `AudioConfig.buzzer` | LEDC PWM pin for a passive buzzer (Buzzer), separate from the I2S codec fields. |
+| `DisplayPins.powerEnable / SdPins.powerEnable` | Active-high rails for the panel and SD card, raised at begin() with a settle delay (PIN_UNASSIGNED = always powered). |
+| `i2cBus (gauge & sensors)` | On multi-bus SoCs (ESP32-S3), select Wire (0) or Wire1 (1) per peripheral so e.g. touch and sensors stay on separate physical buses. |
 
 Adding a board means adding a profile here, not editing generic code — see [Adding a device](https://freeink.org/docs/adding-a-device). For runtime device selection across one MCU, see [Build composition](https://freeink.org/docs/build-composition).
 
@@ -776,7 +976,7 @@ Group: Libraries · URL: https://freeink.org/docs/lib-ui
 
 A memory-bounded, **immediate-mode** UI layer for e-paper firmware. It sits above a display driver and an input source while staying independent of any one application: apps plug in their own renderer, fonts, icons, themes, localization strings and screen state through small adapter interfaces. Think "Tailwind for e-ink" without a web-style runtime.
 
-FreeInkUI (`libs/ui/FreeInkUI`) is **optional** — it ships as its own library and the rest of the SDK builds without it. It is freestanding C++17 with no Arduino or ESP-IDF dependency, so the layout, routing, focus and virtualization logic run in plain host unit tests (`libs/ui/FreeInkUI/test/host/run.sh`).
+FreeInkUI (`libs/ui/FreeInkUI`) is **optional** — it ships as its own library and the rest of the SDK builds without it. It is freestanding C++17 with no Arduino or ESP-IDF dependency, so the layout, routing, focus and virtualization logic run in plain host unit tests (`libs/ui/FreeInkUI/test/host/run.sh`). It now ships a **built-in renderer** (`DisplayTarget`) and a bundled font, so it draws a complete UI into a FreeInkDisplay framebuffer with no external graphics library; bridging to an app's own drawing stack is optional.
 
 ## Design constraints
 
@@ -793,7 +993,10 @@ Each frame you build an input snapshot, wrap a draw target, lay out fixed slots,
 ```cpp
 freeink::ui::InteractionBuffer<32> interactions;
 freeink::ui::InputSnapshot input = readInput();
-freeink::ui::GfxRendererTarget draw(renderer);   // FreeInkUIGfxRenderer.h
+
+// Built-in renderer: draws straight into FreeInkDisplay's framebuffer, no deps.
+freeink::ui::DisplayTarget draw(display.getFrameBuffer(), display.getDisplayWidth(),
+                                display.getDisplayHeight(), display.getDisplayWidthBytes());
 freeink::ui::DeviceContext device = draw.deviceContext();
 
 freeink::ui::Frame<32> ui(draw, device, input, interactions);
@@ -815,6 +1018,12 @@ if (auto event = ui.finish()) {
 
 The app owns persistent state — selected row, focused index, scroll offset, clock buffers, reading statistics, visibility flags. The UI runtime only adds transient focus/active state when it resolves styles.
 
+## Rendering
+
+The built-in `DisplayTarget` (`FreeInkUIDisplayTarget.h`) is a self-contained `DrawTarget` that writes directly into a 1-bpp framebuffer — the same layout `FreeInkDisplay::getFrameBuffer()` hands back — with **no external graphics library**, so the exact same render runs in firmware and in host unit tests. It bundles a **Noto Sans bitmap font** across eight font slots; point a slot (or all of them) at your own `BitmapFont` with `setFont()`, generated from any TTF/OTF by `tools/gen_font.py`. On a 1-bit panel the four UI grays (`Black` / `DarkGray` / `LightGray` / `White`) are reproduced with an ordered Bayer dither.
+
+Bridging to an app's own drawing stack is optional: the header-only `GfxRendererTarget` adapter (below) compiles only where a CrossPoint `GfxRenderer` is on the include path, for firmwares that already own a text/bidi pipeline. New apps just use `DisplayTarget`.
+
 ## Actions, not hardware
 
 Interactive components register semantic actions and an `inputMask`. The same component can be selectable by touch, GPIO/focus, side buttons or gestures depending on the mask and the device's capabilities.
@@ -830,6 +1039,8 @@ button(ui, rect, {
 ```
 
 Touch hit areas are declarative and decoupled from the visual rect, composed in one place (`ensureMinTouchRect`): `minTouchSize` center-expands a small target to a comfortable minimum, `ButtonProps.hitPadding` extends a button's tap band per edge so adjacent controls (a stepper's `−` / `+`) get contiguous, non-overlapping bands instead of overlapping centered expansion, and any hit rect within ~12 px of a screen edge snaps to the bezel — eliminating the dead zone between an edge control and the physical border (Fitts's law). The visual rect is unchanged by all three.
+
+**Swipes route the same way.** The app detects a flick with [InputManager](https://freeink.org/docs/lib-input)'s `wasSwipe()`, picks the dominant axis, sets `InputSnapshot.swipeLeft` / `swipeRight`, and components that opt in with the `InputSwipeLeft` / `InputSwipeRight` mask bits fire their action — so a list can be paged by swipe and by GPIO with one declaration.
 
 ## Built-in components
 
@@ -867,6 +1078,8 @@ freeink::ui::list(ui, rect, props);
 
 `listTopIndexFor` scrolls the window the minimal amount to keep the selection visible and clamps to range, so GPIO up/down navigation gets correct scrolling for free.
 
+A set of selection helpers own the index math so apps don't re-derive it per input source, each returning whether the index changed (so the app only redraws on a real move): `listClampedIndex(index, count)` clamps to range; `listSelectIndex(sel, requested, count)` jumps to a row (a tap or gesture); `listMoveIndex(sel, delta, count)` steps with wraparound (GPIO up/down); `listPageIndex(sel, deltaPages, count, pageItems)` moves by a screenful without wrapping.
+
 ## Styling and themes
 
 Every interactive component resolves a `StyleSet` — one `BoxStyle` (background, foreground, border, radius, corner mask) per interaction state. Rounded looks are first-class: `BoxStyle.radius` applies to fills and borders, `tabBar` renders filled pill tabs, and `ListProps.hugContents` shrinks selection pills to the label width — no custom drawing code.
@@ -878,7 +1091,8 @@ Theme ownership is split deliberately: **the SDK owns the in-memory types** (`Th
 Whole-UI inversion is one call at the draw-target level rather than per component. `InvertedDrawTarget` wraps any `DrawTarget` and flips every color drawn through it — black↔white, light↔dark gray, dithers included — so component defaults, theme styles and app-drawn chrome all invert together.
 
 ```cpp
-freeink::ui::GfxRendererTarget real(renderer);
+freeink::ui::DisplayTarget real(display.getFrameBuffer(), display.getDisplayWidth(),
+                               display.getDisplayHeight(), display.getDisplayWidthBytes());
 freeink::ui::InvertedDrawTarget target(real, settings.darkMode);
 freeink::ui::Frame<32> ui(target, device, input, interactions);
 // ... render exactly as in light mode ...
@@ -888,11 +1102,11 @@ Flip `target.setEnabled(...)` from a setting and the next frame renders inverted
 
 ## Rotation and scaling
 
-Whole-screen rotation is inherited from the renderer: layout happens in logical coordinates, `DeviceContext.orientation` reports the active orientation, and the adapter maps to panel space. Per-element rotation (side-bezel button hints) rides on `TextStyle.rotation` for labels and the `rotation` parameter of `DrawTarget::bitmap()` for icons (`CW90`, `R180`, `CCW90`). Touch follows along: orientation mapping is SDK-owned, so `touchToLogical()` converts normalized panel-native portrait coordinates into the logical frame for any orientation (with `flipX` / `flipY` for mirrored panel mounting, a per-board property), and no app re-derives the transform by hand. Smaller displays scale through **layout, not transforms** — rects and flex splits adapt, themes override sizes per device, and font slots bind smaller font ids, since fractional glyph scaling produces mush on a 1-bit panel. Bitmaps do scale: every `BitmapMode` (Center, Stretch, Contain, Cover, Tile, TileX, TileY) runs through a shared nearest-neighbor sampler.
+Whole-screen rotation is inherited from the renderer: layout happens in logical coordinates, `DeviceContext.orientation` reports the active orientation, and the adapter maps to panel space. Per-element rotation (side-bezel button hints) rides on `TextStyle.rotation` for labels and the `rotation` parameter of `DrawTarget::bitmap()` for icons (`CW90`, `R180`, `CCW90`). Touch follows along: orientation mapping is SDK-owned, so `touchToLogical()` converts normalized panel-native portrait coordinates into the logical frame for any orientation (with `flipX` / `flipY` for mirrored panel mounting, a per-board property), and no app re-derives the transform by hand. Smaller displays scale through **layout, not transforms** — rects and flex splits adapt, themes override sizes per device, and font slots bind smaller font ids, since fractional glyph scaling produces mush on a 1-bit panel. The board profile carries a `uiScale` multiplier ([BoardConfig](https://freeink.org/docs/lib-board)) the app folds into its theme metrics and minimum touch sizes — a big finger-driven touch panel like the Sticky bumps chrome and fonts up, a button-driven e-ink reader leaves it at 1.0. Bitmaps do scale: every `BitmapMode` (Center, Stretch, Contain, Cover, Tile, TileX, TileY) runs through a shared nearest-neighbor sampler, and [icons](https://freeink.org/docs/lib-icons) ship per size so a scaled-up UI gets a genuinely higher-resolution asset rather than a blocky upscale.
 
 ## Adapters
 
-FreeInkUI itself has no dependencies. Optional header-only adapters bridge it to common stacks and only compile in firmwares that include them.
+FreeInkUI itself has no dependencies, and the built-in `DisplayTarget` renderer (above) needs no bridge at all. These optional header-only adapters wire it to an app's existing stacks instead, and only compile in firmwares that include them.
 
 | Adapter | Bridges |
 | --- | --- |
@@ -906,6 +1120,66 @@ So existing fonts, bidi, localization and page rendering stay where they are —
 > **Adopting it incrementally**
 >
 > Port one screen of chrome first — a status bar + content slot + control bar split is a good proof of pipeline — then move shared surfaces screen-by-screen (headers, lists, button hints, popups, keyboards). Each port deletes the hand-rolled layout code it replaces. App-specific page rendering (book text layout, image decoding) stays app-owned: FreeInkUI hands the app a computed slot rect and the app renders into it. See the [full FreeInkUI guide](https://github.com/Free-Ink/freeink-sdk/blob/main/docs/freeink-ui.md).
+
+---
+
+# Icons
+
+> freeink::Icon format, vendored Lucide set, and a generator.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-icons
+
+A 1-bpp icon format with baked-in alignment metadata, the full [Lucide](https://lucide.dev) SVG set vendored as source, and a generator that turns any of them into ready-to-draw C structs — crisp at any UI scale, vertically centered on text with no per-icon tweaking, correct in every orientation.
+
+## The freeink::Icon format
+
+```cpp
+struct Icon {
+  uint16_t w, h;
+  int16_t  opticalCenterY;  // row of the artwork's center of mass
+  const uint8_t* bits;      // rows top-to-bottom, (w+7)/8 bytes each, MSB-first;
+                            // bit 1 = transparent, bit 0 = black (drawn)
+};
+```
+
+**Not pre-rotated.** The renderer maps logical → panel coordinates itself, so one asset is correct in all four orientations — draw it through an orientation-aware blit (e.g. CrossPoint's `GfxRenderer::drawIcon(const freeink::Icon&, x, y)`, which routes each pixel through `drawPixel`).
+
+**`opticalCenterY` is measured from the art**, so asymmetric icons (a clock, a wifi fan, arrows) center on a line of text without hand-nudging — put the icon's optical center on the text's optical center:
+
+```cpp
+// textTop is where the text is drawn; the renderer supplies the text's optical
+// center offset from the font's real x-height (no guessed ascender fractions).
+const int textCenter = textTop + renderer.getTextVisualCenterOffset(fontId);
+renderer.drawIcon(icon, x, textCenter - icon.opticalCenterY);
+```
+
+## Generating icons
+
+Don't bake the whole library into flash — generate only what you use. List the icons you want in a manifest (`alias = lucide-name`) and run the generator:
+
+```
+# icons.txt
+settings = settings
+recent   = clock
+transfer = arrow-down-up
+wifi     = wifi
+
+python libs/assets/Icons/tools/gen_icons.py \
+    --manifest icons.txt \
+    --svgdir   libs/assets/Icons/lucide/icons \
+    --sizes    24,32,40,48 \
+    --out      generated_icons.h
+```
+
+This emits, per icon per size, a `static const freeink::Icon icon_<alias>_<px>` with its bits and optical center precomputed. Pick the size nearest your scaled target at runtime so a scaled-up UI gets a genuinely higher-resolution asset instead of a blocky upscale. The generator needs `rsvg-convert` (librsvg) and Pillow.
+
+## Browsing the set
+
+Lucide is vendored as a **git submodule** at `libs/assets/Icons/lucide` (run `git submodule update --init` to fetch it). All 1735 names live in `libs/assets/Icons/lucide/icons/*.svg` — reference any by filename (minus `.svg`) in a manifest. Lucide is MIT-licensed.
+
+## In FreeInkUI
+
+[FreeInkUI](https://freeink.org/docs/lib-ui) components take icons as borrowed asset references and draw them through the draw target's `bitmap()` primitive, which carries the same `CW90` / `R180` / `CCW90` rotation parameter as the rest of the UI — so icons rotate with side-bezel chrome and follow whole-screen orientation for free.
 
 ---
 
@@ -999,15 +1273,22 @@ Every library is a self-contained PlatformIO library under `libs/`, grouped by d
 
 ```
 libs/
+  assets/Icons/                freeink::Icon format + vendored Lucide SVGs + generator
   display/FreeInkDisplay/      facade + EInkDisplay shim + per-controller drivers + LUTs
   hardware/BoardConfig/        board profiles & capability descriptors
+  hardware/BoardT5S3/          LilyGo T5 S3 board support (PCA9535 expander, TPS65185 PMIC)
   hardware/InputManager/       buttons + capacitive touch (CHSC6x, GT911)
-  hardware/BatteryMonitor/     ADC battery + optional charge-sense
+  hardware/BatteryMonitor/     ADC / I²C gauge / M5PM1 battery telemetry
   hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)
   hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
   hardware/FrontlightManager/  PWM frontlight (de-link)
   hardware/AudioManager/       WAV-over-I2S audio (Murphy M3 ES8388, M5 ES8311)
   hardware/LedManager/         addressable RGB LEDs (M5 PaperColor, WS2812-compatible)
+  hardware/Buzzer/             LEDC PWM tone buzzer (Sticky, Murphy)
+  hardware/Microphone/         PDM mic capture (Sticky)
+  hardware/Rtc/                PCF8563 real-time clock (Sticky)
+  hardware/EnvironmentSensor/  SHT40 temperature + humidity (Sticky)
+  hardware/Imu/                LSM6DS3TR-C 6-axis IMU (Sticky)
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)
   ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)
 ```

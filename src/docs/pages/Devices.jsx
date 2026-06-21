@@ -35,6 +35,7 @@ export default function Devices() {
           ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s" full>full</Status>],
           ['LilyGo T5 S3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '960×540 16-gray, GT911 touch, backlight, I²C gauge', <Status key="s" full>full · via LovyanGFX</Status>],
           ['M5Paper v1.1', 'ESP32 (classic)', 'IT8951E', '540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery', <Status key="s" full>full · hand-rolled IT8951</Status>],
+          ['Sticky', 'ESP32-S3', 'SSD1677', '3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer', <Status key="s">upcoming · validating</Status>],
         ]}
       />
       <P>
@@ -43,8 +44,8 @@ export default function Devices() {
         via <Code>setDisplayX3()</Code>, which swaps the active profile and driver. Distinct-MCU boards
         build their own binary, selected with a board macro. A build targets exactly one of{' '}
         <strong>three MCU families</strong> — ESP32-C3 (X3/X4), ESP32-S3 (de-link, PaperColor, Murphy,
-        LilyGo) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects mixing families
-        at compile time.
+        LilyGo, Sticky) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects mixing
+        families at compile time.
       </P>
       <P>
         de-link reuses the X4's SSD1677 panel on an ESP32-S3, adding a warm/cool frontlight and{' '}
@@ -62,7 +63,10 @@ export default function Devices() {
         <Code>usesExternalBus()</Code> and holds an 8-bit grayscale canvas in PSRAM; the B/W and 16-gray
         paths both push that sprite at the requested waveform. The <Code>BoardConfig::LILYGO_T5S3</Code>{' '}
         profile carries its geometry, GT911 touch, PWM backlight and BQ27220/BQ25896 I²C battery gauge.
-        See <A href="/docs/adding-a-device">Adding a device</A> for the external-library driver pattern.
+        A dedicated <Code>BoardT5S3</Code> support library now fills the board-level gaps — it drives the
+        PCA9535 I²C IO expander (the user button) and the TPS65185 EPD PMIC, exposes mutex-guarded I²C
+        access, and supplies the board-injected <Code>LgfxEpdConfig</Code> + power hooks. See{' '}
+        <A href="/docs/adding-a-device">Adding a device</A> for the external-library driver pattern.
       </P>
       <P>
         The <strong>Murphy M3</strong> (CrowPanel 3.7″) pairs its UC8253 with a 90° hardware rotation:
@@ -91,6 +95,26 @@ export default function Devices() {
         to <Code>BTN_UP</Code> / <Code>BTN_DOWN</Code> for page navigation and the push is{' '}
         <Code>BTN_CONFIRM</Code>, which doubles as the power/wake button (it sits on an RTC GPIO, so it
         drives the <Code>ext1</Code> deep-sleep wakeup). Back/Left/Right come from the touch panel.
+      </P>
+      <P>
+        The <strong>Sticky</strong> (Seeed) is an <strong>upcoming</strong> ESP32-S3 device and the
+        most sensor-rich board in the matrix. It reuses the X4-class <strong>SSD1677</strong> driver for
+        its 3.97″ 800×480 B/W panel (its 24-pin FPC needs vendor full/fast update sequences and border
+        tracking, supplied as driver config), with GT911 touch. Beyond the display it carries a whole
+        peripheral suite, each behind its own opt-in library: a <strong>PDM microphone</strong>{' '}
+        (<A href="/docs/lib-mic">Microphone</A>), a <strong>PCF8563 RTC</strong>{' '}
+        (<A href="/docs/lib-rtc">Rtc</A>), an <strong>SHT40</strong> temperature/humidity sensor{' '}
+        (<A href="/docs/lib-env">EnvironmentSensor</A>), an <strong>LSM6DS3TR-C</strong> 6-axis IMU{' '}
+        (<A href="/docs/lib-imu">Imu</A>), a <strong>BQ27220</strong> I²C fuel gauge{' '}
+        (<A href="/docs/lib-battery">BatteryMonitor</A>), a LEDC <strong>buzzer</strong>{' '}
+        (<A href="/docs/lib-buzzer">Buzzer</A>), and an SPI MicroSD that shares the display bus. It is
+        the SDK's first <strong>multi-bus I²C</strong> board: the GT911 touch controller sits on{' '}
+        <Code>Wire</Code>, while the gauge and the whole sensor cluster share <Code>Wire1</Code>, kept
+        apart so neither stalls the other. Power-enable GPIOs gate the panel, touch controller, SD rail
+        and mic rail independently (the board profile names each pin; the SDK raises them at{' '}
+        <Code>begin()</Code>). Its GT911 is mounted rotated, corrected SDK-side by the touch profile's{' '}
+        <Code>swapXY</Code> / <Code>flipX</Code> / <Code>flipY</Code> flags. Orientation and the
+        display/SD bus-sharing are pending hardware validation.
       </P>
 
       <H2>M5Stack PaperColor refresh behavior</H2>
@@ -182,17 +206,26 @@ export default function Devices() {
           <strong>CHSC6x</strong> (Murphy M3) — IRQ-driven, ported from the upstream driver.
         </Li>
         <Li>
-          <strong>GT911</strong> (LilyGo T5 S3 and M5Paper v1.1) — polled, raw register reads plus the
-          reset/address dance. Its capacitive home key is surfaced via <Code>wasHomeKeyPressed()</Code>.
+          <strong>GT911</strong> (LilyGo T5 S3, M5Paper v1.1 and Sticky) — raw register reads plus the
+          reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive home key is
+          surfaced via <Code>wasHomeKeyPressed()</Code>.
         </Li>
       </Ul>
       <P>
         The InputManager exposes <Code>hasTouch</Code> / <Code>isTouchPressed</Code> /{' '}
-        <Code>wasTouchPressed</Code> / <Code>wasTouchReleased</Code> / <Code>getTouchPoint</Code>;
-        coordinates are delivered raw-panel-oriented and the app owns rotation. The GT911 boards set
-        their <Code>TouchConfig</Code> in the board profile (e.g.{' '}
-        <Code>BoardConfig::LILYGO_T5_PRO_GT911</Code>). See the{' '}
-        <A href="/docs/lib-input">InputManager reference</A>.
+        <Code>wasTouchPressed</Code> / <Code>wasTouchReleased</Code> / <Code>getTouchPoint</Code>, plus
+        tap, swipe and activity edges (see the <A href="/docs/lib-input">InputManager reference</A>).
+        GT911 boards set their <Code>TouchConfig</Code> in the board profile (e.g.{' '}
+        <Code>BoardConfig::LILYGO_T5_PRO_GT911</Code>).
+      </P>
+      <P>
+        <strong>Digitizer mounting is corrected SDK-side.</strong> A panel whose touch sensor is rotated
+        or mirrored relative to the glass sets <Code>swapXY</Code>, <Code>flipX</Code> and{' '}
+        <Code>flipY</Code> in its <Code>TouchConfig</Code> (the Sticky's portrait sensor on a landscape
+        panel sets all three), and the raw range fields describe the <em>post-swap</em> axes — so the
+        InputManager hands back panel-native coordinates and the app's orientation mapping follows
+        rotation automatically. A <Code>TouchConfig.powerEnable</Code> pin lets a board gate the touch
+        controller's power rail, raised before reset/probe.
       </P>
     </>
   )

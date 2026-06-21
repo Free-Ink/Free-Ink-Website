@@ -17,10 +17,16 @@ import SdCard from './pages/libs/SdCard.jsx'
 import Frontlight from './pages/libs/Frontlight.jsx'
 import AudioManager from './pages/libs/AudioManager.jsx'
 import LedManager from './pages/libs/LedManager.jsx'
+import Buzzer from './pages/libs/Buzzer.jsx'
+import Microphone from './pages/libs/Microphone.jsx'
+import Rtc from './pages/libs/Rtc.jsx'
+import EnvironmentSensor from './pages/libs/EnvironmentSensor.jsx'
+import Imu from './pages/libs/Imu.jsx'
 import PowerManager from './pages/libs/PowerManager.jsx'
 import Networking from './pages/Networking.jsx'
 import BoardConfig from './pages/libs/BoardConfig.jsx'
 import FreeInkUI from './pages/libs/FreeInkUI.jsx'
+import Icons from './pages/libs/Icons.jsx'
 import RepositoryLayout from './pages/RepositoryLayout.jsx'
 
 export const DOC_GROUPS = [
@@ -122,6 +128,36 @@ export const DOC_GROUPS = [
         Content: LedManager,
       },
       {
+        slug: 'lib-buzzer',
+        title: 'Buzzer',
+        description: 'LEDC PWM square-wave tones on a passive buzzer.',
+        Content: Buzzer,
+      },
+      {
+        slug: 'lib-mic',
+        title: 'Microphone',
+        description: 'PDM microphone capture to 16-bit PCM.',
+        Content: Microphone,
+      },
+      {
+        slug: 'lib-rtc',
+        title: 'Rtc',
+        description: 'PCF8563 real-time clock over I²C.',
+        Content: Rtc,
+      },
+      {
+        slug: 'lib-env',
+        title: 'EnvironmentSensor',
+        description: 'SHT40 temperature + humidity over I²C.',
+        Content: EnvironmentSensor,
+      },
+      {
+        slug: 'lib-imu',
+        title: 'Imu',
+        description: 'LSM6DS3TR-C 6-axis accelerometer + gyroscope.',
+        Content: Imu,
+      },
+      {
         slug: 'lib-power',
         title: 'PowerManager',
         description: 'Portable deep-sleep wake-on-power-button.',
@@ -144,6 +180,12 @@ export const DOC_GROUPS = [
         title: 'FreeInkUI',
         description: 'Optional immediate-mode UI framework for e-paper.',
         Content: FreeInkUI,
+      },
+      {
+        slug: 'lib-icons',
+        title: 'Icons',
+        description: 'freeink::Icon format, vendored Lucide set, and a generator.',
+        Content: Icons,
       },
     ],
   },

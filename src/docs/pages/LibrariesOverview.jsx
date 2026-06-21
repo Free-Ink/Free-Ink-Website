@@ -10,10 +10,16 @@ const LIBS = [
   { slug: 'lib-frontlight', name: 'FrontlightManager', blurb: 'PWM frontlight with warm/cool control.' },
   { slug: 'lib-audio', name: 'AudioManager', blurb: 'WAV playback through an I2S codec (ES8388 / ES8311).' },
   { slug: 'lib-led', name: 'LedManager', blurb: 'Addressable RGB LEDs: color, brightness, non-blocking flashes.' },
+  { slug: 'lib-buzzer', name: 'Buzzer', blurb: 'LEDC PWM square-wave tones on a passive buzzer.' },
+  { slug: 'lib-mic', name: 'Microphone', blurb: 'PDM microphone capture to 16-bit PCM.' },
+  { slug: 'lib-rtc', name: 'Rtc', blurb: 'PCF8563 real-time clock over I²C.' },
+  { slug: 'lib-env', name: 'EnvironmentSensor', blurb: 'SHT40 temperature + humidity over I²C.' },
+  { slug: 'lib-imu', name: 'Imu', blurb: 'LSM6DS3TR-C 6-axis accelerometer + gyroscope.' },
   { slug: 'lib-power', name: 'PowerManager', blurb: 'Portable deep-sleep wake-on-power-button.' },
   { slug: 'networking', name: 'SecureNet', blurb: 'Opt-in wolfSSL TLS 1.3 transport.' },
   { slug: 'lib-board', name: 'BoardConfig', blurb: 'Board profiles and the runtime-active device.' },
   { slug: 'lib-ui', name: 'FreeInkUI', blurb: 'Optional immediate-mode UI framework for e-paper.' },
+  { slug: 'lib-icons', name: 'Icons', blurb: 'freeink::Icon format, vendored Lucide set, and a generator.' },
 ]
 
 export default function LibrariesOverview() {

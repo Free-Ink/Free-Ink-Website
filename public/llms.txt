@@ -26,10 +26,16 @@ Hardware-independent C++ firmware SDK for e-paper readers. Source: [github.com/F
 - [FrontlightManager](https://freeink.org/docs/lib-frontlight): PWM frontlight with warm/cool control.
 - [AudioManager](https://freeink.org/docs/lib-audio): WAV playback through an I2S codec (Murphy M3 ES8388, M5 PaperColor ES8311).
 - [LedManager](https://freeink.org/docs/lib-led): Addressable RGB LEDs: color, brightness and non-blocking flashes.
+- [Buzzer](https://freeink.org/docs/lib-buzzer): LEDC PWM square-wave tones on a passive buzzer.
+- [Microphone](https://freeink.org/docs/lib-mic): PDM microphone capture to 16-bit PCM.
+- [Rtc](https://freeink.org/docs/lib-rtc): PCF8563 real-time clock over I²C.
+- [EnvironmentSensor](https://freeink.org/docs/lib-env): SHT40 temperature + humidity over I²C.
+- [Imu](https://freeink.org/docs/lib-imu): LSM6DS3TR-C 6-axis accelerometer + gyroscope.
 - [PowerManager](https://freeink.org/docs/lib-power): Portable deep-sleep wake-on-power-button.
 - [SecureNet](https://freeink.org/docs/networking): Opt-in wolfSSL TLS 1.3 transport.
 - [BoardConfig](https://freeink.org/docs/lib-board): Board profiles and the runtime-active device.
 - [FreeInkUI](https://freeink.org/docs/lib-ui): Optional immediate-mode UI framework for e-paper.
+- [Icons](https://freeink.org/docs/lib-icons): freeink::Icon format, vendored Lucide set, and a generator.
 
 ## Guides
 

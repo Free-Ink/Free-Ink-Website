@@ -58,6 +58,7 @@ export default function Display() {
           ['refreshDisplay(mode = FAST_REFRESH, turnOffScreen = false)', 'Refresh without rewriting the buffer.'],
           ['requestResync(uint8_t settlePasses = 0)', 'X3: one-shot full resync on next update.'],
           ['skipInitialResync()', 'Skip the first-update resync.'],
+          ['setFastRefreshCutoffMs(uint16_t ms) / fastRefreshCutoffMs()', 'M5 PaperColor: tune the interrupted-refresh cutoff in ms (0 = driver default). The cut now anchors to the BUSY falling edge — when the drive actually starts — so the timing is deterministic and sweepable on a live panel.'],
         ]}
       />
 
@@ -69,8 +70,10 @@ export default function Display() {
           ['writeGrayscalePlaneStrip(plane, rows, yStart, numRows)', 'Stream a row band to controller RAM (plane = GRAY_PLANE_LSB/MSB).'],
           ['supportsStripGrayscale()', 'Whether the active driver supports strip streaming.'],
           ['displayGrayBuffer(turnOffScreen = false, lut = nullptr, factoryMode = false)', 'Push the gray planes.'],
+          ['displayGrayscaleBase(fallback = HALF_REFRESH, turnOffScreen = false)', 'Display the framebuffer as the base frame under a grayscale overlay. On X3 this fires the OEM differential base pass; other panels fall back to a normal refresh in the fallback mode.'],
+          ['preconditionGrayscale() / preconditionGrayscale(x, y, w, h)', 'X3: fire the settle pass (full or windowed) that leaves pixels receptive to a weak grayscale nudge before an anti-aliased refresh.'],
           ['cleanupGrayscaleBuffers(bwBuffer) / grayscaleRevert()', 'Clean up after an anti-aliased refresh.'],
-          ['setCustomLUT(bool enabled, lutData = nullptr)', 'Install / restore a custom LUT (VCOM-safe).'],
+          ['setCustomLUT(bool enabled, lutData = nullptr)', 'Install / restore a custom waveform LUT (VCOM-safe). A board injects its own grayscale LUT through its driver config — custom LUT is the supported path now that the OTP gray4 mode has been removed.'],
         ]}
       />
 
