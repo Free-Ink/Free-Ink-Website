@@ -1026,7 +1026,7 @@ Bridging to an app's own drawing stack is optional: the header-only `GfxRenderer
 
 ## FreeInkApp — screen builder
 
-The core flow above is the raw immediate-mode loop. Most firmware starts a level up, with `FreeInkApp` (`FreeInkApp.h`) — an ergonomic, still allocation-free wrapper that owns the interaction buffer, dispatches semantic actions to callbacks, and gives each screen a top-to-bottom `Screen` builder (`header()`, `status()`, `button()`, `list()`, `footer()`, plus `takeTop()` / `takeBottom()` / `spacer()` / `body()` for custom bands). Each `render()` re-runs your screen function and returns an `ActionEvent`; it also records a `RefreshHint` (`None` / `Fast` / `Full` / `Clean`) so firmware picks the e-paper refresh mode — the app never pushes pixels itself. Because it's freestanding, a design-time tool can emit ordinary C++ against the same API.
+The core flow above is the raw immediate-mode loop. Most firmware starts a level up, with `FreeInkApp` (`FreeInkApp.h`) — an ergonomic, still allocation-free wrapper that owns the interaction buffer, dispatches semantic actions to callbacks, and gives each screen a `Screen` builder with a typed method for **every** component (`header()`, `status()`, `button()`, `list()`, `toggleRow()`, `slider()`, `table()`, `footer()`, …) plus `takeTop()` / `takeBottom()` / `spacer()` / `body()` for custom bands. Each builder call takes an optional `LayoutAnchor` (`Top` default or `Bottom`), so a region anchors to the bottom of the remaining content — footers and bottom bars with no manual math — and `HeaderProps` / `FooterProps` style the chrome. Each `render()` re-runs your screen function and returns an `ActionEvent`; it also records a `RefreshHint` (`None` / `Fast` / `Full` / `Clean`) so firmware picks the e-paper refresh mode — the app never pushes pixels itself.
 
 ```cpp
 using App = freeink::ui::FreeInkApp<32, 16>;
@@ -1052,6 +1052,17 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
   display.displayBuffer(/* map the hint to FULL / FAST */);
 }
 ```
+
+## Visual builder
+
+The SDK ships a self-contained **local visual builder** — a small web app that designs screens by hand and emits a `FreeInkApp` screen function. It edits the same JSON schema `tools/gen_screen.py` consumes, loads its component palette from the [gallery manifest](https://freeink.org/docs/lib-ui-components), and — crucially — renders its preview through the **real C++ `DisplayTarget`** path (returned as SVG), so what you arrange matches what the panel draws rather than a browser approximation.
+
+```
+python3 libs/ui/FreeInkUI/tools/builder/server.py
+# then open http://127.0.0.1:8088/
+```
+
+Pick a device profile and portrait/landscape orientation, drag components in, anchor regions to the top or bottom, then **export the JSON schema** or **Generate C++** to get a ready-to-compile screen function. It's a design-time tool only — there's no firmware runtime cost, and the generated firmware still receives plain static C++.
 
 ## Actions, not hardware
 
@@ -1084,10 +1095,10 @@ A set of immediate-mode components, deliberately not tied to any application's s
 | `statusBar` | Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay. |
 | `tabBar` | Pill or underline-style tabs with an optional divider. |
 | `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers. |
-| `keyGrid / qwertyKeyboard / textField` | A KeyKind key grid with glyph art, a full four-row QWERTY keyboard (Shift, mode, space, delete), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side). |
+| `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, Shift + symbols; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side). |
 | `readerChrome / tapZones` | Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing. |
 | `bookCard / coverGrid` | Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection. |
-| `optionDialog / popup / messagePanel / toast / contextMenu` | Overlays: a titled option dialog (caption + multi-line headline + body), a bare popup panel with an optional dithered scrim, an empty/error/loading message panel with retry, a static e-paper-safe toast, and a long-press command menu. |
+| `optionDialog / popup / messagePanel / toast / contextMenu` | Overlays: a titled option dialog (caption + multi-line headline + body), a bare popup panel (PopupProps sets size and alignment) with an optional dithered scrim, an empty/error/loading message panel with retry, a static e-paper-safe toast, and a long-press command menu. |
 | `metricCard / progressBar` | Statistics value/label cells and horizontal bar charts (minFill keeps tiny values visible). |
 | `batteryIndicator` | Battery glyph; triangle-built lightning bolt while charging, or an app-supplied icon. |
 | `header / gestureBar` | Section headers and button-hint bars. |
@@ -1171,13 +1182,13 @@ For teams mapping from LVGL, the equivalent FreeInkUI surface in e-paper-specifi
 | Base object / container | Frame, Stack, Screen, FreeInkApp — immediate-mode rather than retained objects |
 | Label | Primitive: DrawTarget::text; used by header, statusBar, rows, dialogs |
 | Image / canvas / line | Primitive: bitmap, fill, stroke, line, triangle; DisplayTarget renders into the 1-bit framebuffer |
-| Button | button, gestureBar, FooterAction |
-| Button matrix / keyboard | keyGrid, qwertyKeyboard |
+| Button | button, gestureBar, FooterAction / FooterProps |
+| Button matrix / keyboard | keyGrid, keyboard, qwertyKeyboard — built-in QWERTY (English), AZERTY (French), QWERTZ (German), Spanish layouts |
 | Checkbox | checkbox |
 | Switch | toggleRow |
 | Slider | slider; discrete setting changes use stepperRow |
 | Bar / progress | progressBar, reader/status progress |
-| Text area | textField + qwertyKeyboard; intentionally simple, app owns the editing buffer |
+| Text area | textField + keyboard / qwertyKeyboard; intentionally simple, app owns the editing buffer and text insertion |
 | Dropdown / roller / select | dropdown, radioGroup, contextMenu |
 | List / menu | list, settingRow, contextMenu |
 | Tabview / tileview / window | tabBar, readerChrome, app-level Screen composition |
@@ -1226,10 +1237,6 @@ Composite screens assembled from the components below — the kinds of surfaces 
 ## Overlays and dialogs
 
 > `contextMenu`A long-press / menu-button command list.
-
-## Regenerating the gallery
-
-These assets are not hand-maintained. Running `sh libs/ui/FreeInkUI/tools/render_gallery.sh` in the SDK renders every component through the 1-bit target and writes the per-component SVGs plus a `freeinkui-gallery.json` manifest — the same reference images a future drag-and-drop builder reuses, so the gallery never drifts from the code.
 
 ---
 

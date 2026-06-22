@@ -94,14 +94,18 @@ if (auto event = ui.finish()) {
         The core flow above is the raw immediate-mode loop. Most firmware starts a level up, with{' '}
         <Code>FreeInkApp</Code> (<Code>FreeInkApp.h</Code>) — an ergonomic, still allocation-free wrapper
         that owns the interaction buffer, dispatches semantic actions to callbacks, and gives each screen
-        a top-to-bottom <Code>Screen</Code> builder (<Code>header()</Code>, <Code>status()</Code>,{' '}
-        <Code>button()</Code>, <Code>list()</Code>, <Code>footer()</Code>, plus{' '}
-        <Code>takeTop()</Code> / <Code>takeBottom()</Code> / <Code>spacer()</Code> / <Code>body()</Code>{' '}
-        for custom bands). Each <Code>render()</Code> re-runs your screen function and returns an{' '}
-        <Code>ActionEvent</Code>; it also records a <Code>RefreshHint</Code>{' '}
+        a <Code>Screen</Code> builder with a typed method for <strong>every</strong> component
+        (<Code>header()</Code>, <Code>status()</Code>, <Code>button()</Code>, <Code>list()</Code>,{' '}
+        <Code>toggleRow()</Code>, <Code>slider()</Code>, <Code>table()</Code>, <Code>footer()</Code>, …)
+        plus <Code>takeTop()</Code> / <Code>takeBottom()</Code> / <Code>spacer()</Code> /{' '}
+        <Code>body()</Code> for custom bands. Each builder call takes an optional{' '}
+        <Code>LayoutAnchor</Code> (<Code>Top</Code> default or <Code>Bottom</Code>), so a region anchors
+        to the bottom of the remaining content — footers and bottom bars with no manual math —
+        and <Code>HeaderProps</Code> / <Code>FooterProps</Code> style the chrome. Each{' '}
+        <Code>render()</Code> re-runs your screen function and returns an <Code>ActionEvent</Code>; it
+        also records a <Code>RefreshHint</Code>{' '}
         (<Code>None</Code> / <Code>Fast</Code> / <Code>Full</Code> / <Code>Clean</Code>) so firmware
-        picks the e-paper refresh mode — the app never pushes pixels itself. Because it's freestanding,
-        a design-time tool can emit ordinary C++ against the same API.
+        picks the e-paper refresh mode — the app never pushes pixels itself.
       </P>
       <CodeBlock lang="cpp">{`using App = freeink::ui::FreeInkApp<32, 16>;
 
@@ -125,6 +129,24 @@ freeink::ui::ActionEvent event = app.render(readInputSnapshot());
 if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
   display.displayBuffer(/* map the hint to FULL / FAST */);
 }`}</CodeBlock>
+
+      <H2>Visual builder</H2>
+      <P>
+        The SDK ships a self-contained <strong>local visual builder</strong> — a small web app that
+        designs screens by hand and emits a <Code>FreeInkApp</Code> screen function. It edits the same
+        JSON schema <Code>tools/gen_screen.py</Code> consumes, loads its component palette from the{' '}
+        <A href="/docs/lib-ui-components">gallery manifest</A>, and — crucially — renders its preview
+        through the <strong>real C++ <Code>DisplayTarget</Code></strong> path (returned as SVG), so what
+        you arrange matches what the panel draws rather than a browser approximation.
+      </P>
+      <CodeBlock>{`python3 libs/ui/FreeInkUI/tools/builder/server.py
+# then open http://127.0.0.1:8088/`}</CodeBlock>
+      <P>
+        Pick a device profile and portrait/landscape orientation, drag components in, anchor regions to
+        the top or bottom, then <strong>export the JSON schema</strong> or <strong>Generate C++</strong>{' '}
+        to get a ready-to-compile screen function. It's a design-time tool only — there's no firmware
+        runtime cost, and the generated firmware still receives plain static C++.
+      </P>
 
       <H2>Actions, not hardware</H2>
       <P>
@@ -173,10 +195,10 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
           [<Code key="b">statusBar</Code>, 'Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay.'],
           [<Code key="c">tabBar</Code>, 'Pill or underline-style tabs with an optional divider.'],
           [<Code key="d">list</Code>, 'Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers.'],
-          [<Code key="e">keyGrid / qwertyKeyboard / textField</Code>, 'A KeyKind key grid with glyph art, a full four-row QWERTY keyboard (Shift, mode, space, delete), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side).'],
+          [<Code key="e">keyGrid / keyboard / textField</Code>, 'A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, Shift + symbols; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side).'],
           [<Code key="rd">readerChrome / tapZones</Code>, 'Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing.'],
           [<Code key="lib">bookCard / coverGrid</Code>, 'Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection.'],
-          [<Code key="f">optionDialog / popup / messagePanel / toast / contextMenu</Code>, 'Overlays: a titled option dialog (caption + multi-line headline + body), a bare popup panel with an optional dithered scrim, an empty/error/loading message panel with retry, a static e-paper-safe toast, and a long-press command menu.'],
+          [<Code key="f">optionDialog / popup / messagePanel / toast / contextMenu</Code>, 'Overlays: a titled option dialog (caption + multi-line headline + body), a bare popup panel (PopupProps sets size and alignment) with an optional dithered scrim, an empty/error/loading message panel with retry, a static e-paper-safe toast, and a long-press command menu.'],
           [<Code key="g">metricCard / progressBar</Code>, 'Statistics value/label cells and horizontal bar charts (minFill keeps tiny values visible).'],
           [<Code key="h">batteryIndicator</Code>, 'Battery glyph; triangle-built lightning bolt while charging, or an app-supplied icon.'],
           [<Code key="i">header / gestureBar</Code>, 'Section headers and button-hint bars.'],
@@ -339,13 +361,13 @@ freeink::ui::Frame<32> ui(target, device, input, interactions);
           ['Base object / container', 'Frame, Stack, Screen, FreeInkApp — immediate-mode rather than retained objects'],
           ['Label', 'Primitive: DrawTarget::text; used by header, statusBar, rows, dialogs'],
           ['Image / canvas / line', 'Primitive: bitmap, fill, stroke, line, triangle; DisplayTarget renders into the 1-bit framebuffer'],
-          ['Button', 'button, gestureBar, FooterAction'],
-          ['Button matrix / keyboard', 'keyGrid, qwertyKeyboard'],
+          ['Button', 'button, gestureBar, FooterAction / FooterProps'],
+          ['Button matrix / keyboard', 'keyGrid, keyboard, qwertyKeyboard — built-in QWERTY (English), AZERTY (French), QWERTZ (German), Spanish layouts'],
           ['Checkbox', 'checkbox'],
           ['Switch', 'toggleRow'],
           ['Slider', 'slider; discrete setting changes use stepperRow'],
           ['Bar / progress', 'progressBar, reader/status progress'],
-          ['Text area', 'textField + qwertyKeyboard; intentionally simple, app owns the editing buffer'],
+          ['Text area', 'textField + keyboard / qwertyKeyboard; intentionally simple, app owns the editing buffer and text insertion'],
           ['Dropdown / roller / select', 'dropdown, radioGroup, contextMenu'],
           ['List / menu', 'list, settingRow, contextMenu'],
           ['Tabview / tileview / window', 'tabBar, readerChrome, app-level Screen composition'],

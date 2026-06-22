@@ -34,7 +34,7 @@ const GROUPS = [
     items: [
       ['textField', 'text-field.svg', 'Single-line input with a chunk-measured cursor for long strings.'],
       ['keyGrid', 'key-grid.svg', 'A configurable key grid with KeyKind special keys and glyph art.'],
-      ['qwertyKeyboard', 'qwerty-keyboard.svg', 'A full four-row keyboard with Shift, mode, space and delete.'],
+      ['keyboard', 'qwerty-keyboard.svg', 'A data-driven on-screen keyboard with built-in QWERTY, AZERTY, QWERTZ and Spanish layouts; qwertyKeyboard is the QWERTY convenience wrapper.'],
       ['tabBar', 'tab-bar.svg', 'Pill or underline-style tabs with an optional divider.'],
       ['gestureBar', 'gesture-bar.svg', 'A button-hint bar for the available actions / gestures.'],
     ],
@@ -71,13 +71,13 @@ const GROUPS = [
 ]
 
 // A 1-bit render sits in a padded white "screen" card so it reads the same in
-// light and dark site themes. The renders are 1px-grid pixel art, so they're
-// shown near their native size (no overflow clip, no heavy fractional downscale
-// that would drop hairline strokes).
-function Screen({ src, alt }) {
+// light and dark site themes. The renders are 1px-grid pixel art, so each is
+// capped at its native width and centered — no upscaling blur, no heavy
+// fractional downscale that would drop hairline strokes, no overflow clip.
+function Screen({ src, alt, maxW = 'max-w-[360px]' }) {
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-3 dark:border-white/10">
-      <img src={src} alt={alt} loading="lazy" className="mx-auto block h-auto w-full" />
+    <div className="flex items-center justify-center rounded-lg border border-stone-200 bg-white p-3 dark:border-white/10">
+      <img src={src} alt={alt} className={`block h-auto w-full ${maxW}`} />
     </div>
   )
 }
@@ -98,10 +98,10 @@ export default function Components() {
         Composite screens assembled from the components below — the kinds of surfaces a reader firmware
         builds with the <Code>FreeInkApp</Code> screen builder.
       </P>
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6">
         {SCREENS.map((s) => (
           <figure key={s.file} className="m-0">
-            <Screen src={`${BASE}/${s.file}`} alt={`${s.title} — FreeInkUI screen`} />
+            <Screen src={`${BASE}/${s.file}`} alt={`${s.title} — FreeInkUI screen`} maxW="max-w-[640px]" />
             <figcaption className="mt-2 text-sm text-stone-500 dark:text-stone-400">{s.title}</figcaption>
           </figure>
         ))}
@@ -124,14 +124,6 @@ export default function Components() {
         </Fragment>
       ))}
 
-      <H2>Regenerating the gallery</H2>
-      <P>
-        These assets are not hand-maintained. Running{' '}
-        <Code>sh libs/ui/FreeInkUI/tools/render_gallery.sh</Code> in the SDK renders every component
-        through the 1-bit target and writes the per-component SVGs plus a{' '}
-        <Code>freeinkui-gallery.json</Code> manifest — the same reference images a future drag-and-drop
-        builder reuses, so the gallery never drifts from the code.
-      </P>
     </>
   )
 }

@@ -8,6 +8,7 @@
     "build": "vite build",
     "index-docs": "node scripts/index-docs.mjs",
     "gen-llms": "node scripts/gen-llms.mjs",
+    "copy-ui-images": "sh scripts/copy-ui-images.sh",
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   },
