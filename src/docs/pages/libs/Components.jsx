@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Lead, P, H2, A, Code } from '../../prose.jsx'
 
 const BASE = '/img/freeinkui'
@@ -65,12 +66,14 @@ const GROUPS = [
   },
 ]
 
-// A 1-bit render sits in a white "screen" card so it reads the same in light and
-// dark site themes.
+// A 1-bit render sits in a padded white "screen" card so it reads the same in
+// light and dark site themes. The renders are 1px-grid pixel art, so they're
+// shown near their native size (no overflow clip, no heavy fractional downscale
+// that would drop hairline strokes).
 function Screen({ src, alt }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white dark:border-white/10">
-      <img src={src} alt={alt} loading="lazy" className="block w-full" />
+    <div className="rounded-lg border border-stone-200 bg-white p-3 dark:border-white/10">
+      <img src={src} alt={alt} loading="lazy" className="mx-auto block h-auto w-full" />
     </div>
   )
 }
@@ -101,9 +104,9 @@ export default function Components() {
       </div>
 
       {GROUPS.map((group) => (
-        <div key={group.title}>
+        <Fragment key={group.title}>
           <H2>{group.title}</H2>
-          <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2">
             {group.items.map(([name, file, blurb]) => (
               <div key={name}>
                 <Screen src={`${BASE}/components/${file}`} alt={`${name} component preview`} />
@@ -114,7 +117,7 @@ export default function Components() {
               </div>
             ))}
           </div>
-        </div>
+        </Fragment>
       ))}
 
       <H2>Regenerating the gallery</H2>
