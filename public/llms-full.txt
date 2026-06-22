@@ -382,7 +382,7 @@ The SDK is a set of self-contained libraries, each its own PlatformIO dependency
 
 Signatures track the SDK headers under `libs/`. For exact types and defaults, read the header for each library — see [Repository layout](https://freeink.org/docs/repository-layout).
 
-> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
+> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Component galleryPrebuilt components, previewed from the real 1-bit renders.](https://freeink.org/docs/lib-ui-components)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
 
 ---
 
@@ -1024,6 +1024,35 @@ The built-in `DisplayTarget` (`FreeInkUIDisplayTarget.h`) is a self-contained `D
 
 Bridging to an app's own drawing stack is optional: the header-only `GfxRendererTarget` adapter (below) compiles only where a CrossPoint `GfxRenderer` is on the include path, for firmwares that already own a text/bidi pipeline. New apps just use `DisplayTarget`.
 
+## FreeInkApp — screen builder
+
+The core flow above is the raw immediate-mode loop. Most firmware starts a level up, with `FreeInkApp` (`FreeInkApp.h`) — an ergonomic, still allocation-free wrapper that owns the interaction buffer, dispatches semantic actions to callbacks, and gives each screen a top-to-bottom `Screen` builder (`header()`, `status()`, `button()`, `list()`, `footer()`, plus `takeTop()` / `takeBottom()` / `spacer()` / `body()` for custom bands). Each `render()` re-runs your screen function and returns an `ActionEvent`; it also records a `RefreshHint` (`None` / `Fast` / `Full` / `Clean`) so firmware picks the e-paper refresh mode — the app never pushes pixels itself. Because it's freestanding, a design-time tool can emit ordinary C++ against the same API.
+
+```cpp
+using App = freeink::ui::FreeInkApp<32, 16>;
+
+void homeScreen(App::ScreenType& screen, void* user) {
+  auto& state = *static_cast<AppState*>(user);
+  screen.header("Library");
+  const freeink::ui::FooterAction footer[] = {
+      {.label = "Open", .action = ActionOpen},
+      {.label = "Back", .action = ActionBack},
+  };
+  screen.footer(footer, 2);
+  screen.list(state.books, 2, state.selected, ActionOpen);
+}
+
+App app(target, target.deviceContext());     // target = a DisplayTarget
+app.setScreen(homeScreen, &state);
+app.on(ActionOpen, handleOpen, &state);
+
+// each loop:
+freeink::ui::ActionEvent event = app.render(readInputSnapshot());
+if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
+  display.displayBuffer(/* map the hint to FULL / FAST */);
+}
+```
+
 ## Actions, not hardware
 
 Interactive components register semantic actions and an `inputMask`. The same component can be selectable by touch, GPIO/focus, side buttons or gestures depending on the mask and the device's capabilities.
@@ -1044,16 +1073,19 @@ Touch hit areas are declarative and decoupled from the visual rect, composed in 
 
 ## Built-in components
 
-A small set of immediate-mode components, deliberately not tied to any application's screen structure. Apps draw app-specific content (a book page, a cover image) directly into a slot rect the layout hands back.
+A set of immediate-mode components, deliberately not tied to any application's screen structure. Apps draw app-specific content (a book page, a cover image) directly into a slot rect the layout hands back. Every one is previewed from its real 1-bit render in the [component gallery](https://freeink.org/docs/lib-ui-components).
 
 | Component | What it covers |
 | --- | --- |
 | `button` | Themed, state-styled, any input source via inputMask. |
+| `settingRow / toggleRow / stepperRow / radioGroup` | Settings-screen rows: label + value, an on/off switch, a −/+ stepper (drawn as centered strokes), and a single-choice group. |
 | `statusBar` | Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay. |
 | `tabBar` | Pill or underline-style tabs with an optional divider. |
 | `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers. |
-| `keyGrid / textField` | Keyboard grids with KeyKind special keys and glyph art; chunk-measured cursor for long URLs/passphrases (masking stays app-side). |
-| `optionDialog / popup` | Panel + up to three text slots (small title caption, a prominent multi-line headline that reserves exactly the lines it wraps to, and a body message, each with its own style/maxLines) + an option-button row/column, optional dithered scrim. |
+| `keyGrid / qwertyKeyboard / textField` | A KeyKind key grid with glyph art, a full four-row QWERTY keyboard (Shift, mode, space, delete), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side). |
+| `readerChrome / tapZones` | Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing. |
+| `bookCard / coverGrid` | Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection. |
+| `optionDialog / popup / messagePanel / toast / contextMenu` | Overlays: a titled option dialog (caption + multi-line headline + body), a bare popup panel with an optional dithered scrim, an empty/error/loading message panel with retry, a static e-paper-safe toast, and a long-press command menu. |
 | `metricCard / progressBar` | Statistics value/label cells and horizontal bar charts (minFill keeps tiny values visible). |
 | `batteryIndicator` | Battery glyph; triangle-built lightning bolt while charging, or an app-supplied icon. |
 | `header / gestureBar` | Section headers and button-hint bars. |
@@ -1120,6 +1152,36 @@ So existing fonts, bidi, localization and page rendering stay where they are —
 > **Adopting it incrementally**
 >
 > Port one screen of chrome first — a status bar + content slot + control bar split is a good proof of pipeline — then move shared surfaces screen-by-screen (headers, lists, button hints, popups, keyboards). Each port deletes the hand-rolled layout code it replaces. App-specific page rendering (book text layout, image decoding) stays app-owned: FreeInkUI hands the app a computed slot rect and the app renders into it. See the [full FreeInkUI guide](https://github.com/Free-Ink/freeink-sdk/blob/main/docs/freeink-ui.md).
+
+---
+
+# Component gallery
+
+> Prebuilt FreeInkUI components, previewed from the real 1-bit renders.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-ui-components
+
+FreeInkUI's prebuilt components and screen surfaces. Every preview here is **generated from the real C++ components** through the native 1-bit framebuffer renderer ([DisplayTarget](https://freeink.org/docs/lib-ui)) — not drawn by hand — so what you see is what the panel draws. See [FreeInkUI](https://freeink.org/docs/lib-ui) for the layout, theming and input model behind them.
+
+## Screens
+
+Composite screens assembled from the components below — the kinds of surfaces a reader firmware builds with the `FreeInkApp` screen builder.
+
+> Settings and controlsReader screen controlsLibrary and book surfacesOverlays, dialogs and keyboard
+
+> `button`Themed, state-styled action — selectable by touch, focus, button or gesture via inputMask.`settingRow`A label + value row for settings screens.`toggleRow`A settings row with an on/off switch.`stepperRow`A settings row with −/+ steppers, drawn as centered strokes.`radioGroup`A single-choice list of options.`list`Virtualized rows with fill / outline / pill styles and selection markers.
+
+> `textField`Single-line input with a chunk-measured cursor for long strings.`keyGrid`A configurable key grid with KeyKind special keys and glyph art.`qwertyKeyboard`A full four-row keyboard with Shift, mode, space and delete.`tabBar`Pill or underline-style tabs with an optional divider.`gestureBar`A button-hint bar for the available actions / gestures.
+
+> `statusBar`Measured leading/trailing clusters + centered title; doubles as a page overlay.`progressBar`A horizontal bar; minFill keeps tiny values visible.`readerChrome`Top/bottom reading chrome — title, progress label and bar.`tapZones`Page tap regions (prev / menu / next) plus swipe routing.`batteryIndicator`Battery glyph with a triangle-built bolt while charging.
+
+> `bookCard`A cover + title / author / meta + progress row for library lists.`coverGrid`A grid of cover art for visual selection.`coverCarousel`A prev/center/next cover row with selection chrome and tap/swipe routing.`metricCard`A statistics value / label cell.
+
+> `contextMenu`A long-press / menu-button command list.`optionDialog`A panel with title / headline / message and an option-button row.`popup`A bare dialog panel with an optional dithered scrim.`messagePanel`An empty / error / loading panel with optional progress and retry.`toast`A static, e-paper-safe notice such as “Saved” or “Sync failed”.
+
+## Regenerating the gallery
+
+These assets are not hand-maintained. Running `sh libs/ui/FreeInkUI/tools/render_gallery.sh` in the SDK renders every component through the 1-bit target and writes the per-component SVGs plus a `freeinkui-gallery.json` manifest — the same reference images a future drag-and-drop builder reuses, so the gallery never drifts from the code.
 
 ---
 

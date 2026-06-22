@@ -35,6 +35,7 @@ Hardware-independent C++ firmware SDK for e-paper readers. Source: [github.com/F
 - [SecureNet](https://freeink.org/docs/networking): Opt-in wolfSSL TLS 1.3 transport.
 - [BoardConfig](https://freeink.org/docs/lib-board): Board profiles and the runtime-active device.
 - [FreeInkUI](https://freeink.org/docs/lib-ui): Optional immediate-mode UI framework for e-paper.
+- [Component gallery](https://freeink.org/docs/lib-ui-components): Prebuilt FreeInkUI components, previewed from the real 1-bit renders.
 - [Icons](https://freeink.org/docs/lib-icons): freeink::Icon format, vendored Lucide set, and a generator.
 
 ## Guides

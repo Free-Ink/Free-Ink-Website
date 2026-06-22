@@ -26,6 +26,7 @@ import PowerManager from './pages/libs/PowerManager.jsx'
 import Networking from './pages/Networking.jsx'
 import BoardConfig from './pages/libs/BoardConfig.jsx'
 import FreeInkUI from './pages/libs/FreeInkUI.jsx'
+import Components from './pages/libs/Components.jsx'
 import Icons from './pages/libs/Icons.jsx'
 import RepositoryLayout from './pages/RepositoryLayout.jsx'
 
@@ -180,6 +181,12 @@ export const DOC_GROUPS = [
         title: 'FreeInkUI',
         description: 'Optional immediate-mode UI framework for e-paper.',
         Content: FreeInkUI,
+      },
+      {
+        slug: 'lib-ui-components',
+        title: 'Component gallery',
+        description: 'Prebuilt FreeInkUI components, previewed from the real 1-bit renders.',
+        Content: Components,
       },
       {
         slug: 'lib-icons',

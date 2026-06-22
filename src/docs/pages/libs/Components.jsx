@@ -1,0 +1,130 @@
+import { Lead, P, H2, A, Code } from '../../prose.jsx'
+
+const BASE = '/img/freeinkui'
+
+// The four composite screens generated from the real components.
+const SCREENS = [
+  { file: 'freeinkui-settings.svg', title: 'Settings and controls' },
+  { file: 'freeinkui-reader.svg', title: 'Reader screen controls' },
+  { file: 'freeinkui-library.svg', title: 'Library and book surfaces' },
+  { file: 'freeinkui-overlays.svg', title: 'Overlays, dialogs and keyboard' },
+]
+
+// Per-component palette, grouped the way the SDK groups them. file names live
+// under /img/freeinkui/components/.
+const GROUPS = [
+  {
+    title: 'Controls and settings',
+    items: [
+      ['button', 'button.svg', 'Themed, state-styled action — selectable by touch, focus, button or gesture via inputMask.'],
+      ['settingRow', 'setting-row.svg', 'A label + value row for settings screens.'],
+      ['toggleRow', 'toggle-row.svg', 'A settings row with an on/off switch.'],
+      ['stepperRow', 'stepper-row.svg', 'A settings row with −/+ steppers, drawn as centered strokes.'],
+      ['radioGroup', 'radio-group.svg', 'A single-choice list of options.'],
+      ['list', 'list.svg', 'Virtualized rows with fill / outline / pill styles and selection markers.'],
+    ],
+  },
+  {
+    title: 'Input and navigation',
+    items: [
+      ['textField', 'text-field.svg', 'Single-line input with a chunk-measured cursor for long strings.'],
+      ['keyGrid', 'key-grid.svg', 'A configurable key grid with KeyKind special keys and glyph art.'],
+      ['qwertyKeyboard', 'qwerty-keyboard.svg', 'A full four-row keyboard with Shift, mode, space and delete.'],
+      ['tabBar', 'tab-bar.svg', 'Pill or underline-style tabs with an optional divider.'],
+      ['gestureBar', 'gesture-bar.svg', 'A button-hint bar for the available actions / gestures.'],
+    ],
+  },
+  {
+    title: 'Reader and status',
+    items: [
+      ['statusBar', 'status-bar.svg', 'Measured leading/trailing clusters + centered title; doubles as a page overlay.'],
+      ['progressBar', 'progress-bar.svg', 'A horizontal bar; minFill keeps tiny values visible.'],
+      ['readerChrome', 'reader-chrome.svg', 'Top/bottom reading chrome — title, progress label and bar.'],
+      ['tapZones', 'tap-zones.svg', 'Page tap regions (prev / menu / next) plus swipe routing.'],
+      ['batteryIndicator', 'battery-indicator.svg', 'Battery glyph with a triangle-built bolt while charging.'],
+    ],
+  },
+  {
+    title: 'Library surfaces',
+    items: [
+      ['bookCard', 'book-card.svg', 'A cover + title / author / meta + progress row for library lists.'],
+      ['coverGrid', 'cover-grid.svg', 'A grid of cover art for visual selection.'],
+      ['coverCarousel', 'cover-carousel.svg', 'A prev/center/next cover row with selection chrome and tap/swipe routing.'],
+      ['metricCard', 'metric-card.svg', 'A statistics value / label cell.'],
+    ],
+  },
+  {
+    title: 'Overlays and dialogs',
+    items: [
+      ['contextMenu', 'context-menu.svg', 'A long-press / menu-button command list.'],
+      ['optionDialog', 'option-dialog.svg', 'A panel with title / headline / message and an option-button row.'],
+      ['popup', 'popup.svg', 'A bare dialog panel with an optional dithered scrim.'],
+      ['messagePanel', 'message-panel.svg', 'An empty / error / loading panel with optional progress and retry.'],
+      ['toast', 'toast.svg', 'A static, e-paper-safe notice such as “Saved” or “Sync failed”.'],
+    ],
+  },
+]
+
+// A 1-bit render sits in a white "screen" card so it reads the same in light and
+// dark site themes.
+function Screen({ src, alt }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white dark:border-white/10">
+      <img src={src} alt={alt} loading="lazy" className="block w-full" />
+    </div>
+  )
+}
+
+export default function Components() {
+  return (
+    <>
+      <Lead>
+        FreeInkUI's prebuilt components and screen surfaces. Every preview here is{' '}
+        <strong>generated from the real C++ components</strong> through the native 1-bit framebuffer
+        renderer (<A href="/docs/lib-ui">DisplayTarget</A>) — not drawn by hand — so what you see is what
+        the panel draws. See <A href="/docs/lib-ui">FreeInkUI</A> for the layout, theming and input model
+        behind them.
+      </Lead>
+
+      <H2>Screens</H2>
+      <P>
+        Composite screens assembled from the components below — the kinds of surfaces a reader firmware
+        builds with the <Code>FreeInkApp</Code> screen builder.
+      </P>
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {SCREENS.map((s) => (
+          <figure key={s.file} className="m-0">
+            <Screen src={`${BASE}/${s.file}`} alt={`${s.title} — FreeInkUI screen`} />
+            <figcaption className="mt-2 text-sm text-stone-500 dark:text-stone-400">{s.title}</figcaption>
+          </figure>
+        ))}
+      </div>
+
+      {GROUPS.map((group) => (
+        <div key={group.title}>
+          <H2>{group.title}</H2>
+          <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+            {group.items.map(([name, file, blurb]) => (
+              <div key={name}>
+                <Screen src={`${BASE}/components/${file}`} alt={`${name} component preview`} />
+                <p className="mt-2.5">
+                  <Code>{name}</Code>
+                </p>
+                <p className="mt-1.5 text-sm/6 text-stone-600 dark:text-stone-400">{blurb}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <H2>Regenerating the gallery</H2>
+      <P>
+        These assets are not hand-maintained. Running{' '}
+        <Code>sh libs/ui/FreeInkUI/tools/render_gallery.sh</Code> in the SDK renders every component
+        through the 1-bit target and writes the per-component SVGs plus a{' '}
+        <Code>freeinkui-gallery.json</Code> manifest — the same reference images a future drag-and-drop
+        builder reuses, so the gallery never drifts from the code.
+      </P>
+    </>
+  )
+}

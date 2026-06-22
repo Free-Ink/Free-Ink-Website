@@ -89,6 +89,43 @@ if (auto event = ui.finish()) {
         pipeline. New apps just use <Code>DisplayTarget</Code>.
       </P>
 
+      <H2>FreeInkApp — screen builder</H2>
+      <P>
+        The core flow above is the raw immediate-mode loop. Most firmware starts a level up, with{' '}
+        <Code>FreeInkApp</Code> (<Code>FreeInkApp.h</Code>) — an ergonomic, still allocation-free wrapper
+        that owns the interaction buffer, dispatches semantic actions to callbacks, and gives each screen
+        a top-to-bottom <Code>Screen</Code> builder (<Code>header()</Code>, <Code>status()</Code>,{' '}
+        <Code>button()</Code>, <Code>list()</Code>, <Code>footer()</Code>, plus{' '}
+        <Code>takeTop()</Code> / <Code>takeBottom()</Code> / <Code>spacer()</Code> / <Code>body()</Code>{' '}
+        for custom bands). Each <Code>render()</Code> re-runs your screen function and returns an{' '}
+        <Code>ActionEvent</Code>; it also records a <Code>RefreshHint</Code>{' '}
+        (<Code>None</Code> / <Code>Fast</Code> / <Code>Full</Code> / <Code>Clean</Code>) so firmware
+        picks the e-paper refresh mode — the app never pushes pixels itself. Because it's freestanding,
+        a design-time tool can emit ordinary C++ against the same API.
+      </P>
+      <CodeBlock lang="cpp">{`using App = freeink::ui::FreeInkApp<32, 16>;
+
+void homeScreen(App::ScreenType& screen, void* user) {
+  auto& state = *static_cast<AppState*>(user);
+  screen.header("Library");
+  const freeink::ui::FooterAction footer[] = {
+      {.label = "Open", .action = ActionOpen},
+      {.label = "Back", .action = ActionBack},
+  };
+  screen.footer(footer, 2);
+  screen.list(state.books, 2, state.selected, ActionOpen);
+}
+
+App app(target, target.deviceContext());     // target = a DisplayTarget
+app.setScreen(homeScreen, &state);
+app.on(ActionOpen, handleOpen, &state);
+
+// each loop:
+freeink::ui::ActionEvent event = app.render(readInputSnapshot());
+if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
+  display.displayBuffer(/* map the hint to FULL / FAST */);
+}`}</CodeBlock>
+
       <H2>Actions, not hardware</H2>
       <P>
         Interactive components register semantic actions and an <Code>inputMask</Code>. The same
@@ -121,19 +158,23 @@ if (auto event = ui.finish()) {
 
       <H2>Built-in components</H2>
       <P>
-        A small set of immediate-mode components, deliberately not tied to any application's screen
-        structure. Apps draw app-specific content (a book page, a cover image) directly into a slot
-        rect the layout hands back.
+        A set of immediate-mode components, deliberately not tied to any application's screen structure.
+        Apps draw app-specific content (a book page, a cover image) directly into a slot rect the layout
+        hands back. Every one is previewed from its real 1-bit render in the{' '}
+        <A href="/docs/lib-ui-components">component gallery</A>.
       </P>
       <Table
         head={['Component', 'What it covers']}
         rows={[
           [<Code key="a">button</Code>, 'Themed, state-styled, any input source via inputMask.'],
+          [<Code key="set">settingRow / toggleRow / stepperRow / radioGroup</Code>, 'Settings-screen rows: label + value, an on/off switch, a −/+ stepper (drawn as centered strokes), and a single-choice group.'],
           [<Code key="b">statusBar</Code>, 'Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay.'],
           [<Code key="c">tabBar</Code>, 'Pill or underline-style tabs with an optional divider.'],
           [<Code key="d">list</Code>, 'Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers.'],
-          [<Code key="e">keyGrid / textField</Code>, 'Keyboard grids with KeyKind special keys and glyph art; chunk-measured cursor for long URLs/passphrases (masking stays app-side).'],
-          [<Code key="f">optionDialog / popup</Code>, 'Panel + up to three text slots (small title caption, a prominent multi-line headline that reserves exactly the lines it wraps to, and a body message, each with its own style/maxLines) + an option-button row/column, optional dithered scrim.'],
+          [<Code key="e">keyGrid / qwertyKeyboard / textField</Code>, 'A KeyKind key grid with glyph art, a full four-row QWERTY keyboard (Shift, mode, space, delete), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side).'],
+          [<Code key="rd">readerChrome / tapZones</Code>, 'Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing.'],
+          [<Code key="lib">bookCard / coverGrid</Code>, 'Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection.'],
+          [<Code key="f">optionDialog / popup / messagePanel / toast / contextMenu</Code>, 'Overlays: a titled option dialog (caption + multi-line headline + body), a bare popup panel with an optional dithered scrim, an empty/error/loading message panel with retry, a static e-paper-safe toast, and a long-press command menu.'],
           [<Code key="g">metricCard / progressBar</Code>, 'Statistics value/label cells and horizontal bar charts (minFill keeps tiny values visible).'],
           [<Code key="h">batteryIndicator</Code>, 'Battery glyph; triangle-built lightning bolt while charging, or an app-supplied icon.'],
           [<Code key="i">header / gestureBar</Code>, 'Section headers and button-hint bars.'],
