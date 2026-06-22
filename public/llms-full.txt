@@ -1079,6 +1079,8 @@ A set of immediate-mode components, deliberately not tied to any application's s
 | --- | --- |
 | `button` | Themed, state-styled, any input source via inputMask. |
 | `settingRow / toggleRow / stepperRow / radioGroup` | Settings-screen rows: label + value, an on/off switch, a −/+ stepper (drawn as centered strokes), and a single-choice group. |
+| `checkbox / slider / dropdown` | A label + checkable box, a continuous value slider (dithered track + knob; stepperRow covers discrete steps), and a dropdown that opens an app-owned selection. |
+| `table` | A rows × columns cell grid with grid lines, an optional header row and per-cell styles. |
 | `statusBar` | Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay. |
 | `tabBar` | Pill or underline-style tabs with an optional divider. |
 | `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers. |
@@ -1149,6 +1151,42 @@ Writing your own `DrawTarget` is small: implement the drawing primitives over yo
 
 So existing fonts, bidi, localization and page rendering stay where they are — FreeInkUI does not translate strings (apps pass already-localized, borrowed strings) and large image decoding stays app/renderer-owned.
 
+## FreeInkUI vs LVGL
+
+[LVGL](https://lvgl.io/docs/latest/) is the broader general-purpose embedded GUI stack — a retained object tree, themes, animation/timer machinery, flex/grid layout, many widgets, and broad display/input portability (including real 1-bpp monochrome). The case for FreeInkUI isn't that LVGL can't do e-paper; it's that FreeInkUI is **smaller, more direct, and opinionated around FreeInk e-paper firmware**: it draws straight into `FreeInkDisplay` with fixed-capacity routing and no heap-owned object tree, and ships reader-specific surfaces out of the box.
+
+| Reach for LVGL when… | Reach for FreeInkUI when… |
+| --- | --- |
+| You need a mature retained GUI toolkit — broad widget coverage, animations, themes, flex/grid layout. | You want a small immediate-mode layer with fixed-capacity routing and no heap-owned object tree. |
+| Your product targets many display technologies, or already has an LVGL driver/input stack. | Your product is centered on FreeInk e-paper boards — partial/full refresh, ghosting, reader chrome, tap zones, board capabilities. |
+| You need LVGL extras: calendar, chart, meter, spinner, image decoders, IME, demos. | You need reader surfaces out of the box: book cards, cover grids/carousels, status chrome, tap zones, e-ink-safe dialogs, generated 1-bit previews. |
+| You can pay the RAM / code cost of a general GUI runtime. | You want borrowed strings/assets, freestanding C++17, host tests, static screen generation, and predictable per-frame drawing. |
+
+### LVGL widget parity
+
+For teams mapping from LVGL, the equivalent FreeInkUI surface in e-paper-specific names. “Primitive” means the operation lives directly on `DrawTarget`; otherwise FreeInkUI offers a reader-focused component rather than a generic clone.
+
+| LVGL widget family | FreeInkUI coverage |
+| --- | --- |
+| Base object / container | Frame, Stack, Screen, FreeInkApp — immediate-mode rather than retained objects |
+| Label | Primitive: DrawTarget::text; used by header, statusBar, rows, dialogs |
+| Image / canvas / line | Primitive: bitmap, fill, stroke, line, triangle; DisplayTarget renders into the 1-bit framebuffer |
+| Button | button, gestureBar, FooterAction |
+| Button matrix / keyboard | keyGrid, qwertyKeyboard |
+| Checkbox | checkbox |
+| Switch | toggleRow |
+| Slider | slider; discrete setting changes use stepperRow |
+| Bar / progress | progressBar, reader/status progress |
+| Text area | textField + qwertyKeyboard; intentionally simple, app owns the editing buffer |
+| Dropdown / roller / select | dropdown, radioGroup, contextMenu |
+| List / menu | list, settingRow, contextMenu |
+| Tabview / tileview / window | tabBar, readerChrome, app-level Screen composition |
+| Table | table |
+| Message box / dialog | popup, toast, messagePanel, optionDialog |
+| Chart / meter | metricCard, progressBar; generic chart/meter widgets are not first-class yet |
+| Calendar / spinner / arc / animation extras | Not first-class; add as app components when a specific e-paper product needs them |
+| E-reader / library surfaces | tapZones, readerChrome, bookCard, coverGrid, coverCarousel, batteryIndicator |
+
 > **Adopting it incrementally**
 >
 > Port one screen of chrome first — a status bar + content slot + control bar split is a good proof of pipeline — then move shared surfaces screen-by-screen (headers, lists, button hints, popups, keyboards). Each port deletes the hand-rolled layout code it replaces. App-specific page rendering (book text layout, image decoding) stays app-owned: FreeInkUI hands the app a computed slot rect and the app renders into it. See the [full FreeInkUI guide](https://github.com/Free-Ink/freeink-sdk/blob/main/docs/freeink-ui.md).
@@ -1169,15 +1207,25 @@ Composite screens assembled from the components below — the kinds of surfaces 
 
 > Settings and controlsReader screen controlsLibrary and book surfacesOverlays, dialogs and keyboard
 
-> `button`Themed, state-styled action — selectable by touch, focus, button or gesture via inputMask.`settingRow`A label + value row for settings screens.`toggleRow`A settings row with an on/off switch.`stepperRow`A settings row with −/+ steppers, drawn as centered strokes.`radioGroup`A single-choice list of options.`list`Virtualized rows with fill / outline / pill styles and selection markers.
+## Controls and settings
 
-> `textField`Single-line input with a chunk-measured cursor for long strings.`keyGrid`A configurable key grid with KeyKind special keys and glyph art.`qwertyKeyboard`A full four-row keyboard with Shift, mode, space and delete.`tabBar`Pill or underline-style tabs with an optional divider.`gestureBar`A button-hint bar for the available actions / gestures.
+> `button`Themed, state-styled action — selectable by touch, focus, button or gesture via inputMask.
 
-> `statusBar`Measured leading/trailing clusters + centered title; doubles as a page overlay.`progressBar`A horizontal bar; minFill keeps tiny values visible.`readerChrome`Top/bottom reading chrome — title, progress label and bar.`tapZones`Page tap regions (prev / menu / next) plus swipe routing.`batteryIndicator`Battery glyph with a triangle-built bolt while charging.
+## Input and navigation
 
-> `bookCard`A cover + title / author / meta + progress row for library lists.`coverGrid`A grid of cover art for visual selection.`coverCarousel`A prev/center/next cover row with selection chrome and tap/swipe routing.`metricCard`A statistics value / label cell.
+> `textField`Single-line input with a chunk-measured cursor for long strings.
 
-> `contextMenu`A long-press / menu-button command list.`optionDialog`A panel with title / headline / message and an option-button row.`popup`A bare dialog panel with an optional dithered scrim.`messagePanel`An empty / error / loading panel with optional progress and retry.`toast`A static, e-paper-safe notice such as “Saved” or “Sync failed”.
+## Reader and status
+
+> `statusBar`Measured leading/trailing clusters + centered title; doubles as a page overlay.
+
+## Library surfaces
+
+> `bookCard`A cover + title / author / meta + progress row for library lists.
+
+## Overlays and dialogs
+
+> `contextMenu`A long-press / menu-button command list.
 
 ## Regenerating the gallery
 

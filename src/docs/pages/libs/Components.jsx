@@ -18,11 +18,15 @@ const GROUPS = [
     title: 'Controls and settings',
     items: [
       ['button', 'button.svg', 'Themed, state-styled action — selectable by touch, focus, button or gesture via inputMask.'],
+      ['checkbox', 'checkbox.svg', 'A label with a checkable box; fires a semantic action on toggle.'],
+      ['slider', 'slider.svg', 'A continuous value track — dithered rail, filled portion and knob; prev/next or touch adjusts it (use stepperRow for discrete steps).'],
       ['settingRow', 'setting-row.svg', 'A label + value row for settings screens.'],
       ['toggleRow', 'toggle-row.svg', 'A settings row with an on/off switch.'],
       ['stepperRow', 'stepper-row.svg', 'A settings row with −/+ steppers, drawn as centered strokes.'],
+      ['dropdown', 'dropdown.svg', 'A label + current value + chevron that opens an app-owned selection.'],
       ['radioGroup', 'radio-group.svg', 'A single-choice list of options.'],
       ['list', 'list.svg', 'Virtualized rows with fill / outline / pill styles and selection markers.'],
+      ['table', 'table.svg', 'A rows × columns cell grid with grid lines, an optional header row and per-cell styles.'],
     ],
   },
   {

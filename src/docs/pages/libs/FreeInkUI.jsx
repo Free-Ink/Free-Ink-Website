@@ -168,6 +168,8 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
         rows={[
           [<Code key="a">button</Code>, 'Themed, state-styled, any input source via inputMask.'],
           [<Code key="set">settingRow / toggleRow / stepperRow / radioGroup</Code>, 'Settings-screen rows: label + value, an on/off switch, a −/+ stepper (drawn as centered strokes), and a single-choice group.'],
+          [<Code key="form">checkbox / slider / dropdown</Code>, 'A label + checkable box, a continuous value slider (dithered track + knob; stepperRow covers discrete steps), and a dropdown that opens an app-owned selection.'],
+          [<Code key="tbl">table</Code>, 'A rows × columns cell grid with grid lines, an optional header row and per-cell styles.'],
           [<Code key="b">statusBar</Code>, 'Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay.'],
           [<Code key="c">tabBar</Code>, 'Pill or underline-style tabs with an optional divider.'],
           [<Code key="d">list</Code>, 'Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers.'],
@@ -305,6 +307,55 @@ freeink::ui::Frame<32> ui(target, device, input, interactions);
         not translate strings (apps pass already-localized, borrowed strings) and large image decoding
         stays app/renderer-owned.
       </P>
+
+      <H2>FreeInkUI vs LVGL</H2>
+      <P>
+        <A href="https://lvgl.io/docs/latest/">LVGL</A> is the broader general-purpose embedded GUI
+        stack — a retained object tree, themes, animation/timer machinery, flex/grid layout, many
+        widgets, and broad display/input portability (including real 1-bpp monochrome). The case for
+        FreeInkUI isn't that LVGL can't do e-paper; it's that FreeInkUI is <strong>smaller, more direct,
+        and opinionated around FreeInk e-paper firmware</strong>: it draws straight into{' '}
+        <Code>FreeInkDisplay</Code> with fixed-capacity routing and no heap-owned object tree, and ships
+        reader-specific surfaces out of the box.
+      </P>
+      <Table
+        head={['Reach for LVGL when…', 'Reach for FreeInkUI when…']}
+        rows={[
+          ['You need a mature retained GUI toolkit — broad widget coverage, animations, themes, flex/grid layout.', 'You want a small immediate-mode layer with fixed-capacity routing and no heap-owned object tree.'],
+          ['Your product targets many display technologies, or already has an LVGL driver/input stack.', 'Your product is centered on FreeInk e-paper boards — partial/full refresh, ghosting, reader chrome, tap zones, board capabilities.'],
+          ['You need LVGL extras: calendar, chart, meter, spinner, image decoders, IME, demos.', 'You need reader surfaces out of the box: book cards, cover grids/carousels, status chrome, tap zones, e-ink-safe dialogs, generated 1-bit previews.'],
+          ['You can pay the RAM / code cost of a general GUI runtime.', 'You want borrowed strings/assets, freestanding C++17, host tests, static screen generation, and predictable per-frame drawing.'],
+        ]}
+      />
+      <H3>LVGL widget parity</H3>
+      <P>
+        For teams mapping from LVGL, the equivalent FreeInkUI surface in e-paper-specific names.
+        “Primitive” means the operation lives directly on <Code>DrawTarget</Code>; otherwise FreeInkUI
+        offers a reader-focused component rather than a generic clone.
+      </P>
+      <Table
+        head={['LVGL widget family', 'FreeInkUI coverage']}
+        rows={[
+          ['Base object / container', 'Frame, Stack, Screen, FreeInkApp — immediate-mode rather than retained objects'],
+          ['Label', 'Primitive: DrawTarget::text; used by header, statusBar, rows, dialogs'],
+          ['Image / canvas / line', 'Primitive: bitmap, fill, stroke, line, triangle; DisplayTarget renders into the 1-bit framebuffer'],
+          ['Button', 'button, gestureBar, FooterAction'],
+          ['Button matrix / keyboard', 'keyGrid, qwertyKeyboard'],
+          ['Checkbox', 'checkbox'],
+          ['Switch', 'toggleRow'],
+          ['Slider', 'slider; discrete setting changes use stepperRow'],
+          ['Bar / progress', 'progressBar, reader/status progress'],
+          ['Text area', 'textField + qwertyKeyboard; intentionally simple, app owns the editing buffer'],
+          ['Dropdown / roller / select', 'dropdown, radioGroup, contextMenu'],
+          ['List / menu', 'list, settingRow, contextMenu'],
+          ['Tabview / tileview / window', 'tabBar, readerChrome, app-level Screen composition'],
+          ['Table', 'table'],
+          ['Message box / dialog', 'popup, toast, messagePanel, optionDialog'],
+          ['Chart / meter', 'metricCard, progressBar; generic chart/meter widgets are not first-class yet'],
+          ['Calendar / spinner / arc / animation extras', 'Not first-class; add as app components when a specific e-paper product needs them'],
+          ['E-reader / library surfaces', 'tapZones, readerChrome, bookCard, coverGrid, coverCarousel, batteryIndicator'],
+        ]}
+      />
 
       <Callout title="Adopting it incrementally">
         <p>

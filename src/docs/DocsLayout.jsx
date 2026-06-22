@@ -3,7 +3,7 @@ import { Link, Outlet } from 'react-router-dom'
 import { Logo } from '../components/Brand.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
 import GitHubMenu from '../components/GitHubMenu.jsx'
-import { ArrowRightIcon, SearchIcon } from '../components/icons.jsx'
+import { SearchIcon } from '../components/icons.jsx'
 import { SPONSOR_URL } from '../components/sponsor.js'
 import DocsSidebar from './DocsSidebar.jsx'
 
@@ -35,7 +35,7 @@ export default function DocsLayout() {
     <div className="min-h-dvh">
       {/* Docs top bar — its own header (the landing nav is section-anchor based). */}
       <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-stone-50/80 backdrop-blur-md dark:border-white/10 dark:bg-stone-950/80">
-        <div className="mx-auto flex max-w-screen-2xl items-center justify-between gap-x-4 px-4 py-3.5 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-screen-2xl grid-cols-[1fr_auto_1fr] items-center gap-x-4 px-4 py-3.5 sm:px-6 lg:px-8">
           <div className="flex items-center gap-x-3">
             <button
               type="button"
@@ -60,7 +60,7 @@ export default function DocsLayout() {
             </span>
           </div>
 
-          <div className="flex items-center gap-x-2 sm:gap-x-3">
+          <div className="justify-self-center">
             <button
               type="button"
               onClick={openSearch}
@@ -73,13 +73,9 @@ export default function DocsLayout() {
                 ⌘K
               </kbd>
             </button>
-            <Link
-              to="/"
-              className="hidden items-center gap-x-1.5 text-sm font-medium text-stone-600 transition hover:text-stone-900 sm:inline-flex dark:text-stone-300 dark:hover:text-white"
-            >
-              <ArrowRightIcon className="size-3.5 rotate-180" />
-              Back to site
-            </Link>
+          </div>
+
+          <div className="flex items-center justify-end gap-x-2 sm:gap-x-3">
             <a
               href={SPONSOR_URL}
               target="_blank"
