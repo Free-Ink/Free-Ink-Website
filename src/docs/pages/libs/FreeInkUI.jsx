@@ -76,6 +76,12 @@ if (auto event = ui.finish()) {
         self-contained <Code>DrawTarget</Code> that writes directly into a 1-bpp framebuffer — the same
         layout <Code>FreeInkDisplay::getFrameBuffer()</Code> hands back — with <strong>no external
         graphics library</strong>, so the exact same render runs in firmware and in host unit tests. It
+        draws in <strong>logical coordinates and rotates each pixel into the panel's native
+        framebuffer</strong> at draw time, so you lay out a screen in the orientation you intend with no
+        separate rotated buffer: the four-argument constructor takes the panel's native dimensions and
+        defaults a landscape-native panel (the X3/X4) to <Code>Portrait</Code> so a held-tall reader
+        reads upright; pass an explicit <Code>Orientation</Code> to the five-argument overload to
+        override, and <Code>deviceContext()</Code> carries that orientation so touch mapping agrees. It
         bundles a <strong>Noto Sans bitmap font</strong> across eight font slots; point a slot (or all of
         them) at your own <Code>BitmapFont</Code> with <Code>setFont()</Code>, generated from any TTF/OTF
         by <Code>tools/gen_font.py</Code>. On a 1-bit panel the four UI grays

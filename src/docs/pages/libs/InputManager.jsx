@@ -43,6 +43,22 @@ export default function InputManager() {
           ['wasHomeKeyPressed()', 'Edge: GT911 capacitive home key pressed (status bit 0x10). Always false on controllers without one.'],
         ]}
       />
+
+      <H2>Background polling</H2>
+      <P>
+        On e-paper a slow refresh blocks the main loop, so a button press that lands mid-refresh is
+        lost. Optional FreeRTOS-backed polling decouples input from rendering: a task samples the
+        buttons on its own and queues each press edge, and the app drains them after the refresh. When
+        async polling is active the app must <strong>not</strong> call <Code>update()</Code> /{' '}
+        <Code>wasPressed()</Code> — the task owns the edge state; drain with <Code>popPress()</Code>{' '}
+        instead.
+      </P>
+      <ApiTable
+        rows={[
+          ['beginAsync(taskPriority = 2, pollMs = 15, queueLen = 32)', 'Spawn the polling task; it latches each press (a BTN_* index) into an internal queue. No-op if already started.'],
+          ['popPress(uint8_t& button) → bool', 'Pop the next queued button index into button. False when nothing is pending (or async polling was never started).'],
+        ]}
+      />
     </>
   )
 }

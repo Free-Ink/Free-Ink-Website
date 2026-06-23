@@ -36,8 +36,9 @@ export default function BuildComposition() {
       <P>
         Multiple different-pinout devices on one MCU are runtime-selected: <Code>ACTIVE</Code> defaults
         to a compile-time default and the consumer calls <Code>BoardConfig::selectDevice(...)</Code>{' '}
-        after its own detection. The SDK doesn't ship a detector — X3/X4 detection stays in the
-        consumer (e.g. CrossPoint's I2C fingerprint).
+        after its own detection. For X3/X4, the SDK now ships the canonical detector —{' '}
+        <A href="/docs/lib-detect">XteinkDetect</A>'s <Code>selectXteinkDevice()</Code> I²C-fingerprints
+        the X3-only peripherals and selects the profile for you.
       </P>
       <P>
         Every SDK library compiles cleanly on <strong>all three</strong> MCU families — ESP32-C3,

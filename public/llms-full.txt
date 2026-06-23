@@ -254,7 +254,7 @@ A FreeInk build is composed along two axes: the **devices** a binary supports an
 | `-DFREEINK_DEVICE_STICKY` | Sticky (S3, SSD1677 800×480 + GT911 touch + PDM mic + sensor suite) |
 | *(none)* | **compile error** — a build must select at least one device |
 
-Multiple different-pinout devices on one MCU are runtime-selected: `ACTIVE` defaults to a compile-time default and the consumer calls `BoardConfig::selectDevice(...)` after its own detection. The SDK doesn't ship a detector — X3/X4 detection stays in the consumer (e.g. CrossPoint's I2C fingerprint).
+Multiple different-pinout devices on one MCU are runtime-selected: `ACTIVE` defaults to a compile-time default and the consumer calls `BoardConfig::selectDevice(...)` after its own detection. For X3/X4, the SDK now ships the canonical detector — [XteinkDetect](https://freeink.org/docs/lib-detect)'s `selectXteinkDevice()` I²C-fingerprints the X3-only peripherals and selects the profile for you.
 
 Every SDK library compiles cleanly on **all three** MCU families — ESP32-C3, ESP32-S3 and the classic ESP32 — so only a consumer's own layer can block a multi-MCU build by hardcoding chip-specific code. See [MCU portability](https://freeink.org/docs/mcu-portability).
 
@@ -382,7 +382,7 @@ The SDK is a set of self-contained libraries, each its own PlatformIO dependency
 
 Signatures track the SDK headers under `libs/`. For exact types and defaults, read the header for each library — see [Repository layout](https://freeink.org/docs/repository-layout).
 
-> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Component galleryPrebuilt components, previewed from the real 1-bit renders.](https://freeink.org/docs/lib-ui-components)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
+> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[XteinkDetectRuntime X3/X4 detection via I²C fingerprinting.](https://freeink.org/docs/lib-detect)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Component galleryPrebuilt components, previewed from the real 1-bit renders.](https://freeink.org/docs/lib-ui-components)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
 
 ---
 
@@ -499,6 +499,15 @@ Gated by `FREEINK_CAP_TOUCH`; inert on boards without a touch controller. Two co
 | `wasSwipe(float& nxStart, float& nyStart, float& nxEnd, float& nyEnd) → bool` | Edge: a flick released this frame (contact moved ≥60 px within 700 ms), returning normalized start (touch-down) and end (release) positions. A swipe also raises wasTouchTap(); check wasSwipe() first to disambiguate. The app maps both points and takes the dominant axis for direction. |
 | `lastTouchHeldMs() → unsigned long` | Duration of the last touch contact, latched on release — a raw primitive for an app-side tap-vs-long-press policy. 0 with no touch HW. |
 | `wasHomeKeyPressed()` | Edge: GT911 capacitive home key pressed (status bit 0x10). Always false on controllers without one. |
+
+## Background polling
+
+On e-paper a slow refresh blocks the main loop, so a button press that lands mid-refresh is lost. Optional FreeRTOS-backed polling decouples input from rendering: a task samples the buttons on its own and queues each press edge, and the app drains them after the refresh. When async polling is active the app must **not** call `update()` / `wasPressed()` — the task owns the edge state; drain with `popPress()` instead.
+
+| Member | Description |
+| --- | --- |
+| `beginAsync(taskPriority = 2, pollMs = 15, queueLen = 32)` | Spawn the polling task; it latches each press (a BTN_* index) into an internal queue. No-op if already started. |
+| `popPress(uint8_t& button) → bool` | Pop the next queued button index into button. False when nothing is pending (or async polling was never started). |
 
 ---
 
@@ -968,6 +977,40 @@ Adding a board means adding a profile here, not editing generic code — see [Ad
 
 ---
 
+# XteinkDetect
+
+> Runtime X3/X4 detection via I²C fingerprinting.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-detect
+
+Runtime Xteink X3/X4 detection. The X3 and X4 are two board profiles compiled into one ESP32-C3 binary; this library supplies the canonical I²C fingerprint so a dual X3/X4 firmware picks the right one before bringing up the display and SD card.
+
+X3 and X4 share a pinout but differ in panel controller (X3 = UC8253 792×528, X4 = SSD1677 800×480) and battery backend, so the running firmware must select a profile at boot. The SDK leaves detection to the consumer by design — but rather than have every dual app reinvent the fingerprint, `XteinkDetect` ships the known-good one. See [Build composition](https://freeink.org/docs/build-composition) for how one binary carries both profiles.
+
+## API
+
+| Member | Description |
+| --- | --- |
+| `detectXteinkIsX3() → bool` | Run the X3 I²C fingerprint and return true for an X3. Leaves the bus released and the probe pins back in INPUT mode; safe to call before any other bring-up. |
+| `selectXteinkDevice() → bool` | Convenience: run the fingerprint, point BoardConfig::ACTIVE at the matching profile via selectDevice(), and return whether an X3 was detected (so the caller can put the display in X3 mode). |
+
+```cpp
+#include <XteinkDetect.h>
+
+// Before SDCardManager::begin() and FreeInkDisplay::begin(), so both read the
+// right profile:
+if (freeink::selectXteinkDevice()) {
+  display.setDisplayX3();   // detected an X3
+}
+display.begin();
+```
+
+## How it fingerprints
+
+Detection probes the **X3-only I²C peripherals** on `SDA=20 / SCL=0` — the BQ27220 fuel gauge (`0x55`), DS3231 RTC (`0x68`) and QMI8658 IMU (`0x6B` / `0x6A`). The X4 has none of them, so two passes that each score **≥ 2 hits** confirm an X3; anything else is treated as an X4 — the conservative default. Call it before any other hardware bring-up, then hand off to [FreeInkDisplay](https://freeink.org/docs/lib-display) and [SDCardManager](https://freeink.org/docs/lib-sd).
+
+---
+
 # FreeInkUI
 
 > Optional immediate-mode UI framework for e-paper.
@@ -1020,7 +1063,7 @@ The app owns persistent state — selected row, focused index, scroll offset, cl
 
 ## Rendering
 
-The built-in `DisplayTarget` (`FreeInkUIDisplayTarget.h`) is a self-contained `DrawTarget` that writes directly into a 1-bpp framebuffer — the same layout `FreeInkDisplay::getFrameBuffer()` hands back — with **no external graphics library**, so the exact same render runs in firmware and in host unit tests. It bundles a **Noto Sans bitmap font** across eight font slots; point a slot (or all of them) at your own `BitmapFont` with `setFont()`, generated from any TTF/OTF by `tools/gen_font.py`. On a 1-bit panel the four UI grays (`Black` / `DarkGray` / `LightGray` / `White`) are reproduced with an ordered Bayer dither.
+The built-in `DisplayTarget` (`FreeInkUIDisplayTarget.h`) is a self-contained `DrawTarget` that writes directly into a 1-bpp framebuffer — the same layout `FreeInkDisplay::getFrameBuffer()` hands back — with **no external graphics library**, so the exact same render runs in firmware and in host unit tests. It draws in **logical coordinates and rotates each pixel into the panel's native framebuffer** at draw time, so you lay out a screen in the orientation you intend with no separate rotated buffer: the four-argument constructor takes the panel's native dimensions and defaults a landscape-native panel (the X3/X4) to `Portrait` so a held-tall reader reads upright; pass an explicit `Orientation` to the five-argument overload to override, and `deviceContext()` carries that orientation so touch mapping agrees. It bundles a **Noto Sans bitmap font** across eight font slots; point a slot (or all of them) at your own `BitmapFont` with `setFont()`, generated from any TTF/OTF by `tools/gen_font.py`. On a 1-bit panel the four UI grays (`Black` / `DarkGray` / `LightGray` / `White`) are reproduced with an ordered Bayer dither.
 
 Bridging to an app's own drawing stack is optional: the header-only `GfxRendererTarget` adapter (below) compiles only where a CrossPoint `GfxRenderer` is on the include path, for firmwares that already own a text/bidi pipeline. New apps just use `DisplayTarget`.
 
@@ -1394,6 +1437,7 @@ libs/
   display/FreeInkDisplay/      facade + EInkDisplay shim + per-controller drivers + LUTs
   hardware/BoardConfig/        board profiles & capability descriptors
   hardware/BoardT5S3/          LilyGo T5 S3 board support (PCA9535 expander, TPS65185 PMIC)
+  hardware/XteinkDetect/       runtime X3/X4 detection (I²C fingerprint)
   hardware/InputManager/       buttons + capacitive touch (CHSC6x, GT911)
   hardware/BatteryMonitor/     ADC / I²C gauge / M5PM1 battery telemetry
   hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)

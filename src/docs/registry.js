@@ -25,6 +25,7 @@ import Imu from './pages/libs/Imu.jsx'
 import PowerManager from './pages/libs/PowerManager.jsx'
 import Networking from './pages/Networking.jsx'
 import BoardConfig from './pages/libs/BoardConfig.jsx'
+import XteinkDetect from './pages/libs/XteinkDetect.jsx'
 import FreeInkUI from './pages/libs/FreeInkUI.jsx'
 import Components from './pages/libs/Components.jsx'
 import Icons from './pages/libs/Icons.jsx'
@@ -175,6 +176,12 @@ export const DOC_GROUPS = [
         title: 'BoardConfig',
         description: 'Board profiles and the runtime-active device.',
         Content: BoardConfig,
+      },
+      {
+        slug: 'lib-detect',
+        title: 'XteinkDetect',
+        description: 'Runtime X3/X4 detection via I²C fingerprinting.',
+        Content: XteinkDetect,
       },
       {
         slug: 'lib-ui',

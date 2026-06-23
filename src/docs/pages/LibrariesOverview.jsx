@@ -18,6 +18,7 @@ const LIBS = [
   { slug: 'lib-power', name: 'PowerManager', blurb: 'Portable deep-sleep wake-on-power-button.' },
   { slug: 'networking', name: 'SecureNet', blurb: 'Opt-in wolfSSL TLS 1.3 transport.' },
   { slug: 'lib-board', name: 'BoardConfig', blurb: 'Board profiles and the runtime-active device.' },
+  { slug: 'lib-detect', name: 'XteinkDetect', blurb: 'Runtime X3/X4 detection via I²C fingerprinting.' },
   { slug: 'lib-ui', name: 'FreeInkUI', blurb: 'Optional immediate-mode UI framework for e-paper.' },
   { slug: 'lib-ui-components', name: 'Component gallery', blurb: 'Prebuilt components, previewed from the real 1-bit renders.' },
   { slug: 'lib-icons', name: 'Icons', blurb: 'freeink::Icon format, vendored Lucide set, and a generator.' },
