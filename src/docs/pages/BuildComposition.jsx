@@ -66,6 +66,7 @@ export default function BuildComposition() {
           [<Code key="th">FREEINK_CAP_TEMP_HUMIDITY</Code>, 'SHT40 temperature + humidity (EnvironmentSensor)', 'on for Sticky'],
           [<Code key="imu">FREEINK_CAP_IMU</Code>, 'LSM6DS3TR-C 6-axis IMU (Imu)', 'on for Sticky'],
           [<Code key="e">FREEINK_CAP_NET_TLS13</Code>, <>wolfSSL TLS 1.3 (≡ <Code>FREEINK_NET_WOLFSSL</Code>)</>, 'off'],
+          [<Code key="ble">FREEINK_CAP_BLE_HID_HOST</Code>, <>BLE HID host (<A href="/docs/lib-ble">BleKeyboardHost</A>; add a NimBLE <Code>lib_dep</Code>, ESP32-C3/S3 only)</>, 'off'],
         ]}
       />
 

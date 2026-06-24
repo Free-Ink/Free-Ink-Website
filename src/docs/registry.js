@@ -24,6 +24,7 @@ import EnvironmentSensor from './pages/libs/EnvironmentSensor.jsx'
 import Imu from './pages/libs/Imu.jsx'
 import PowerManager from './pages/libs/PowerManager.jsx'
 import Networking from './pages/Networking.jsx'
+import BleKeyboardHost from './pages/libs/BleKeyboardHost.jsx'
 import BoardConfig from './pages/libs/BoardConfig.jsx'
 import XteinkDetect from './pages/libs/XteinkDetect.jsx'
 import FreeInkUI from './pages/libs/FreeInkUI.jsx'
@@ -170,6 +171,12 @@ export const DOC_GROUPS = [
         title: 'SecureNet',
         description: 'Opt-in wolfSSL TLS 1.3 transport.',
         Content: Networking,
+      },
+      {
+        slug: 'lib-ble',
+        title: 'BleKeyboardHost',
+        description: 'BLE HID host for keyboards, page turners and remotes.',
+        Content: BleKeyboardHost,
       },
       {
         slug: 'lib-board',

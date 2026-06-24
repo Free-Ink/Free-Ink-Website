@@ -33,6 +33,7 @@ Hardware-independent C++ firmware SDK for e-paper readers. Source: [github.com/F
 - [Imu](https://freeink.org/docs/lib-imu): LSM6DS3TR-C 6-axis accelerometer + gyroscope.
 - [PowerManager](https://freeink.org/docs/lib-power): Portable deep-sleep wake-on-power-button.
 - [SecureNet](https://freeink.org/docs/networking): Opt-in wolfSSL TLS 1.3 transport.
+- [BleKeyboardHost](https://freeink.org/docs/lib-ble): BLE HID host for keyboards, page turners and remotes.
 - [BoardConfig](https://freeink.org/docs/lib-board): Board profiles and the runtime-active device.
 - [XteinkDetect](https://freeink.org/docs/lib-detect): Runtime X3/X4 detection via I²C fingerprinting.
 - [FreeInkUI](https://freeink.org/docs/lib-ui): Optional immediate-mode UI framework for e-paper.

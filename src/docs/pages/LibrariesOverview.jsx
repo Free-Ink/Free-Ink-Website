@@ -17,6 +17,7 @@ const LIBS = [
   { slug: 'lib-imu', name: 'Imu', blurb: 'LSM6DS3TR-C 6-axis accelerometer + gyroscope.' },
   { slug: 'lib-power', name: 'PowerManager', blurb: 'Portable deep-sleep wake-on-power-button.' },
   { slug: 'networking', name: 'SecureNet', blurb: 'Opt-in wolfSSL TLS 1.3 transport.' },
+  { slug: 'lib-ble', name: 'BleKeyboardHost', blurb: 'BLE HID host for keyboards, page turners and remotes.' },
   { slug: 'lib-board', name: 'BoardConfig', blurb: 'Board profiles and the runtime-active device.' },
   { slug: 'lib-detect', name: 'XteinkDetect', blurb: 'Runtime X3/X4 detection via I²C fingerprinting.' },
   { slug: 'lib-ui', name: 'FreeInkUI', blurb: 'Optional immediate-mode UI framework for e-paper.' },

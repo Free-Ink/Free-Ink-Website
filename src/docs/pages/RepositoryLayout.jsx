@@ -27,6 +27,7 @@ export default function RepositoryLayout() {
   hardware/EnvironmentSensor/  SHT40 temperature + humidity (Sticky)
   hardware/Imu/                LSM6DS3TR-C 6-axis IMU (Sticky)
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)
+  network/BleKeyboardHost/     BLE HID host — keyboards, page turners (opt-in)
   ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)`}</CodeBlock>
 
       <P>

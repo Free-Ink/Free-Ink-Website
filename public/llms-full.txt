@@ -275,6 +275,7 @@ Every SDK library compiles cleanly on **all three** MCU families — ESP32-C3, E
 | `FREEINK_CAP_TEMP_HUMIDITY` | SHT40 temperature + humidity (EnvironmentSensor) | on for Sticky |
 | `FREEINK_CAP_IMU` | LSM6DS3TR-C 6-axis IMU (Imu) | on for Sticky |
 | `FREEINK_CAP_NET_TLS13` | wolfSSL TLS 1.3 (≡ `FREEINK_NET_WOLFSSL`) | off |
+| `FREEINK_CAP_BLE_HID_HOST` | BLE HID host ([BleKeyboardHost](https://freeink.org/docs/lib-ble); add a NimBLE `lib_dep`, ESP32-C3/S3 only) | off |
 
 ## Other flags
 
@@ -382,7 +383,7 @@ The SDK is a set of self-contained libraries, each its own PlatformIO dependency
 
 Signatures track the SDK headers under `libs/`. For exact types and defaults, read the header for each library — see [Repository layout](https://freeink.org/docs/repository-layout).
 
-> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[XteinkDetectRuntime X3/X4 detection via I²C fingerprinting.](https://freeink.org/docs/lib-detect)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Component galleryPrebuilt components, previewed from the real 1-bit renders.](https://freeink.org/docs/lib-ui-components)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
+> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BleKeyboardHostBLE HID host for keyboards, page turners and remotes.](https://freeink.org/docs/lib-ble)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[XteinkDetectRuntime X3/X4 detection via I²C fingerprinting.](https://freeink.org/docs/lib-detect)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Component galleryPrebuilt components, previewed from the real 1-bit renders.](https://freeink.org/docs/lib-ui-components)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
 
 ---
 
@@ -938,6 +939,71 @@ lib_deps =
 
 ---
 
+# BleKeyboardHost
+
+> BLE HID host for keyboards, page turners and remotes.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-ble
+
+A Bluetooth Low Energy **HID host**: it pairs with and connects to one BLE HID peripheral at a time (central role) and hands firmware translated key events — for keyboards, page turners, remote buttons and similar devices that expose the HID service (`0x1812`). The class keeps the `BleKeyboardHost` name; new code uses the `BleHid` accessor (`BleKbd` remains as an alias).
+
+> **BLE only**
+>
+> The ESP32-C3 / S3 has no Bluetooth Classic (BR/EDR) radio, so Classic-only HID devices cannot connect. The library is also ESP32-C3/S3-only — it needs a BLE radio.
+
+## Enabling it
+
+It's an opt-in **capability**, gated on `FREEINK_CAP_BLE_HID_HOST` (default off). When off it links stub bodies and pulls in **no** BLE code, so disabled builds stay lean. Turn it on with the flag *and* add the NimBLE stack to `lib_deps` (it's intentionally not a hard dependency). The older `FREEINK_CAP_BLE_KEYBOARD` flag still maps to it. See [Build composition](https://freeink.org/docs/build-composition).
+
+```
+build_flags =
+  -DFREEINK_CAP_BLE_HID_HOST=1
+  -DFREEINK_BLE_HID_SHOW_UNNAMED_DEVICES=0   ; hide anonymous non-HID advertisers
+  -DCONFIG_BT_NIMBLE_ROLE_CENTRAL=1          ; central-only, 1 connection
+  -DCONFIG_BT_NIMBLE_MAX_CONNECTIONS=1
+lib_deps =
+  BleKeyboardHost=symlink://freeink-sdk/libs/network/BleKeyboardHost
+  h2zero/NimBLE-Arduino@^2.3.8
+```
+
+## API
+
+| Member | Description |
+| --- | --- |
+| `begin(const char* name)` | Init the NimBLE central + bonding and load NVS bonds. |
+| `poll()` | Drive auto-reconnect and key auto-repeat; call each loop. |
+| `popKey(KeyEvent& ev) → bool` | Drain the next translated key. ev.special is a SpecialKey (PageDown, arrows…); ev.ch is printable input. |
+| `startScan(uint32_t ms) / deviceCount() / device(i)` | Scan for peripherals; each DiscoveredDevice carries addr, name, rssi, hid, connectable (and hasName). |
+| `connect(addr) / isConnected()` | Async connect; isConnected() flips when the link is ready. |
+| `releaseScanResults()` | Reclaim scan RAM once connected. |
+| `pairedCount() / paired(i) / forget(addr)` | Enumerate and remove stored bonds. |
+| `takePairingPasskey()` | When a peripheral requires passkey pairing, returns the six-digit code to show the user. |
+
+```cpp
+#include <BleKeyboardHost.h>
+
+void setup() { BleHid.begin("FreeInk"); }
+
+void loop() {
+  BleHid.poll();
+  freeink::KeyEvent ev;
+  while (BleHid.popKey(ev)) {
+    if (ev.special == freeink::SpecialKey::PageDown) { /* page turner */ }
+    else if (ev.ch) { /* printable keyboard input */ }
+  }
+}
+```
+
+## How it works
+
+**Scan** is an active scan that upserts every advertiser into a fixed array and records the HID service UUID; HID is validated at connect time, so devices that hide their name or services in scan-response / extended-advertising fragments still appear in the pairing UI. **Connect** runs on a dedicated FreeRTOS task: connect → discover HID → bond (`secureConnection()`) → switch to **Report Protocol** mode → subscribe to Input reports, falling back to Boot Keyboard Input (`0x2A22`) for boot-only devices. **Reports** are normalized to `[mod][k0..k5]`, diffed against the previous report, and translated (US QWERTY HID usages) into `KeyEvent`s — page turners' arrow / page-up/down usages arrive as `SpecialKey`. Since HID sends one report per state change, `poll()` **synthesizes auto-repeat** for a held key after an initial delay.
+
+## Memory
+
+All storage is fixed-capacity — discovered devices (`kMaxDiscovered` = 24), bonds (`kMaxBonds` = 4), and the key ring (`kKeyQueueLen` = 16) — with one active connection and no `std::vector` / heap in the hot path. Configure NimBLE central-only, single-connection to keep its static footprint small on the C3.
+
+---
+
 # BoardConfig
 
 > Board profiles and the runtime-active device.
@@ -1138,7 +1204,7 @@ A set of immediate-mode components, deliberately not tied to any application's s
 | `statusBar` | Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay. |
 | `tabBar` | Pill or underline-style tabs with an optional divider. |
 | `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers. |
-| `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, Shift + symbols; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side). |
+| `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, Shift + symbols; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting. |
 | `readerChrome / tapZones` | Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing. |
 | `bookCard / coverGrid` | Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection. |
 | `optionDialog / popup / messagePanel / toast / contextMenu` | Overlays: a titled option dialog (caption + multi-line headline + body), a bare popup panel (PopupProps sets size and alignment) with an optional dithered scrim, an empty/error/loading message panel with retry, a static e-paper-safe toast, and a long-press command menu. |
@@ -1451,6 +1517,7 @@ libs/
   hardware/EnvironmentSensor/  SHT40 temperature + humidity (Sticky)
   hardware/Imu/                LSM6DS3TR-C 6-axis IMU (Sticky)
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)
+  network/BleKeyboardHost/     BLE HID host — keyboards, page turners (opt-in)
   ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)
 ```
 
