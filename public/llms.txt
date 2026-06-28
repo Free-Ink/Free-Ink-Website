@@ -32,6 +32,7 @@ Hardware-independent C++ firmware SDK for e-paper readers. Source: [github.com/F
 - [EnvironmentSensor](https://freeink.org/docs/lib-env): SHT40 temperature + humidity over I²C.
 - [Imu](https://freeink.org/docs/lib-imu): LSM6DS3TR-C 6-axis accelerometer + gyroscope.
 - [PowerManager](https://freeink.org/docs/lib-power): Portable deep-sleep wake-on-power-button.
+- [RecoveryBoot](https://freeink.org/docs/lib-recovery): Boot-time OTA recovery escape hatch (button combo).
 - [SecureNet](https://freeink.org/docs/networking): Opt-in wolfSSL TLS 1.3 transport.
 - [BleKeyboardHost](https://freeink.org/docs/lib-ble): BLE HID host for keyboards, page turners and remotes.
 - [BoardConfig](https://freeink.org/docs/lib-board): Board profiles and the runtime-active device.

@@ -383,7 +383,7 @@ The SDK is a set of self-contained libraries, each its own PlatformIO dependency
 
 Signatures track the SDK headers under `libs/`. For exact types and defaults, read the header for each library — see [Repository layout](https://freeink.org/docs/repository-layout).
 
-> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BleKeyboardHostBLE HID host for keyboards, page turners and remotes.](https://freeink.org/docs/lib-ble)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[XteinkDetectRuntime X3/X4 detection via I²C fingerprinting.](https://freeink.org/docs/lib-detect)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Component galleryPrebuilt components, previewed from the real 1-bit renders.](https://freeink.org/docs/lib-ui-components)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
+> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[RecoveryBootBoot-time OTA recovery escape hatch (button combo).](https://freeink.org/docs/lib-recovery)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BleKeyboardHostBLE HID host for keyboards, page turners and remotes.](https://freeink.org/docs/lib-ble)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[XteinkDetectRuntime X3/X4 detection via I²C fingerprinting.](https://freeink.org/docs/lib-detect)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Component galleryPrebuilt components, previewed from the real 1-bit renders.](https://freeink.org/docs/lib-ui-components)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
 
 ---
 
@@ -903,6 +903,39 @@ It compiles on both targets — the `gpio` branch links in the C3 build, the `ex
 
 ---
 
+# RecoveryBoot
+
+> Boot-time OTA recovery escape hatch (button combo).
+
+Group: Libraries · URL: https://freeink.org/docs/lib-recovery
+
+A boot-time recovery hatch. Call `recovery::checkBootCombo()` as the very first thing in `setup()` of every firmware you want to be escapable; holding **Back + Up** at reset repoints OTA at slot 0 and reboots into the recovery firmware.
+
+The stock Xteink (and most ESP32) second-stage bootloader can't read buttons — it just boots whatever `otadata` selects. So "hold a combo at reset to fall back to recovery" can only be honoured by the firmware that actually boots. This library is that check, made shareable: the recovery flasher, the editor, the reader and so on each call it first, so any of them can bail out to the escape hatch.
+
+## API
+
+| Member | Description |
+| --- | --- |
+| `checkBootCombo()` | Read the recovery combo and, if held, switch otadata to OTA slot 0 and reboot. Returns immediately (no reboot) in every other case. |
+
+```cpp
+#include <RecoveryBoot.h>
+
+void setup() {
+  freeink::recovery::checkBootCombo();   // FIRST — Back+Up at reset → recovery
+  // ... normal firmware init ...
+}
+```
+
+It is always safe to call unconditionally and early — it does nothing unless **all** of: the combo is pressed, OTA slot 0 holds a valid app image, and the caller isn't already running from slot 0 (so inside the recovery firmware it's a no-op). When it does act it reboots and never returns. The convention is that the recovery / escape-hatch firmware lives in **OTA slot 0** (`ota_0`, the default upload offset `0x10000`). The otadata switch is self-contained and skips `esp_image_verify`, so it works with patched Xteink images.
+
+> **What it can't do**
+>
+> It can't escape a firmware that crashes in ROM or early SDK init *before* this call is reached. A corrupt app *image* is still caught for free — the bootloader falls back to the other OTA slot on its own. Truly unconditional GPIO recovery would need a custom second-stage bootloader, which the recovery firmware deliberately never reflashes.
+
+---
+
 # SecureNet
 
 > Opt-in wolfSSL TLS 1.3 transport.
@@ -1127,6 +1160,8 @@ if (auto event = ui.finish()) {
 
 The app owns persistent state — selected row, focused index, scroll offset, clock buffers, reading statistics, visibility flags. The UI runtime only adds transient focus/active state when it resolves styles.
 
+`Stack` handles compile-time-known splits; for layouts driven by parsed data, `FreeInkUILayout.h` adds a dynamic counterpart — `layoutLinear()` splits a rect into a row or column from slot lengths supplied at runtime, and `layoutTree()` does the same for a nested `LayoutNode` tree, both deterministic with no heap or retained widget state. The [visual builder](#visual-builder)'s generated scaffolds build on it.
+
 ## Rendering
 
 The built-in `DisplayTarget` (`FreeInkUIDisplayTarget.h`) is a self-contained `DrawTarget` that writes directly into a 1-bpp framebuffer — the same layout `FreeInkDisplay::getFrameBuffer()` hands back — with **no external graphics library**, so the exact same render runs in firmware and in host unit tests. It draws in **logical coordinates and rotates each pixel into the panel's native framebuffer** at draw time, so you lay out a screen in the orientation you intend with no separate rotated buffer: the four-argument constructor takes the panel's native dimensions and defaults a landscape-native panel (the X3/X4) to `Portrait` so a held-tall reader reads upright; pass an explicit `Orientation` to the five-argument overload to override, and `deviceContext()` carries that orientation so touch mapping agrees. It bundles a **Noto Sans bitmap font** across eight font slots; point a slot (or all of them) at your own `BitmapFont` with `setFont()`, generated from any TTF/OTF by `tools/gen_font.py`. On a 1-bit panel the four UI grays (`Black` / `DarkGray` / `LightGray` / `White`) are reproduced with an ordered Bayer dither.
@@ -1193,7 +1228,7 @@ Touch hit areas are declarative and decoupled from the visual rect, composed in 
 
 ## Built-in components
 
-A set of immediate-mode components, deliberately not tied to any application's screen structure. Apps draw app-specific content (a book page, a cover image) directly into a slot rect the layout hands back. Every one is previewed from its real 1-bit render in the [component gallery](https://freeink.org/docs/lib-ui-components).
+A set of immediate-mode components, deliberately not tied to any application's screen structure. Apps draw app-specific content (a book page, a cover image) directly into a slot rect the layout hands back. Each lives in its own header under `components/` (with `FreeInkUICore.h` for the shared types), included together via `<FreeInkUI.h>`. Every one is previewed from its real 1-bit render in the [component gallery](https://freeink.org/docs/lib-ui-components).
 
 | Component | What it covers |
 | --- | --- |
@@ -1202,11 +1237,12 @@ A set of immediate-mode components, deliberately not tied to any application's s
 | `checkbox / slider / dropdown` | A label + checkable box, a continuous value slider (dithered track + knob; stepperRow covers discrete steps), and a dropdown that opens an app-owned selection. |
 | `table` | A rows × columns cell grid with grid lines, an optional header row and per-cell styles. |
 | `statusBar` | Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay. |
-| `tabBar` | Pill or underline-style tabs with an optional divider. |
+| `tabBar` | Pill or underline-style tabs with an optional divider, per-tab icons and a disabled state. |
 | `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers. |
 | `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, Shift + symbols; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting. |
+| `textArea` | A multi-line scrollable writing canvas (the editor body). The app owns the text buffer and caret offset; it word-wraps, draws the window of lines from topLine, and an optional caret. textAreaMeasure() / textAreaTopLineFor() keep the caret on screen, mirroring lists. |
 | `readerChrome / tapZones` | Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing. |
-| `bookCard / coverGrid` | Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection. |
+| `bookCard / coverGrid` | Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection (a fixed array, or a CoverGridItemProvider callback that supplies items lazily by index). |
 | `optionDialog / popup / messagePanel / toast / contextMenu` | Overlays: a titled option dialog (caption + multi-line headline + body), a bare popup panel (PopupProps sets size and alignment) with an optional dithered scrim, an empty/error/loading message panel with retry, a static e-paper-safe toast, and a long-press command menu. |
 | `metricCard / progressBar` | Statistics value/label cells and horizontal bar charts (minFill keeps tiny values visible). |
 | `batteryIndicator` | Battery glyph; triangle-built lightning bolt while charging, or an app-supplied icon. |
@@ -1236,7 +1272,7 @@ A set of selection helpers own the index math so apps don't re-derive it per inp
 
 ## Styling and themes
 
-Every interactive component resolves a `StyleSet` — one `BoxStyle` (background, foreground, border, radius, corner mask) per interaction state. Rounded looks are first-class: `BoxStyle.radius` applies to fills and borders, `tabBar` renders filled pill tabs, and `ListProps.hugContents` shrinks selection pills to the label width — no custom drawing code.
+Every interactive component resolves a `StyleSet` — one `BoxStyle` (background, foreground, border, radius, corner mask) per interaction state. Rounded looks are first-class: `BoxStyle.radius` applies to fills and borders, `tabBar` renders filled pill tabs, and `ListProps.hugContents` shrinks selection pills to the label width — no custom drawing code. Defaults are **border-free** for a cleaner 1-bit look, and `plainStyles(foreground = black)` is a one-call `StyleSet` for unstyled text and elements.
 
 Theme ownership is split deliberately: **the SDK owns the in-memory types** (`ThemeTokens`, `ThemeDocument`, `StyleSet`, `AssetResolver`); **apps own JSON and storage parsing**. FreeInkUI never reads files, parses JSON or allocates — a firmware parses its theme files (with whatever JSON library and caching it already has) into `ThemeTokens` plus its own extension structs, then renders from those. App-only features live under `extensions.<namespace>`, so multiple firmwares can share one theme file.
 
@@ -1508,6 +1544,7 @@ libs/
   hardware/BatteryMonitor/     ADC / I²C gauge / M5PM1 battery telemetry
   hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)
   hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
+  hardware/RecoveryBoot/       boot-time OTA recovery hatch (Back+Up combo)
   hardware/FrontlightManager/  PWM frontlight (de-link)
   hardware/AudioManager/       WAV-over-I2S audio (Murphy M3 ES8388, M5 ES8311)
   hardware/LedManager/         addressable RGB LEDs (M5 PaperColor, WS2812-compatible)

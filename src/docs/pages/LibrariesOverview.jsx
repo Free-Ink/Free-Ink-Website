@@ -16,6 +16,7 @@ const LIBS = [
   { slug: 'lib-env', name: 'EnvironmentSensor', blurb: 'SHT40 temperature + humidity over I²C.' },
   { slug: 'lib-imu', name: 'Imu', blurb: 'LSM6DS3TR-C 6-axis accelerometer + gyroscope.' },
   { slug: 'lib-power', name: 'PowerManager', blurb: 'Portable deep-sleep wake-on-power-button.' },
+  { slug: 'lib-recovery', name: 'RecoveryBoot', blurb: 'Boot-time OTA recovery escape hatch (button combo).' },
   { slug: 'networking', name: 'SecureNet', blurb: 'Opt-in wolfSSL TLS 1.3 transport.' },
   { slug: 'lib-ble', name: 'BleKeyboardHost', blurb: 'BLE HID host for keyboards, page turners and remotes.' },
   { slug: 'lib-board', name: 'BoardConfig', blurb: 'Board profiles and the runtime-active device.' },

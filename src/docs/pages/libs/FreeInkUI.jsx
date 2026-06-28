@@ -69,6 +69,14 @@ if (auto event = ui.finish()) {
         reading statistics, visibility flags. The UI runtime only adds transient focus/active state
         when it resolves styles.
       </P>
+      <P>
+        <Code>Stack</Code> handles compile-time-known splits; for layouts driven by parsed data,{' '}
+        <Code>FreeInkUILayout.h</Code> adds a dynamic counterpart — <Code>layoutLinear()</Code> splits a
+        rect into a row or column from slot lengths supplied at runtime, and <Code>layoutTree()</Code>{' '}
+        does the same for a nested <Code>LayoutNode</Code> tree, both deterministic with no heap or
+        retained widget state. The <a href="#visual-builder">visual builder</a>'s generated scaffolds
+        build on it.
+      </P>
 
       <H2>Rendering</H2>
       <P>
@@ -188,7 +196,9 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
       <P>
         A set of immediate-mode components, deliberately not tied to any application's screen structure.
         Apps draw app-specific content (a book page, a cover image) directly into a slot rect the layout
-        hands back. Every one is previewed from its real 1-bit render in the{' '}
+        hands back. Each lives in its own header under <Code>components/</Code> (with{' '}
+        <Code>FreeInkUICore.h</Code> for the shared types), included together via{' '}
+        <Code>&lt;FreeInkUI.h&gt;</Code>. Every one is previewed from its real 1-bit render in the{' '}
         <A href="/docs/lib-ui-components">component gallery</A>.
       </P>
       <Table
@@ -199,11 +209,12 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
           [<Code key="form">checkbox / slider / dropdown</Code>, 'A label + checkable box, a continuous value slider (dithered track + knob; stepperRow covers discrete steps), and a dropdown that opens an app-owned selection.'],
           [<Code key="tbl">table</Code>, 'A rows × columns cell grid with grid lines, an optional header row and per-cell styles.'],
           [<Code key="b">statusBar</Code>, 'Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay.'],
-          [<Code key="c">tabBar</Code>, 'Pill or underline-style tabs with an optional divider.'],
+          [<Code key="c">tabBar</Code>, 'Pill or underline-style tabs with an optional divider, per-tab icons and a disabled state.'],
           [<Code key="d">list</Code>, 'Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers.'],
           [<Code key="e">keyGrid / keyboard / textField</Code>, 'A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, Shift + symbols; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting.'],
+          [<Code key="ta">textArea</Code>, 'A multi-line scrollable writing canvas (the editor body). The app owns the text buffer and caret offset; it word-wraps, draws the window of lines from topLine, and an optional caret. textAreaMeasure() / textAreaTopLineFor() keep the caret on screen, mirroring lists.'],
           [<Code key="rd">readerChrome / tapZones</Code>, 'Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing.'],
-          [<Code key="lib">bookCard / coverGrid</Code>, 'Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection.'],
+          [<Code key="lib">bookCard / coverGrid</Code>, 'Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection (a fixed array, or a CoverGridItemProvider callback that supplies items lazily by index).'],
           [<Code key="f">optionDialog / popup / messagePanel / toast / contextMenu</Code>, 'Overlays: a titled option dialog (caption + multi-line headline + body), a bare popup panel (PopupProps sets size and alignment) with an optional dithered scrim, an empty/error/loading message panel with retry, a static e-paper-safe toast, and a long-press command menu.'],
           [<Code key="g">metricCard / progressBar</Code>, 'Statistics value/label cells and horizontal bar charts (minFill keeps tiny values visible).'],
           [<Code key="h">batteryIndicator</Code>, 'Battery glyph; triangle-built lightning bolt while charging, or an app-supplied icon.'],
@@ -248,7 +259,9 @@ freeink::ui::list(ui, rect, props);`}</CodeBlock>
         (background, foreground, border, radius, corner mask) per interaction state. Rounded looks are
         first-class: <Code>BoxStyle.radius</Code> applies to fills and borders, <Code>tabBar</Code>{' '}
         renders filled pill tabs, and <Code>ListProps.hugContents</Code> shrinks selection pills to the
-        label width — no custom drawing code.
+        label width — no custom drawing code. Defaults are <strong>border-free</strong> for a cleaner
+        1-bit look, and <Code>plainStyles(foreground = black)</Code> is a one-call <Code>StyleSet</Code>{' '}
+        for unstyled text and elements.
       </P>
       <P>
         Theme ownership is split deliberately: <strong>the SDK owns the in-memory types</strong>{' '}

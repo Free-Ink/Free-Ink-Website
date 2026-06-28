@@ -18,6 +18,7 @@ export default function RepositoryLayout() {
   hardware/BatteryMonitor/     ADC / I²C gauge / M5PM1 battery telemetry
   hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)
   hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
+  hardware/RecoveryBoot/       boot-time OTA recovery hatch (Back+Up combo)
   hardware/FrontlightManager/  PWM frontlight (de-link)
   hardware/AudioManager/       WAV-over-I2S audio (Murphy M3 ES8388, M5 ES8311)
   hardware/LedManager/         addressable RGB LEDs (M5 PaperColor, WS2812-compatible)
