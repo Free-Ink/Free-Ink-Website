@@ -25,11 +25,18 @@ export default function Networking() {
       <Ul>
         <Li>
           <Code>freeink::SecureClient</Code> — an Arduino <Code>Client</Code> doing TLS 1.3 over{' '}
-          <Code>WiFiClient</Code>.
+          <Code>WiFiClient</Code>, with a <strong>TLS 1.2 fallback</strong> for servers that are
+          intolerant of a 1.3 handshake.
         </Li>
         <Li>
-          <Code>freeink::SecureHttpClient</Code> — an <Code>HTTPClient</Code>-compatible shim so existing
-          call sites switch with minimal churn.
+          <Code>freeink::SecureHttpClient</Code> — a <strong>standalone</strong> HTTPS client
+          (<Code>GET</Code> / <Code>POST</Code> / <Code>PUT</Code> with custom headers and a buffered
+          response body; handles Content-Length, chunked and connection-close framing). It's{' '}
+          <em>deliberately not</em> a wrapper over Arduino <Code>HTTPClient</Code> — that binds a{' '}
+          <Code>NetworkClient</Code>, and <Code>SecureClient</Code> is a plain <Code>Client</Code> running
+          wolfSSL over its own transport — but it keeps the familiar call shape
+          (<Code>begin()</Code> / <Code>addHeader()</Code> / <Code>GET()</Code> / <Code>getString()</Code>,
+          plus <Code>setInsecure()</Code> / <Code>setCACert()</Code>).
         </Li>
       </Ul>
 

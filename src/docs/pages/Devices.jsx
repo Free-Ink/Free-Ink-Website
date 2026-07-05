@@ -29,7 +29,7 @@ export default function Devices() {
         head={['Device', 'MCU', 'Controller', 'Panel', 'Status']}
         rows={[
           ['Xteink X4', 'ESP32-C3', 'SSD1677', '800×480 B/W + 4-level gray', <Status key="s" full>full</Status>],
-          ['Xteink X3', 'ESP32-C3', 'UC8253', '792×528 B/W + 4-level gray, BQ27220 I²C gauge', <Status key="s" full>full · runtime-selected</Status>],
+          ['Xteink X3', 'ESP32-C3', 'UC8253', '792×528 B/W + 4-level gray, BQ27220 I²C gauge, DS3231 RTC, QMI8658 IMU', <Status key="s" full>full · runtime-selected</Status>],
           ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD', <Status key="s" full>full</Status>],
           ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs', <Status key="s" full>full · native + M5GFX backend</Status>],
           ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s" full>full</Status>],

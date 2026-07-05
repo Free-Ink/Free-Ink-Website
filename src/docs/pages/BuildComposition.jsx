@@ -62,9 +62,9 @@ export default function BuildComposition() {
           [<Code key="led">FREEINK_CAP_LED</Code>, 'addressable RGB LEDs (LedManager)', 'on for M5 PaperColor'],
           [<Code key="buz">FREEINK_CAP_BUZZER</Code>, 'LEDC PWM tone buzzer (Buzzer)', 'on for Sticky and Murphy M3'],
           [<Code key="mic">FREEINK_CAP_MIC</Code>, 'PDM microphone capture (Microphone)', 'on for Sticky'],
-          [<Code key="rtc">FREEINK_CAP_RTC</Code>, 'PCF8563 real-time clock (Rtc)', 'on for Sticky'],
+          [<Code key="rtc">FREEINK_CAP_RTC</Code>, 'real-time clock (Rtc: PCF8563 / DS3231)', 'on for X3 and Sticky'],
           [<Code key="th">FREEINK_CAP_TEMP_HUMIDITY</Code>, 'SHT40 temperature + humidity (EnvironmentSensor)', 'on for Sticky'],
-          [<Code key="imu">FREEINK_CAP_IMU</Code>, 'LSM6DS3TR-C 6-axis IMU (Imu)', 'on for Sticky'],
+          [<Code key="imu">FREEINK_CAP_IMU</Code>, '6-axis IMU (Imu: LSM6DS3TR-C / QMI8658)', 'on for X3 and Sticky'],
           [<Code key="e">FREEINK_CAP_NET_TLS13</Code>, <>wolfSSL TLS 1.3 (≡ <Code>FREEINK_NET_WOLFSSL</Code>)</>, 'off'],
           [<Code key="ble">FREEINK_CAP_BLE_HID_HOST</Code>, <>BLE HID host (<A href="/docs/lib-ble">BleKeyboardHost</A>; add a NimBLE <Code>lib_dep</Code>, ESP32-C3/S3 only)</>, 'off'],
         ]}

@@ -59,6 +59,21 @@ export default function InputManager() {
           ['popPress(uint8_t& button) → bool', 'Pop the next queued button index into button. False when nothing is pending (or async polling was never started).'],
         ]}
       />
+
+      <H2>Xteink button ladder</H2>
+      <P>
+        On the Xteink X3/X4 the six buttons are resistor dividers multiplexed onto two ADC pins
+        (Back/Confirm/Left/Right on group 1, Up/Down on group 2). A button-test or calibration screen can
+        read the raw ladder to spot a drifted divider whose voltage no longer lands in the band the
+        firmware expects — visible from the raw value regardless of how it classifies.
+      </P>
+      <ApiTable
+        rows={[
+          ['readButtonAdc(ButtonAdcSample& g1, ButtonAdcSample& g2)', 'Synchronously sample both button-group ADC pins (safe alongside async polling). Boards without the ladder report raw = -1, button = -1.'],
+          ['ButtonAdcSample { pin, raw, button }', 'The GPIO sampled, its raw analogRead() value, and the classified BTN_* index (-1 = no band matched).'],
+          ['setSharedConfirmPowerShortPressEmitsPower(bool)', 'For boards that wire OK/confirm and power/wake to one GPIO (e.g. Sticky): default a short click emits CONFIRM and a hold (≥400 ms) emits POWER; flip short clicks to POWER for a “short power click sleeps” option.'],
+        ]}
+      />
     </>
   )
 }

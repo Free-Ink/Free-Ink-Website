@@ -49,6 +49,13 @@ lib_deps =
           ['takePairingPasskey()', 'When a peripheral requires passkey pairing, returns the six-digit code to show the user.'],
         ]}
       />
+      <P>
+        Pairing defaults to <strong>Just Works</strong> (bonded, no MITM) — page turners and remotes
+        usually have no input or display, and mandatory MITM makes them reject pairing. Firmware that
+        specifically needs host-display keyboard pairing opts in with{' '}
+        <Code>-DFREEINK_BLE_HID_REQUIRE_MITM=1</Code>, and then reads the six-digit code via{' '}
+        <Code>takePairingPasskey()</Code>.
+      </P>
       <CodeBlock lang="cpp">{`#include <BleKeyboardHost.h>
 
 void setup() { BleHid.begin("FreeInk"); }

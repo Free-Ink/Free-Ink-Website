@@ -4,15 +4,17 @@ export default function Rtc() {
   return (
     <>
       <Lead>
-        Wall-clock time from a PCF8563 real-time clock over I²C, described by{' '}
-        <Code>BoardConfig::ACTIVE.sensors</Code>. Gated by <Code>FREEINK_CAP_RTC</Code>, which defaults
-        on for the <A href="/docs/devices">Sticky</A> and off elsewhere; inert on boards with no RTC.
+        Wall-clock time from a real-time clock over I²C, described by{' '}
+        <Code>BoardConfig::ACTIVE.sensors</Code>. Two chips are supported, selected per board by{' '}
+        <Code>RtcType</Code>: the <strong>PCF8563</strong> (Sticky) and the <strong>DS3231</strong>{' '}
+        (Xteink X3). Gated by <Code>FREEINK_CAP_RTC</Code>, which defaults on for the{' '}
+        <A href="/docs/devices">X3</A> and Sticky, and off elsewhere; inert on boards with no RTC.
       </Lead>
 
       <P>
-        <Code>begin()</Code> brings up the I²C bus and disables the chip's CLKOUT; <Code>now()</Code>{' '}
-        and <Code>set()</Code> read and write a <Code>DateTime</Code>. The driver handles the BCD
-        register encoding and the oscillator-stopped flag, so a <Code>now()</Code> that returns false
+        <Code>begin()</Code> brings up the I²C bus and quiets the chip's clock output; <Code>now()</Code>{' '}
+        and <Code>set()</Code> read and write a <Code>DateTime</Code>. The driver handles each chip's
+        register encoding and its oscillator-stopped flag, so a <Code>now()</Code> that returns false
         means the clock was never set (or browned out) rather than a silent bad time.
       </P>
 

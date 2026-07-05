@@ -271,9 +271,9 @@ Every SDK library compiles cleanly on **all three** MCU families — ESP32-C3, E
 | `FREEINK_CAP_LED` | addressable RGB LEDs (LedManager) | on for M5 PaperColor |
 | `FREEINK_CAP_BUZZER` | LEDC PWM tone buzzer (Buzzer) | on for Sticky and Murphy M3 |
 | `FREEINK_CAP_MIC` | PDM microphone capture (Microphone) | on for Sticky |
-| `FREEINK_CAP_RTC` | PCF8563 real-time clock (Rtc) | on for Sticky |
+| `FREEINK_CAP_RTC` | real-time clock (Rtc: PCF8563 / DS3231) | on for X3 and Sticky |
 | `FREEINK_CAP_TEMP_HUMIDITY` | SHT40 temperature + humidity (EnvironmentSensor) | on for Sticky |
-| `FREEINK_CAP_IMU` | LSM6DS3TR-C 6-axis IMU (Imu) | on for Sticky |
+| `FREEINK_CAP_IMU` | 6-axis IMU (Imu: LSM6DS3TR-C / QMI8658) | on for X3 and Sticky |
 | `FREEINK_CAP_NET_TLS13` | wolfSSL TLS 1.3 (≡ `FREEINK_NET_WOLFSSL`) | off |
 | `FREEINK_CAP_BLE_HID_HOST` | BLE HID host ([BleKeyboardHost](https://freeink.org/docs/lib-ble); add a NimBLE `lib_dep`, ESP32-C3/S3 only) | off |
 
@@ -315,7 +315,7 @@ FreeInk ships drivers and board profiles for the following devices. Related boar
 | Device | MCU | Controller | Panel | Status |
 | --- | --- | --- | --- | --- |
 | Xteink X4 | ESP32-C3 | SSD1677 | 800×480 B/W + 4-level gray | full |
-| Xteink X3 | ESP32-C3 | UC8253 | 792×528 B/W + 4-level gray, BQ27220 I²C gauge | full · runtime-selected |
+| Xteink X3 | ESP32-C3 | UC8253 | 792×528 B/W + 4-level gray, BQ27220 I²C gauge, DS3231 RTC, QMI8658 IMU | full · runtime-selected |
 | de-link | ESP32-S3 | SSD1677 | 800×480 B/W + gray, frontlight, SDMMC SD | full |
 | M5Stack PaperColor | ESP32-S3 | ED2208 | 400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs | full · native + M5GFX backend |
 | Murphy M3 | ESP32-S3 | UC8253 | 240×416 B/W, CHSC6x touch, PWM frontlight | full |
@@ -510,6 +510,16 @@ On e-paper a slow refresh blocks the main loop, so a button press that lands mid
 | `beginAsync(taskPriority = 2, pollMs = 15, queueLen = 32)` | Spawn the polling task; it latches each press (a BTN_* index) into an internal queue. No-op if already started. |
 | `popPress(uint8_t& button) → bool` | Pop the next queued button index into button. False when nothing is pending (or async polling was never started). |
 
+## Xteink button ladder
+
+On the Xteink X3/X4 the six buttons are resistor dividers multiplexed onto two ADC pins (Back/Confirm/Left/Right on group 1, Up/Down on group 2). A button-test or calibration screen can read the raw ladder to spot a drifted divider whose voltage no longer lands in the band the firmware expects — visible from the raw value regardless of how it classifies.
+
+| Member | Description |
+| --- | --- |
+| `readButtonAdc(ButtonAdcSample& g1, ButtonAdcSample& g2)` | Synchronously sample both button-group ADC pins (safe alongside async polling). Boards without the ladder report raw = -1, button = -1. |
+| `ButtonAdcSample { pin, raw, button }` | The GPIO sampled, its raw analogRead() value, and the classified BTN_* index (-1 = no band matched). |
+| `setSharedConfirmPowerShortPressEmitsPower(bool)` | For boards that wire OK/confirm and power/wake to one GPIO (e.g. Sticky): default a short click emits CONFIRM and a hold (≥400 ms) emits POWER; flip short clicks to POWER for a “short power click sleeps” option. |
+
 ---
 
 # BatteryMonitor
@@ -537,7 +547,7 @@ The **M5PM1** backend is **auto-detected** on the M5 [PaperColor](https://freein
 | `readPercentage()` | Estimated charge, 0–100. |
 | `readPercentageChecked(uint16_t& out) → bool` | Like readPercentage(), but returns false on a transient I²C-gauge / PMIC failure and leaves out unchanged (caller keeps its last good value). The ADC path always succeeds. |
 | `readMillivolts() / readVolts()` | Battery voltage in mV / volts (ADC paths account for the divider). |
-| `isCharging()` | Charge-sense / charger state (ADC charge-status pin or I²C charger). |
+| `isCharging()` | Charge state: the ADC charge-status pin, or a charger IC (BQ25896 CHRG_STAT), or — on a gauge board with no charger IC (e.g. X3) — the sign of the gauge’s Current() (BQ27220, positive = charging). |
 | `percentageFromMillivolts(mv)` | Static mV → percentage curve. |
 
 ## Status
@@ -775,9 +785,9 @@ Pins (PDM clock out, data in, and an active-polarity power-enable) come from the
 
 Group: Libraries · URL: https://freeink.org/docs/lib-rtc
 
-Wall-clock time from a PCF8563 real-time clock over I²C, described by `BoardConfig::ACTIVE.sensors`. Gated by `FREEINK_CAP_RTC`, which defaults on for the [Sticky](https://freeink.org/docs/devices) and off elsewhere; inert on boards with no RTC.
+Wall-clock time from a real-time clock over I²C, described by `BoardConfig::ACTIVE.sensors`. Two chips are supported, selected per board by `RtcType`: the **PCF8563** (Sticky) and the **DS3231** (Xteink X3). Gated by `FREEINK_CAP_RTC`, which defaults on for the [X3](https://freeink.org/docs/devices) and Sticky, and off elsewhere; inert on boards with no RTC.
 
-`begin()` brings up the I²C bus and disables the chip's CLKOUT; `now()` and `set()` read and write a `DateTime`. The driver handles the BCD register encoding and the oscillator-stopped flag, so a `now()` that returns false means the clock was never set (or browned out) rather than a silent bad time.
+`begin()` brings up the I²C bus and quiets the chip's clock output; `now()` and `set()` read and write a `DateTime`. The driver handles each chip's register encoding and its oscillator-stopped flag, so a `now()` that returns false means the clock was never set (or browned out) rather than a silent bad time.
 
 ## API
 
@@ -841,9 +851,9 @@ The SHT40 shares the sensor I²C bus with the [RTC](https://freeink.org/docs/lib
 
 Group: Libraries · URL: https://freeink.org/docs/lib-imu
 
-6-axis motion from an ST LSM6DS3TR-C accelerometer + gyroscope over I²C, described by `BoardConfig::ACTIVE.sensors`. Gated by `FREEINK_CAP_IMU`, which defaults on for the [Sticky](https://freeink.org/docs/devices) and off elsewhere; inert on boards with no IMU.
+6-axis motion (accelerometer + gyroscope) over I²C, described by `BoardConfig::ACTIVE.sensors`. Two chips are supported, selected per board by `ImuType`: the ST **LSM6DS3TR-C** (Sticky) and the **QMI8658** (Xteink X3). Gated by `FREEINK_CAP_IMU`, which defaults on for the [X3](https://freeink.org/docs/devices) and Sticky, and off elsewhere; inert on boards with no IMU.
 
-`begin()` checks the `WHO_AM_I` id and configures both sensors at 104 Hz (accel ±2 g, gyro ±245 dps). `read()` returns one `Sample` already scaled to physical units — acceleration in g and angular rate in degrees/second — so the app gets usable values without touching raw LSB scaling.
+`begin()` checks the `WHO_AM_I` id and configures accel + gyro for the board's chip (LSM6DS3TR-C at 104 Hz, ±2 g / ±245 dps; QMI8658 at 28 Hz, ±2 g / ±512 dps). `read()` returns one `Sample` already scaled to physical units — acceleration in g and angular rate in degrees/second — so the app gets usable values regardless of which part is fitted.
 
 ## API
 
@@ -864,7 +874,7 @@ if (imu.begin()) {
 }
 ```
 
-Fixed 104 Hz output, no dynamic rate selection. The IMU shares the sensor I²C bus with the [RTC](https://freeink.org/docs/lib-rtc) and [EnvironmentSensor](https://freeink.org/docs/lib-env); the board profile picks the bus via `SensorsConfig.i2cBus` on multi-bus SoCs. See [BoardConfig](https://freeink.org/docs/lib-board).
+Fixed output rate per chip, no dynamic rate selection. The IMU shares the sensor I²C bus with the [RTC](https://freeink.org/docs/lib-rtc) and [EnvironmentSensor](https://freeink.org/docs/lib-env); the board profile picks the bus via `SensorsConfig.i2cBus` on multi-bus SoCs. See [BoardConfig](https://freeink.org/docs/lib-board).
 
 ---
 
@@ -952,8 +962,8 @@ The precompiled mbedTLS in the ESP-IDF / pioarduino package ships TLS 1.3 as emp
 
 `SecureNet` bundles **wolfSSL compiled from source**, which supports TLS 1.3 + PSA and bypasses system mbedTLS entirely. It exposes two pieces:
 
-- `freeink::SecureClient` — an Arduino `Client` doing TLS 1.3 over `WiFiClient`.
-- `freeink::SecureHttpClient` — an `HTTPClient`-compatible shim so existing call sites switch with minimal churn.
+- `freeink::SecureClient` — an Arduino `Client` doing TLS 1.3 over `WiFiClient`, with a **TLS 1.2 fallback** for servers that are intolerant of a 1.3 handshake.
+- `freeink::SecureHttpClient` — a **standalone** HTTPS client (`GET` / `POST` / `PUT` with custom headers and a buffered response body; handles Content-Length, chunked and connection-close framing). It's *deliberately not* a wrapper over Arduino `HTTPClient` — that binds a `NetworkClient`, and `SecureClient` is a plain `Client` running wolfSSL over its own transport — but it keeps the familiar call shape (`begin()` / `addHeader()` / `GET()` / `getString()`, plus `setInsecure()` / `setCACert()`).
 
 ## Enabling it
 
@@ -1011,6 +1021,8 @@ lib_deps =
 | `releaseScanResults()` | Reclaim scan RAM once connected. |
 | `pairedCount() / paired(i) / forget(addr)` | Enumerate and remove stored bonds. |
 | `takePairingPasskey()` | When a peripheral requires passkey pairing, returns the six-digit code to show the user. |
+
+Pairing defaults to **Just Works** (bonded, no MITM) — page turners and remotes usually have no input or display, and mandatory MITM makes them reject pairing. Firmware that specifically needs host-display keyboard pairing opts in with `-DFREEINK_BLE_HID_REQUIRE_MITM=1`, and then reads the six-digit code via `takePairingPasskey()`.
 
 ```cpp
 #include <BleKeyboardHost.h>

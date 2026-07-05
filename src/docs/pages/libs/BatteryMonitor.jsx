@@ -39,7 +39,7 @@ export default function BatteryMonitor() {
           ['readPercentage()', 'Estimated charge, 0–100.'],
           ['readPercentageChecked(uint16_t& out) → bool', 'Like readPercentage(), but returns false on a transient I²C-gauge / PMIC failure and leaves out unchanged (caller keeps its last good value). The ADC path always succeeds.'],
           ['readMillivolts() / readVolts()', 'Battery voltage in mV / volts (ADC paths account for the divider).'],
-          ['isCharging()', 'Charge-sense / charger state (ADC charge-status pin or I²C charger).'],
+          ['isCharging()', 'Charge state: the ADC charge-status pin, or a charger IC (BQ25896 CHRG_STAT), or — on a gauge board with no charger IC (e.g. X3) — the sign of the gauge’s Current() (BQ27220, positive = charging).'],
           ['percentageFromMillivolts(mv)', 'Static mV → percentage curve.'],
         ]}
       />
