@@ -77,10 +77,10 @@ python freeink-sdk/libs/assets/Icons/tools/gen_icons.py \\
         <Code>FreeInkDisplay</Code> only allocates its framebuffer in <Code>begin()</Code>, so{' '}
         <Code>getFrameBuffer()</Code> returns <Code>nullptr</Code> at static-init time — building the{' '}
         <Code>DisplayTarget</Code> as a global crashes the first render (<Code>LoadProhibited</Code>{' '}
-        boot loop). Keep an <Code>App*</Code> global and construct both in <Code>setup()</Code>, after{' '}
-        <Code>display.begin()</Code>. <Code>FreeInkApp</Code> sizes its theme to the target's actual
-        font line height, and <Code>setClearColor()</Code> starts every paint from a white canvas —
-        frames don't clear the target on their own.
+        boot loop). Keep an <Code>App*</Code> global, or other global pointer, and construct the target
+        and app in <Code>setup()</Code>, after <Code>display.begin()</Code>. <Code>FreeInkApp</Code>{' '}
+        sizes its theme to the target's actual font line height, and <Code>setClearColor()</Code> starts
+        every paint from a white canvas — frames don't clear the target on their own.
       </P>
       <CodeBlock lang="cpp">{`#include <EInkDisplay.h>
 #include <BoardConfig.h>
@@ -366,18 +366,27 @@ void loop() {
   }
 
   ui::InputSnapshot snap = ui::snapshotFrom(input, app->device());
-  app->render(snap);
-  ui::present(display, app->lastRenderRefreshHint());
 
-  // A frame was just pushed; if it was the "Scanning..." screen, run the
-  // blocking Wi-Fi scan now that the user can see why we're busy.
-  if (state.scanPending && state.screen == ScreenWifiScan &&
-      app->lastRenderRefreshHint() != ui::RefreshHint::None) {
-    state.scanPending = false;
-    scanNets(state);
-    app->invalidate(ui::RefreshHint::Fast);
+  // Render on demand, not every loop: a full repaint costs real CPU time (the
+  // keyboard is ~40 per-pixel rounded fills), and rendering unconditionally
+  // starves the touch poll. Idle loops just poll input at full cadence.
+  const bool inputActive = snap.touchPressed || snap.touchReleased || snap.confirm ||
+                           snap.back || snap.focusNext || snap.focusPrev ||
+                           snap.prev || snap.next;
+  if (inputActive || app->invalidated()) {
+    app->render(snap);
+    ui::present(display, app->lastRenderRefreshHint());
+
+    // A frame was just pushed; if it was the "Scanning..." screen, run the
+    // blocking Wi-Fi scan now that the user can see why we're busy.
+    if (state.scanPending && state.screen == ScreenWifiScan &&
+        app->lastRenderRefreshHint() != ui::RefreshHint::None) {
+      state.scanPending = false;
+      scanNets(state);
+      app->invalidate(ui::RefreshHint::Fast);
+    }
   }
-  delay(20);
+  delay(10);
 }`}</CodeBlock>
 
       <Callout tone="warn" title="Refresh only on change">
