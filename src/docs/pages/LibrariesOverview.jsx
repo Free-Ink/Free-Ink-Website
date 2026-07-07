@@ -12,7 +12,7 @@ const LIBS = [
   { slug: 'lib-led', name: 'LedManager', blurb: 'Addressable RGB LEDs: color, brightness, non-blocking flashes.' },
   { slug: 'lib-buzzer', name: 'Buzzer', blurb: 'LEDC PWM square-wave tones on a passive buzzer.' },
   { slug: 'lib-mic', name: 'Microphone', blurb: 'PDM microphone capture to 16-bit PCM.' },
-  { slug: 'lib-rtc', name: 'Rtc', blurb: 'PCF8563 real-time clock over I²C.' },
+  { slug: 'lib-rtc', name: 'Rtc', blurb: 'PCF8563 / DS3231 real-time clock over I²C.' },
   { slug: 'lib-env', name: 'EnvironmentSensor', blurb: 'SHT40 temperature + humidity over I²C.' },
   { slug: 'lib-imu', name: 'Imu', blurb: 'LSM6DS3TR-C 6-axis accelerometer + gyroscope.' },
   { slug: 'lib-power', name: 'PowerManager', blurb: 'Portable deep-sleep wake-on-power-button.' },

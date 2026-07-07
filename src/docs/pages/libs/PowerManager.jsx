@@ -18,6 +18,7 @@ export default function PowerManager() {
           ['waitForPowerButtonRelease()', 'Poll the power GPIO until released, so sleep isn’t cancelled by a still-held press.'],
           ['deepSleep()', 'Isolate floating GPIOs, then enter deep sleep. Does not return (chip resets on wake).'],
           ['deepSleepUntilPowerButton()', 'Convenience: wait for release, arm wakeup, then deep sleep.'],
+          ['powerDownRailsForSleep()', 'Drive every assigned power-rail enable in the profile (display / SD / touch / mic) OFF and latch it with gpio_hold, so gated rails stay off through deep sleep instead of draining milliamps. No-op on boards with no gated rails (X3/X4). Call after the display’s deep-sleep command and before deepSleep(). Cutting the touch rail forfeits touch-to-wake.'],
         ]}
       />
 

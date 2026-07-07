@@ -123,6 +123,375 @@ pio run -e xteink_x4 -t upload
 
 ---
 
+# Sticky tutorial
+
+> Build a reminder appliance: keyboard, RTC clock over Wi-Fi, buzzer alarm and icons.
+
+Group: Getting started · URL: https://freeink.org/docs/sticky
+
+A hands-on walkthrough: build a complete **reminder appliance** on the **Sticky** — a touch reminder list with a delete dialog, on-screen-keyboard entry, a settings screen with Wi-Fi/NTP clock sync, a time-zone/clock adjuster, a 12/24-hour toggle, and a buzzer that goes off when a reminder is due. It exercises [FreeInkUI](https://freeink.org/docs/lib-ui), the [RTC](https://freeink.org/docs/lib-rtc), [Buzzer](https://freeink.org/docs/lib-buzzer) and [Icons](https://freeink.org/docs/lib-icons) together.
+
+> **Prerequisites**
+>
+> A PlatformIO install and a Sticky (Seeed) board — an **ESP32-S3** with an SSD1677 3.97″ 800×480 panel, GT911 touch, a PCF8563 RTC and a buzzer. See [Supported devices](https://freeink.org/docs/devices).
+
+## 1. Project setup and build env
+
+Vendor the [FreeInk SDK](https://github.com/Free-Ink/freeink-sdk) into your project as a git submodule so the checkout travels with the repo:
+
+```bash
+git submodule add https://github.com/Free-Ink/freeink-sdk.git freeink-sdk
+git submodule update --init --recursive   # --recursive: the SDK nests the lucide icon set
+# collaborators: git clone --recurse-submodules
+```
+
+`-DFREEINK_DEVICE_STICKY=1` pulls in the SSD1677 driver and the Sticky profile (touch, RTC and buzzer default on). Add the libraries the app touches — the Icons lib provides the `Icon.h` the generated header includes, and Wi-Fi is built into the Arduino-ESP32 core:
+
+```platformio.ini
+[env:sticky]
+extends = base
+board = esp32-s3-devkitc1-n16r8
+board_build.mcu = esp32s3
+build_flags =
+  ${base.build_flags}
+  -DFREEINK_DEVICE_STICKY=1
+lib_deps =
+  ${base.lib_deps}   ; BoardConfig, EInkDisplay, InputManager, FreeInkUI, …
+  Rtc=symlink://freeink-sdk/libs/hardware/Rtc
+  Buzzer=symlink://freeink-sdk/libs/hardware/Buzzer
+  Icons=symlink://freeink-sdk/libs/assets/Icons
+```
+
+## 2. Generate the icons
+
+The [Icons](https://freeink.org/docs/lib-icons) tool bakes only the glyphs you use into a header. List them in a manifest and run the generator to get a `generated_icons.h` with a `freeink::Icon` per icon per size:
+
+```
+# icons.txt
+bell       = bell
+clock      = clock
+wifi       = wifi
+plus       = plus
+settings   = settings
+arrow-left = arrow-left
+globe      = globe
+
+python freeink-sdk/libs/assets/Icons/tools/gen_icons.py \
+    --manifest icons.txt \
+    --svgdir   freeink-sdk/libs/assets/Icons/lucide/icons \
+    --sizes    24 \
+    --out      src/generated_icons.h
+```
+
+## 3. Boot and the app shell
+
+Construct the display and input from the board profile and drive them with `FreeInkApp`. Two boot rules on the Sticky: assert the battery power latch first (`BoardConfig::holdPowerRails()`), and rescue the SD power rail before touching the display (`BoardConfig::releaseSdRail()` — see the callout below). One trap: `FreeInkDisplay` only allocates its framebuffer in `begin()`, so `getFrameBuffer()` returns `nullptr` at static-init time — building the `DisplayTarget` as a global crashes the first render (`LoadProhibited` boot loop). Keep an `App*` global and construct both in `setup()`, after `display.begin()`. `FreeInkApp` sizes its theme to the target's actual font line height, and `setClearColor()` starts every paint from a white canvas — frames don't clear the target on their own.
+
+```cpp
+#include <EInkDisplay.h>
+#include <BoardConfig.h>
+#include <InputManager.h>
+#include <FreeInkApp.h>
+#include <FreeInkUIDisplayTarget.h>
+#include <FreeInkUIInputManager.h>
+#include <Rtc.h>
+#include <Buzzer.h>
+#include <WiFi.h>
+#include <time.h>
+#include "generated_icons.h"
+
+using namespace freeink;
+
+EInkDisplay display(
+  BoardConfig::ACTIVE.display.sclk, BoardConfig::ACTIVE.display.mosi,
+  BoardConfig::ACTIVE.display.cs,   BoardConfig::ACTIVE.display.dc,
+  BoardConfig::ACTIVE.display.rst,  BoardConfig::ACTIVE.display.busy);
+
+InputManager input;
+Rtc          rtc;
+Buzzer       buzzer;
+
+// The framebuffer doesn't exist until display.begin(), so the DisplayTarget
+// and App are constructed in setup() — not here at static init.
+using App = ui::FreeInkApp<64, 24>;   // 64 interactions/frame, 24 action handlers
+App* app = nullptr;
+
+static ui::BitmapRef iconRef(const Icon& i) {   // 1-bit mask (bit 1 = transparent)
+  return { i.bits, i.w, i.h, ui::BitmapFormat::Mask1, /*progmem=*/true };
+}
+
+void setup() {
+  BoardConfig::holdPowerRails();   // battery latch (Sticky PWR_HOLD / PWR_LOCK)
+  BoardConfig::releaseSdRail();    // SD shares the display SPI bus — see callout
+  delay(10);
+
+  display.begin();  input.begin();  rtc.begin();  buzzer.begin();
+
+  // Now the framebuffer exists — build the UI on top of it.
+  static ui::DisplayTarget target(display.getFrameBuffer(), display.getDisplayWidth(),
+                                  display.getDisplayHeight(), display.getDisplayWidthBytes());
+  static App appInstance(target, target.deviceContext());
+  app = &appInstance;
+  app->setClearColor(ui::Color::White);
+  app->setScreen(appScreen, &state);
+  // ... register the action handlers (section 5)
+}
+```
+
+> **Blank panel? Check the shared SD bus**
+>
+> On the Sticky the MicroSD sits on the *same SPI bus* as the panel, and a rail latched off with `gpio_hold` by a previous firmware's sleep path **survives reset and reflashing**. An unpowered card clamps the shared lines and the display goes completely dead — firmware runs, panel never updates. `BoardConfig::releaseSdRail()` releases the hold, powers the card and deselects it; [SDCardManager](https://freeink.org/docs/lib-sd)'s `begin()` does the same if your app mounts the card anyway.
+
+## 4. State and screens
+
+One `ScreenId` enum switches a single render function between the home list, the keyboard entry, settings, the clock adjuster and the two Wi-Fi views. The keyboard's editing state (shift/symbol layers, UTF-8 append, multi-byte backspace) lives in the SDK's `ui::KeyboardEntry` — `attach()` binds whichever buffer the current screen edits. Sub-screens share consistent chrome via `screen.navHeader()`: a top-left back button with a centered title.
+
+```cpp
+enum : ui::ActionId {
+  ActionNew = 1, ActionOpen, ActionDelete, ActionDismiss,
+  ActionKey, ActionShift, ActionMode, ActionBackspace, ActionSave, ActionLead,
+  ActionOpenSettings, ActionToggleSound, ActionClockFmt, ActionOpenTz, ActionTz,
+  ActionOpenWifi, ActionRescan, ActionPickNet, ActionConnect, ActionBack
+};
+enum ScreenId { ScreenHome, ScreenNew, ScreenSettings, ScreenTz, ScreenWifiScan, ScreenWifiPass };
+
+struct Reminder { char text[40]; uint16_t dueMin; bool fired; };
+struct AppState {
+  ScreenId      screen = ScreenHome;
+  Rtc::DateTime now{};
+  bool          haveTime = false;
+  Reminder      items[12];
+  uint8_t       count = 0;
+  int16_t       selected = -1;
+  int16_t       dialogFor = -1;      // reminder index in the delete dialog
+  bool          soundOn = true;
+  bool          use24h = true;
+  char          draft[40] = "";
+  int16_t       leadMin = 15;
+  int16_t       tzMin = 0;           // UTC offset in minutes
+  char          nets[12][33];  uint8_t netCount = 0;
+  bool          scanPending = false; // scan runs after "Scanning..." is on the panel
+  char          ssid[33] = "";
+  char          pass[64] = "";
+  const char*   wifiStatus = "";
+  ui::KeyboardEntry kb;              // SDK-owned keyboard editing state
+} state;
+
+// Switch screens. invalidateTransition() keeps transitions on FAST partial
+// refreshes (a FULL is a 1-2s stall) with a periodic FULL to clear ghosting.
+static void gotoScreen(AppState& s, ScreenId id) {
+  s.screen = id;
+  if (app) {
+    app->invalidateTransition();
+    app->clearTapFlash();  // the tapped element doesn't exist on the next screen
+  }
+}
+
+static void navHeader(App::ScreenType& screen, const char* title) {
+  ui::HeaderProps props;
+  props.title = title;
+  props.centered = true;
+  props.borderEdges = ui::EdgeBottom;
+  props.leadingIcon = iconRef(icon_arrow_left_24);
+  props.leadingAction = ActionBack;
+  props.leadingStyles = ui::outlinedButtonStyles(10);
+  props.leadingRadius = 8;
+  screen.header(props);
+}
+```
+
+The render function builds whichever screen is active. Two representative screens — the keyboard entry (header, keyboard, save row, lead-time stepper, text area) and home (status-bar clock, the reminder list with due times and countdowns, a bottom action bar, and the delete dialog as a modal overlay):
+
+```cpp
+void appScreen(App::ScreenType& screen, void* user) {
+  auto& s = *static_cast<AppState*>(user);
+  const auto& theme = screen.theme();
+  const bool modal = s.dialogFor >= 0;
+
+  if (s.screen == ScreenNew) {
+    navHeader(screen, "New reminder");
+    ui::QwertyKeyboardProps keys;
+    keys.keyAction = ActionKey;  keys.shiftAction = ActionShift;
+    keys.modeAction = ActionMode;
+    keys.deleteAction = ActionBackspace;  keys.okAction = ActionSave;
+    ui::applyEntry(keys, s.kb);           // shift/symbol layers from KeyboardEntry
+    screen.qwertyKeyboard(keys, 260, ui::LayoutAnchor::Bottom);
+
+    const ui::FooterAction footer[] = {
+      { .label = "Save", .action = ActionSave, .enabled = !s.kb.empty() },
+    };
+    screen.footer(footer, 1);
+
+    char leadStr[12];
+    std::snprintf(leadStr, sizeof leadStr, "%d min", s.leadMin);
+    ui::StepperRowProps step;
+    step.row.label = "Remind in";  step.value = leadStr;
+    step.increment = ActionLead;   step.incrementValue = 5;
+    step.decrement = ActionLead;   step.decrementValue = -5;
+    step.widestValue = "240 min";  // keeps the value slot from shifting
+    screen.stepperRow(step, ui::LayoutAnchor::Bottom);
+
+    screen.insetContent({8, 12, 8, 12});
+    ui::TextAreaProps body;
+    body.text = s.draft;  body.cursor = static_cast<int16_t>(s.kb.length());
+    body.showCaret = true;
+    screen.textArea(body);
+    return;
+  }
+
+  // ... ScreenSettings: settingRows (Wi-Fi & clock, 12/24h clock toggle,
+  //     clock adjuster, buzzer toggleRow) — see the repo for the full file.
+  // ... ScreenTz: live clock + stacked +1h/+15min/-15min/-1h buttons.
+  // ... ScreenWifiScan: network list, or screen.centeredText("Scanning...").
+  // ... ScreenWifiPass: keyboard bound to the password buffer.
+
+  // ---- Home ----------------------------------------------------------------
+  char clock[12];
+  formatClock(s, clock, sizeof clock);   // honors the 12/24-hour setting
+  ui::StatusBarProps sb;
+  sb.title = "Reminders";  sb.trailing = clock;  sb.leadingIcon = iconRef(icon_bell_24);
+  screen.status(sb);
+
+  // Bottom action bar: left-aligned New button + square settings button.
+  ui::Rect band = screen.takeBottom(static_cast<int16_t>(theme.rowHeight + 16), theme.spaceSm);
+  band = band.inset({4, 12, 4, 12});
+  ui::Rect gearRect{static_cast<int16_t>(band.right() - band.height), band.y,
+                    band.height, band.height};
+  ui::ButtonProps gear;
+  gear.icon = iconRef(icon_settings_24);  gear.action = ActionOpenSettings;
+  gear.enabled = !modal;
+  gear.styles = ui::outlinedButtonStyles(10);  gear.radius = 10;
+  gear.minTouchSize = theme.minTouchSize;
+  ui::button(screen.frame(), gearRect, gear);
+  // ... "New reminder" button fills the bar up to the gear (same pattern).
+
+  // The list, with due time and countdown per row.
+  static char labels[12][44], values[12][12], subs[12][20];
+  const uint16_t nowMin = s.now.hour * 60 + s.now.minute;
+  ui::ListItem rows[12];
+  for (uint8_t i = 0; i < s.count; ++i) {
+    std::snprintf(labels[i], sizeof labels[i], "%s", s.items[i].text);
+    formatMin(s.use24h, s.items[i].dueMin, values[i], sizeof values[i]);
+    if (s.items[i].fired) std::snprintf(subs[i], sizeof subs[i], "done");
+    else std::snprintf(subs[i], sizeof subs[i], "in %u min",
+                       (s.items[i].dueMin + 1440 - nowMin) % 1440);
+    rows[i].label = labels[i];  rows[i].subtitle = subs[i];  rows[i].value = values[i];
+    rows[i].actionValue = i;
+    rows[i].icon = iconRef(s.items[i].fired ? icon_bell_24 : icon_clock_24);
+  }
+  screen.insetContent({4, 12, 0, 12});
+  screen.list(rows, s.count, s.selected, modal ? ui::NO_ACTION : ActionOpen);
+
+  if (modal) {   // tapping a row opens a delete dialog over the list
+    static const ui::DialogOption opts[] = {
+      { .label = "Delete", .action = ActionDelete },
+      { .label = "Cancel", .action = ActionDismiss },
+    };
+    ui::OptionDialogProps dlg;
+    dlg.title = "Reminder";
+    dlg.headline = s.items[s.dialogFor].text;
+    dlg.message = "Remove this reminder?";
+    dlg.options = opts;  dlg.optionCount = 2;
+    dlg.dimBackground = true;
+    screen.dialog(dlg);
+  }
+}
+```
+
+## 5. Actions and the loop
+
+Handlers stay tiny: the four keyboard actions route straight into `KeyboardEntry`, the clock adjuster uses `Rtc::adjust()` (calendar-correct across midnight, works before any NTP sync — dialing the clock by hand is a legitimate way to set it), and the Wi-Fi scan is deferred with a `scanPending` flag so the "Scanning..." screen reaches the panel before the 2-4s blocking scan runs. `Connect` joins with the typed password, pulls the time over NTP with the configured UTC offset, and writes it into the RTC so the clock survives reboots.
+
+```cpp
+  // The keyboard: KeyboardEntry owns append/backspace and the layer flags.
+  app->on(ActionKey, [](const ui::ActionEvent& e, void* u){
+    static_cast<AppState*>(u)->kb.key(e.value); }, &state);
+  app->on(ActionBackspace, [](const ui::ActionEvent&, void* u){
+    static_cast<AppState*>(u)->kb.backspace(); }, &state);
+  app->on(ActionShift, [](const ui::ActionEvent&, void* u){
+    static_cast<AppState*>(u)->kb.shift(); }, &state);
+  app->on(ActionMode, [](const ui::ActionEvent&, void* u){
+    static_cast<AppState*>(u)->kb.mode(); }, &state);
+
+  app->on(ActionNew, [](const ui::ActionEvent&, void* u){
+    auto& s = *static_cast<AppState*>(u);
+    gotoScreen(s, ScreenNew); s.draft[0] = 0;
+    s.kb.attach(s.draft, sizeof s.draft, /*startShifted=*/true); }, &state);
+
+  // Clock adjuster: +-15min/+-1h buttons, wrapping at the UTC-12..UTC+14 ends.
+  app->on(ActionTz, [](const ui::ActionEvent& e, void* u){
+    auto& s = *static_cast<AppState*>(u);
+    int16_t next = s.tzMin + e.value;
+    if (next > 840)  next = -720;
+    if (next < -720) next = 840;
+    const int16_t delta = next - s.tzMin;
+    s.tzMin = next;
+    if (delta && rtc.adjust(delta * 60L, &s.now)) s.haveTime = true;
+  }, &state);
+
+  // Wi-Fi: show "Scanning..." first, scan after that frame is on the panel.
+  app->on(ActionOpenWifi, [](const ui::ActionEvent&, void* u){
+    auto& s = *static_cast<AppState*>(u);
+    s.netCount = 0; s.scanPending = true; s.wifiStatus = "";
+    gotoScreen(s, ScreenWifiScan); }, &state);
+
+void loop() {
+  input.update();
+
+  static uint32_t lastTick = 0;
+  static uint16_t lastMinute = 0xFFFF;
+  if (millis() - lastTick > 1000) {                 // read the RTC ~1 Hz
+    lastTick = millis();
+    if (rtc.now(state.now)) {                       // false until the clock is set
+      state.haveTime = true;
+      uint16_t nowMin = state.now.hour * 60 + state.now.minute;
+      for (uint8_t i = 0; i < state.count; ++i) {
+        if (!state.items[i].fired && nowMin == state.items[i].dueMin) {
+          if (state.soundOn) buzzer.tone(2000, 400); // alert!
+          state.items[i].fired = true;
+          app->invalidate(ui::RefreshHint::Fast);
+        }
+      }
+      if (nowMin != lastMinute) { lastMinute = nowMin; app->invalidate(ui::RefreshHint::Fast); }
+    }
+  }
+
+  ui::InputSnapshot snap = ui::snapshotFrom(input, app->device());
+  app->render(snap);
+  ui::present(display, app->lastRenderRefreshHint());
+
+  // A frame was just pushed; if it was the "Scanning..." screen, run the
+  // blocking Wi-Fi scan now that the user can see why we're busy.
+  if (state.scanPending && state.screen == ScreenWifiScan &&
+      app->lastRenderRefreshHint() != ui::RefreshHint::None) {
+    state.scanPending = false;
+    scanNets(state);
+    app->invalidate(ui::RefreshHint::Fast);
+  }
+  delay(20);
+}
+```
+
+> **Refresh only on change**
+>
+> `FreeInkApp` reports whether the frame changed via `RefreshHint` and `ui::present()` pushes the panel only when it did. Screen changes use `invalidateTransition()` — fast partial refreshes with a periodic full to clear ghosting — and tap feedback is free: the tapped element paints its focused (gray) style in the same refresh that shows the tap's result. Never refresh every loop.
+
+## 6. Build and flash
+
+```bash
+pio run -e sticky -t upload
+```
+
+Open **Settings** from the gear, tap **Wi-Fi & clock** to scan, pick your network, type the password and **Connect** to sync the clock — or dial the time by hand in **Adjust clock**. Back on the list, add a reminder with **New**; when its minute arrives the buzzer sounds and the row flips from clock to bell. The full firmware lives in the [sticky-reminders](https://github.com/Free-Ink/sticky-reminders) repo.
+
+## Going further
+
+1. Persist reminders, the Wi-Fi network and the UTC offset across reboots with [SDCardManager](https://freeink.org/docs/lib-sd), and reload them in `setup()`.
+2. Localize the keyboard via `QwertyKeyboardProps.layout`, or design richer screens in the [visual builder](https://freeink.org/docs/lib-ui) and browse the [component gallery](https://freeink.org/docs/lib-ui-components).
+3. Sleep between checks: arm a timer/touch wake and call [PowerManager](https://freeink.org/docs/lib-power)'s `powerDownRailsForSleep()` before `deepSleep()` to cut standby drain.
+
+---
+
 # PlatformIO setup
 
 > Add the FreeInk libraries to a PlatformIO project.
@@ -383,7 +752,7 @@ The SDK is a set of self-contained libraries, each its own PlatformIO dependency
 
 Signatures track the SDK headers under `libs/`. For exact types and defaults, read the header for each library — see [Repository layout](https://freeink.org/docs/repository-layout).
 
-> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[RecoveryBootBoot-time OTA recovery escape hatch (button combo).](https://freeink.org/docs/lib-recovery)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BleKeyboardHostBLE HID host for keyboards, page turners and remotes.](https://freeink.org/docs/lib-ble)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[XteinkDetectRuntime X3/X4 detection via I²C fingerprinting.](https://freeink.org/docs/lib-detect)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Component galleryPrebuilt components, previewed from the real 1-bit renders.](https://freeink.org/docs/lib-ui-components)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
+> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 / DS3231 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[RecoveryBootBoot-time OTA recovery escape hatch (button combo).](https://freeink.org/docs/lib-recovery)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BleKeyboardHostBLE HID host for keyboards, page turners and remotes.](https://freeink.org/docs/lib-ble)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[XteinkDetectRuntime X3/X4 detection via I²C fingerprinting.](https://freeink.org/docs/lib-detect)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Component galleryPrebuilt components, previewed from the real 1-bit renders.](https://freeink.org/docs/lib-ui-components)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
 
 ---
 
@@ -463,6 +832,26 @@ Refresh modes: `FULL_REFRESH` / `HALF_REFRESH` / `FAST_REFRESH`.
 
 Panel mount orientation is not a display call — it comes from `BoardProfile.orientation` (`NO_FLIP` / `MIRROR_X` / `MIRROR_Y` / `ROTATE_180`) and the SSD1677 driver applies it in hardware. See [BoardConfig](https://freeink.org/docs/lib-board) and [Adding a device](https://freeink.org/docs/adding-a-device).
 
+## Framebuffer memory
+
+The facade owns the write and previous-frame framebuffers. They can be freed and restored so a memory-tight phase (a transient web UI, chapter compilation) can reclaim the ~100 KB of PSRAM:
+
+| Member | Description |
+| --- | --- |
+| `releaseBuffers()` | Free both framebuffers back to the heap. No display ops until begin() is called again — for sessions that reboot on exit. Safe no-op if already released. |
+| `releaseSecondaryBuffer() / reallocSecondaryBuffer() / hasSecondaryBuffer()` | Free only the previous-frame buffer (~48–52 KB); B/W and fast differential refresh keep working (the driver re-seeds RAM when prev is null), but grayscale AA is unavailable until it’s reallocated. |
+| `syncWriteBufferFromActive()` | Copy the just-displayed frame back into the write buffer, so you can patch a few regions and re-display instead of fully re-rendering. No-op in single-buffer mode. |
+| `cleanupGrayscaleWithPreviousBuffer()` | Restore the B/W baseline after a grayscale refresh, using the active buffer (falls back when the secondary is released). |
+
+## BUSY-wait hooks
+
+A refresh blocks for ~0.3–2 s while the CPU only polls the panel's BUSY pin. Optional hooks let firmware apply its own power policy for that window without the SDK knowing it:
+
+| Member | Description |
+| --- | --- |
+| `setBusyWaitHooks(begin, end)` | Plain function-pointer pair fired around a long wait (begin fires once a wait exceeds ~20 ms, so short command waits don’t pay) — e.g. drop the CPU clock, then restore. |
+| `setBusyWaitSliceHook(fn)` | Once a wait is proven long, replaces the poll delay with your hook (receives the BUSY pin + level) so firmware can sleep through the refresh instead of busy-polling. |
+
 ---
 
 # InputManager
@@ -482,6 +871,7 @@ Buttons plus optional capacitive touch behind one object. Call `update()` each l
 | `wasPressed(buttonIndex) / wasReleased(buttonIndex)` | Edge: press / release since last update. |
 | `wasAnyPressed() / wasAnyReleased()` | Any-button edge. |
 | `getState() / getButtonName(i)` | Raw button bitmask; human name for a button. |
+| `isDebouncePending() → bool` | True while a raw state change is still inside the debounce window (a change commits after two matching samples). Slow-polling hosts (a sleep-sliced idle loop) should re-poll quickly while this is set, or a press shorter than the poll period is dropped. |
 | `BTN_BACK, BTN_CONFIRM, BTN_LEFT, BTN_RIGHT, BTN_UP, BTN_DOWN, BTN_POWER` | Button index constants. |
 
 ## Touch
@@ -493,6 +883,7 @@ Gated by `FREEINK_CAP_TOUCH`; inert on boards without a touch controller. Two co
 | `hasTouch()` | Whether the active board has a touch controller. |
 | `getTouchPoint() → TouchPoint{ valid, x, y }` | Current touch point. |
 | `isTouchPressed()` | Level: touched now. |
+| `isTouchHeldAt(float& nx, float& ny) → bool` | True while a touch is down, writing the current contact position (no tap-slop gate, so it follows a moving finger) — for drag interactions like sliders. The caller owns any threshold/hysteresis. |
 | `wasTouchPressed() / wasTouchReleased()` | Edge: touch down / up. |
 | `wasTouchActivity() → bool` | Edge: any touch press or release happened this frame — the touch analogue of wasAnyPressed(), for resetting idle/sleep timers. False on non-touch boards. |
 | `wasTouchTap(float& nx, float& ny) → bool` | Edge: a tap gesture released this frame, returning the normalized panel-native touch-down position (not the lift point — the reported centroid drifts 10–20 px as a finger rolls off, so routing to touch-down keeps small targets like steppers accurate). The app maps the coords to its logical frame. False (outputs untouched) if no release this frame or no touch HW. |
@@ -585,6 +976,8 @@ SD storage with an app-friendly wrapper plus the raw `FsFile` API. Two interchan
 | `writeFile(path, content)` | Write a String to a file. |
 | `exists / remove / rename / mkdir / rmdir / ensureDirectoryExists` | Filesystem operations. |
 | `open(path, oflag = O_RDONLY) → FsFile` | Raw SdFat handle for streaming. |
+| `sdTotalBytes() → uint64_t` | Total card capacity, cached at begin(). 0 if not mounted. |
+| `sdUsedBytes() → uint64_t` | Used space, cached with a 20 s TTL (the FAT free-cluster scan is too slow to run every frame). 0 if not mounted / unknown. |
 
 ## Backends
 
@@ -781,7 +1174,7 @@ Pins (PDM clock out, data in, and an active-polarity power-enable) come from the
 
 # Rtc
 
-> PCF8563 real-time clock over I²C.
+> PCF8563 / DS3231 real-time clock over I²C.
 
 Group: Libraries · URL: https://freeink.org/docs/lib-rtc
 
@@ -797,6 +1190,7 @@ Wall-clock time from a real-time clock over I²C, described by `BoardConfig::ACT
 | `present() → bool` | Whether the RTC initialized. |
 | `now(DateTime& out) → bool` | Read the current time. False on I²C error or if the oscillator reports stopped (never set / low voltage). |
 | `set(const DateTime& dt) → bool` | Set the clock. False on I²C error. |
+| `adjust(int32_t seconds, DateTime* out = nullptr) → bool` | Shift the running clock by a signed number of seconds, calendar-correct across midnight/month/year (e.g. a time-zone change: adjust(deltaMinutes * 60)). Optionally returns the new time. False if the RTC is absent or I/O fails. |
 | `DateTime { year, month, day, hour, minute, second, weekday }` | Full year (e.g. 2026), 1-based month/day, 24h time, weekday 0=Sunday. |
 
 ```cpp
@@ -895,6 +1289,7 @@ All methods are static.
 | `waitForPowerButtonRelease()` | Poll the power GPIO until released, so sleep isn’t cancelled by a still-held press. |
 | `deepSleep()` | Isolate floating GPIOs, then enter deep sleep. Does not return (chip resets on wake). |
 | `deepSleepUntilPowerButton()` | Convenience: wait for release, arm wakeup, then deep sleep. |
+| `powerDownRailsForSleep()` | Drive every assigned power-rail enable in the profile (display / SD / touch / mic) OFF and latch it with gpio_hold, so gated rails stay off through deep sleep instead of draining milliamps. No-op on boards with no gated rails (X3/X4). Call after the display’s deep-sleep command and before deepSleep(). Cutting the touch rail forfeits touch-to-wake. |
 
 ## Usage
 
@@ -1067,6 +1462,8 @@ The compile-time board descriptions and the runtime-active profile. Drivers read
 | `BoardProfile.orientation` | Panel mount transform — NO_FLIP / MIRROR_X / MIRROR_Y / ROTATE_180 (applied in hardware by SSD1677). |
 | `BoardProfile.sdmmc` | SdmmcPins for 4-bit SDMMC boards; busWidth 0 = use SPI/SdFat. |
 | `BoardProfile.uiScale` | Per-device UI scale multiplier (1.0 default; touch boards like Sticky bump it for finger-sized chrome). Read by the app/theme layer. |
+| `holdPowerRails()` | Assert the profile’s power-latch pins (PWR_HOLD / PWR_LOCK). Battery-latched boards (e.g. Sticky) must call this first thing in setup() or they power off when the user releases the button. No-op on boards without a latch. |
+| `releaseSdRail()` | Rescue an SD power rail a previous firmware’s sleep left gpio-held off — required before first display use where SD shares the display SPI bus (an unpowered card clamps the lines). SDCardManager::begin() does it too. |
 | `hasTouch() / hasPwmFrontlight() / hasAudio()` | Capability queries for the active board. |
 | `isDeLink() / isMurphyM3() / isM5StackPaperColor() / isM5PaperV11()` | Identity queries. |
 | `LILYGO_T5_PRO_GT911` | Ready-made GT911 touch config (used by the LilyGo T5 S3 profile). |
@@ -1176,7 +1573,7 @@ The app owns persistent state — selected row, focused index, scroll offset, cl
 
 ## Rendering
 
-The built-in `DisplayTarget` (`FreeInkUIDisplayTarget.h`) is a self-contained `DrawTarget` that writes directly into a 1-bpp framebuffer — the same layout `FreeInkDisplay::getFrameBuffer()` hands back — with **no external graphics library**, so the exact same render runs in firmware and in host unit tests. It draws in **logical coordinates and rotates each pixel into the panel's native framebuffer** at draw time, so you lay out a screen in the orientation you intend with no separate rotated buffer: the four-argument constructor takes the panel's native dimensions and defaults a landscape-native panel (the X3/X4) to `Portrait` so a held-tall reader reads upright; pass an explicit `Orientation` to the five-argument overload to override, and `deviceContext()` carries that orientation so touch mapping agrees. It bundles a **Noto Sans bitmap font** across eight font slots; point a slot (or all of them) at your own `BitmapFont` with `setFont()`, generated from any TTF/OTF by `tools/gen_font.py`. On a 1-bit panel the four UI grays (`Black` / `DarkGray` / `LightGray` / `White`) are reproduced with an ordered Bayer dither.
+The built-in `DisplayTarget` (`FreeInkUIDisplayTarget.h`) is a self-contained `DrawTarget` that writes directly into a 1-bpp framebuffer — the same layout `FreeInkDisplay::getFrameBuffer()` hands back — with **no external graphics library**, so the exact same render runs in firmware and in host unit tests. It draws in **logical coordinates and rotates each pixel into the panel's native framebuffer** at draw time, so you lay out a screen in the orientation you intend with no separate rotated buffer: the four-argument constructor takes the panel's native dimensions and defaults a landscape-native panel (the X3/X4) to `Portrait` so a held-tall reader reads upright; pass an explicit `Orientation` to the five-argument overload to override, and `deviceContext()` carries that orientation so touch mapping agrees. It bundles a **Noto Sans bitmap font** across eight font slots; point a slot (or all of them) at your own `BitmapFont` with `setFont()`, generated from any TTF/OTF by `tools/gen_font.py` (1-bpp, or multi-bpp for anti-aliased glyphs). On a 1-bit panel the four UI grays (`Black` / `DarkGray` / `LightGray` / `White`) are reproduced with an ordered Bayer dither.
 
 Bridging to an app's own drawing stack is optional: the header-only `GfxRendererTarget` adapter (below) compiles only where a CrossPoint `GfxRenderer` is on the include path, for firmwares that already own a text/bidi pipeline. New apps just use `DisplayTarget`.
 
@@ -1208,6 +1605,12 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
   display.displayBuffer(/* map the hint to FULL / FAST */);
 }
 ```
+
+It also ships the chrome and helpers multi-screen apps otherwise hand-roll: `screen.navHeader(title, backAction, backIcon)` draws a sub-screen's back button + centered title + rule, and `screen.centeredText("Scanning…")` centers a one-line message for empty/loading states. Because frames **don't clear the target** on their own, call `app.setClearColor(ui::Color::White)` once so each paint starts from a white canvas. For snappy navigation, `app.invalidateTransition()` requests a fast partial refresh on a screen change and promotes to a full one every Nth transition (`setTransitionFullEvery(n)`) to clear ghosting; FreeInkApp also sizes its default theme metrics to the target's real font line height, so larger fonts don't clip rows.
+
+> **Text entry — don't cast key ids to char**
+>
+> The SDK owns keyboard editing in `ui::KeyboardEntry`: `attach()` a caller buffer, route the keyboard's key/shift/mode/delete actions to its methods, and it handles the shift/symbol layers, layout-correct UTF-8 append and multi-byte backspace. Key actions report a stable **id** in `ActionEvent::value` — ASCII keys their code point, localized keys (é, ñ, ß) ids above 1000 — so casting the value straight to `char` corrupts non-ASCII layouts. Insert through `KeyboardEntry` (or `keyboardKeyText()`) instead.
 
 ## Visual builder
 
@@ -1258,7 +1661,7 @@ A set of immediate-mode components, deliberately not tied to any application's s
 | `optionDialog / popup / messagePanel / toast / contextMenu` | Overlays: a titled option dialog (caption + multi-line headline + body), a bare popup panel (PopupProps sets size and alignment) with an optional dithered scrim, an empty/error/loading message panel with retry, a static e-paper-safe toast, and a long-press command menu. |
 | `metricCard / progressBar` | Statistics value/label cells and horizontal bar charts (minFill keeps tiny values visible). |
 | `batteryIndicator` | Battery glyph; triangle-built lightning bolt while charging, or an app-supplied icon. |
-| `header / gestureBar` | Section headers and button-hint bars. |
+| `header / gestureBar` | Section headers (with an optional leading back button for sub-screen nav chrome — see navHeader) and button-hint bars. |
 | `coverCarousel` | Lays out a prev/center/next cover row (distinct center/side sizing, optional wrap at the edges) with selection chrome and tap/swipe/prev-next routing; returns slots[3] and the app renders cover art into each slot.content rect, so image decoding and frame caching stay app-owned. |
 
 ## Virtualized lists
@@ -1394,6 +1797,10 @@ Composite screens assembled from the components below — the kinds of surfaces 
 ## Overlays and dialogs
 
 > `contextMenu`A long-press / menu-button command list.
+
+## Layout
+
+> `header`A section header (or nav header — a leading back button + centered title) with an optional bottom rule.
 
 ---
 
@@ -1562,7 +1969,7 @@ libs/
   hardware/LedManager/         addressable RGB LEDs (M5 PaperColor, WS2812-compatible)
   hardware/Buzzer/             LEDC PWM tone buzzer (Sticky, Murphy)
   hardware/Microphone/         PDM mic capture (Sticky)
-  hardware/Rtc/                PCF8563 real-time clock (Sticky)
+  hardware/Rtc/                PCF8563 / DS3231 real-time clock (Sticky, X3)
   hardware/EnvironmentSensor/  SHT40 temperature + humidity (Sticky)
   hardware/Imu/                LSM6DS3TR-C 6-axis IMU (Sticky)
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)

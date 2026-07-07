@@ -84,6 +84,32 @@ export default function Display() {
         <Code>MIRROR_Y</Code> / <Code>ROTATE_180</Code>) and the SSD1677 driver applies it in hardware.
         See <A href="/docs/lib-board">BoardConfig</A> and <A href="/docs/adding-a-device">Adding a device</A>.
       </P>
+
+      <H2>Framebuffer memory</H2>
+      <P>
+        The facade owns the write and previous-frame framebuffers. They can be freed and restored so
+        a memory-tight phase (a transient web UI, chapter compilation) can reclaim the ~100 KB of PSRAM:
+      </P>
+      <ApiTable
+        rows={[
+          ['releaseBuffers()', 'Free both framebuffers back to the heap. No display ops until begin() is called again — for sessions that reboot on exit. Safe no-op if already released.'],
+          ['releaseSecondaryBuffer() / reallocSecondaryBuffer() / hasSecondaryBuffer()', 'Free only the previous-frame buffer (~48–52 KB); B/W and fast differential refresh keep working (the driver re-seeds RAM when prev is null), but grayscale AA is unavailable until it’s reallocated.'],
+          ['syncWriteBufferFromActive()', 'Copy the just-displayed frame back into the write buffer, so you can patch a few regions and re-display instead of fully re-rendering. No-op in single-buffer mode.'],
+          ['cleanupGrayscaleWithPreviousBuffer()', 'Restore the B/W baseline after a grayscale refresh, using the active buffer (falls back when the secondary is released).'],
+        ]}
+      />
+
+      <H2>BUSY-wait hooks</H2>
+      <P>
+        A refresh blocks for ~0.3–2 s while the CPU only polls the panel's BUSY pin. Optional hooks let
+        firmware apply its own power policy for that window without the SDK knowing it:
+      </P>
+      <ApiTable
+        rows={[
+          ['setBusyWaitHooks(begin, end)', 'Plain function-pointer pair fired around a long wait (begin fires once a wait exceeds ~20 ms, so short command waits don’t pay) — e.g. drop the CPU clock, then restore.'],
+          ['setBusyWaitSliceHook(fn)', 'Once a wait is proven long, replaces the poll delay with your hook (receives the BUSY pin + level) so firmware can sleep through the refresh instead of busy-polling.'],
+        ]}
+      />
     </>
   )
 }

@@ -21,6 +21,8 @@ export default function SdCard() {
           ['writeFile(path, content)', 'Write a String to a file.'],
           ['exists / remove / rename / mkdir / rmdir / ensureDirectoryExists', 'Filesystem operations.'],
           ['open(path, oflag = O_RDONLY) → FsFile', 'Raw SdFat handle for streaming.'],
+          ['sdTotalBytes() → uint64_t', 'Total card capacity, cached at begin(). 0 if not mounted.'],
+          ['sdUsedBytes() → uint64_t', 'Used space, cached with a 20 s TTL (the FAT free-cluster scan is too slow to run every frame). 0 if not mounted / unknown.'],
         ]}
       />
 

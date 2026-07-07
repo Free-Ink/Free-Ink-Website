@@ -8,6 +8,7 @@ Hardware-independent C++ firmware SDK for e-paper readers. Source: [github.com/F
 
 - [Overview](https://freeink.org/docs/overview): What FreeInk is, why it exists, and how the pieces fit together.
 - [Quickstart](https://freeink.org/docs/quickstart): Drive an e-paper panel with FreeInk in a few minutes.
+- [Sticky tutorial](https://freeink.org/docs/sticky): Build a reminder appliance: keyboard, RTC clock over Wi-Fi, buzzer alarm and icons.
 - [PlatformIO setup](https://freeink.org/docs/installation): Add the FreeInk libraries to a PlatformIO project.
 
 ## Concepts
@@ -28,7 +29,7 @@ Hardware-independent C++ firmware SDK for e-paper readers. Source: [github.com/F
 - [LedManager](https://freeink.org/docs/lib-led): Addressable RGB LEDs: color, brightness and non-blocking flashes.
 - [Buzzer](https://freeink.org/docs/lib-buzzer): LEDC PWM square-wave tones on a passive buzzer.
 - [Microphone](https://freeink.org/docs/lib-mic): PDM microphone capture to 16-bit PCM.
-- [Rtc](https://freeink.org/docs/lib-rtc): PCF8563 real-time clock over I²C.
+- [Rtc](https://freeink.org/docs/lib-rtc): PCF8563 / DS3231 real-time clock over I²C.
 - [EnvironmentSensor](https://freeink.org/docs/lib-env): SHT40 temperature + humidity over I²C.
 - [Imu](https://freeink.org/docs/lib-imu): LSM6DS3TR-C 6-axis accelerometer + gyroscope.
 - [PowerManager](https://freeink.org/docs/lib-power): Portable deep-sleep wake-on-power-button.

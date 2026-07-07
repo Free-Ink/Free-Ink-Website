@@ -33,6 +33,7 @@ const GROUPS = [
     title: 'Input and navigation',
     items: [
       ['textField', 'text-field.svg', 'Single-line input with a chunk-measured cursor for long strings.'],
+      ['textArea', 'text-area.svg', 'A multi-line scrollable writing canvas (the editor body); the app owns the text buffer and caret.'],
       ['keyGrid', 'key-grid.svg', 'A configurable key grid with KeyKind special keys and glyph art.'],
       ['keyboard', 'qwerty-keyboard.svg', 'A data-driven on-screen keyboard with built-in QWERTY, AZERTY, QWERTZ and Spanish layouts; qwertyKeyboard is the QWERTY convenience wrapper.'],
       ['tabBar', 'tab-bar.svg', 'Pill or underline-style tabs with an optional divider.'],
@@ -66,6 +67,14 @@ const GROUPS = [
       ['popup', 'popup.svg', 'A bare dialog panel with an optional dithered scrim.'],
       ['messagePanel', 'message-panel.svg', 'An empty / error / loading panel with optional progress and retry.'],
       ['toast', 'toast.svg', 'A static, e-paper-safe notice such as “Saved” or “Sync failed”.'],
+    ],
+  },
+  {
+    title: 'Layout',
+    items: [
+      ['header', 'header.svg', 'A section header (or nav header — a leading back button + centered title) with an optional bottom rule.'],
+      ['footer', 'footer.svg', 'A bottom action-button row, top-anchored by default; each entry is a FooterAction.'],
+      ['spacer', 'spacer.svg', 'A fixed gap that reserves space between components in a Stack or Screen band.'],
     ],
   },
 ]

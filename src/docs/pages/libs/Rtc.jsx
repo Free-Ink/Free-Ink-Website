@@ -25,6 +25,7 @@ export default function Rtc() {
           ['present() → bool', 'Whether the RTC initialized.'],
           ['now(DateTime& out) → bool', 'Read the current time. False on I²C error or if the oscillator reports stopped (never set / low voltage).'],
           ['set(const DateTime& dt) → bool', 'Set the clock. False on I²C error.'],
+          ['adjust(int32_t seconds, DateTime* out = nullptr) → bool', 'Shift the running clock by a signed number of seconds, calendar-correct across midnight/month/year (e.g. a time-zone change: adjust(deltaMinutes * 60)). Optionally returns the new time. False if the RTC is absent or I/O fails.'],
           ['DateTime { year, month, day, hour, minute, second, weekday }', 'Full year (e.g. 2026), 1-based month/day, 24h time, weekday 0=Sunday.'],
         ]}
       />

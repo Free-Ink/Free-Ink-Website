@@ -24,7 +24,7 @@ export default function RepositoryLayout() {
   hardware/LedManager/         addressable RGB LEDs (M5 PaperColor, WS2812-compatible)
   hardware/Buzzer/             LEDC PWM tone buzzer (Sticky, Murphy)
   hardware/Microphone/         PDM mic capture (Sticky)
-  hardware/Rtc/                PCF8563 real-time clock (Sticky)
+  hardware/Rtc/                PCF8563 / DS3231 real-time clock (Sticky, X3)
   hardware/EnvironmentSensor/  SHT40 temperature + humidity (Sticky)
   hardware/Imu/                LSM6DS3TR-C 6-axis IMU (Sticky)
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)

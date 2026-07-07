@@ -92,7 +92,7 @@ if (auto event = ui.finish()) {
         override, and <Code>deviceContext()</Code> carries that orientation so touch mapping agrees. It
         bundles a <strong>Noto Sans bitmap font</strong> across eight font slots; point a slot (or all of
         them) at your own <Code>BitmapFont</Code> with <Code>setFont()</Code>, generated from any TTF/OTF
-        by <Code>tools/gen_font.py</Code>. On a 1-bit panel the four UI grays
+        by <Code>tools/gen_font.py</Code> (1-bpp, or multi-bpp for anti-aliased glyphs). On a 1-bit panel the four UI grays
         (<Code>Black</Code> / <Code>DarkGray</Code> / <Code>LightGray</Code> / <Code>White</Code>) are
         reproduced with an ordered Bayer dither.
       </P>
@@ -143,6 +143,28 @@ freeink::ui::ActionEvent event = app.render(readInputSnapshot());
 if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
   display.displayBuffer(/* map the hint to FULL / FAST */);
 }`}</CodeBlock>
+      <P>
+        It also ships the chrome and helpers multi-screen apps otherwise hand-roll:{' '}
+        <Code>screen.navHeader(title, backAction, backIcon)</Code> draws a sub-screen's back button +
+        centered title + rule, and <Code>screen.centeredText("Scanning…")</Code> centers a one-line
+        message for empty/loading states. Because frames <strong>don't clear the target</strong> on
+        their own, call <Code>app.setClearColor(ui::Color::White)</Code> once so each paint starts from a
+        white canvas. For snappy navigation, <Code>app.invalidateTransition()</Code> requests a fast
+        partial refresh on a screen change and promotes to a full one every Nth transition
+        (<Code>setTransitionFullEvery(n)</Code>) to clear ghosting; FreeInkApp also sizes its default
+        theme metrics to the target's real font line height, so larger fonts don't clip rows.
+      </P>
+      <Callout title="Text entry — don't cast key ids to char">
+        <p>
+          The SDK owns keyboard editing in <Code>ui::KeyboardEntry</Code>: <Code>attach()</Code> a caller
+          buffer, route the keyboard's key/shift/mode/delete actions to its methods, and it handles the
+          shift/symbol layers, layout-correct UTF-8 append and multi-byte backspace. Key actions report a
+          stable <strong>id</strong> in <Code>ActionEvent::value</Code> — ASCII keys their code point,
+          localized keys (é, ñ, ß) ids above 1000 — so casting the value straight to <Code>char</Code>{' '}
+          corrupts non-ASCII layouts. Insert through <Code>KeyboardEntry</Code> (or{' '}
+          <Code>keyboardKeyText()</Code>) instead.
+        </p>
+      </Callout>
 
       <H2>Visual builder</H2>
       <P>
@@ -218,7 +240,7 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
           [<Code key="f">optionDialog / popup / messagePanel / toast / contextMenu</Code>, 'Overlays: a titled option dialog (caption + multi-line headline + body), a bare popup panel (PopupProps sets size and alignment) with an optional dithered scrim, an empty/error/loading message panel with retry, a static e-paper-safe toast, and a long-press command menu.'],
           [<Code key="g">metricCard / progressBar</Code>, 'Statistics value/label cells and horizontal bar charts (minFill keeps tiny values visible).'],
           [<Code key="h">batteryIndicator</Code>, 'Battery glyph; triangle-built lightning bolt while charging, or an app-supplied icon.'],
-          [<Code key="i">header / gestureBar</Code>, 'Section headers and button-hint bars.'],
+          [<Code key="i">header / gestureBar</Code>, 'Section headers (with an optional leading back button for sub-screen nav chrome — see navHeader) and button-hint bars.'],
           [<Code key="j">coverCarousel</Code>, 'Lays out a prev/center/next cover row (distinct center/side sizing, optional wrap at the edges) with selection chrome and tap/swipe/prev-next routing; returns slots[3] and the app renders cover art into each slot.content rect, so image decoding and frame caching stay app-owned.'],
         ]}
       />

@@ -18,6 +18,8 @@ export default function BoardConfig() {
           ['BoardProfile.orientation', 'Panel mount transform — NO_FLIP / MIRROR_X / MIRROR_Y / ROTATE_180 (applied in hardware by SSD1677).'],
           ['BoardProfile.sdmmc', 'SdmmcPins for 4-bit SDMMC boards; busWidth 0 = use SPI/SdFat.'],
           ['BoardProfile.uiScale', 'Per-device UI scale multiplier (1.0 default; touch boards like Sticky bump it for finger-sized chrome). Read by the app/theme layer.'],
+          ['holdPowerRails()', 'Assert the profile’s power-latch pins (PWR_HOLD / PWR_LOCK). Battery-latched boards (e.g. Sticky) must call this first thing in setup() or they power off when the user releases the button. No-op on boards without a latch.'],
+          ['releaseSdRail()', 'Rescue an SD power rail a previous firmware’s sleep left gpio-held off — required before first display use where SD shares the display SPI bus (an unpowered card clamps the lines). SDCardManager::begin() does it too.'],
           ['hasTouch() / hasPwmFrontlight() / hasAudio()', 'Capability queries for the active board.'],
           ['isDeLink() / isMurphyM3() / isM5StackPaperColor() / isM5PaperV11()', 'Identity queries.'],
           ['LILYGO_T5_PRO_GT911', 'Ready-made GT911 touch config (used by the LilyGo T5 S3 profile).'],

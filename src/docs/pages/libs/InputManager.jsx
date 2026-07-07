@@ -16,6 +16,7 @@ export default function InputManager() {
           ['wasPressed(buttonIndex) / wasReleased(buttonIndex)', 'Edge: press / release since last update.'],
           ['wasAnyPressed() / wasAnyReleased()', 'Any-button edge.'],
           ['getState() / getButtonName(i)', 'Raw button bitmask; human name for a button.'],
+          ['isDebouncePending() → bool', 'True while a raw state change is still inside the debounce window (a change commits after two matching samples). Slow-polling hosts (a sleep-sliced idle loop) should re-poll quickly while this is set, or a press shorter than the poll period is dropped.'],
           ['BTN_BACK, BTN_CONFIRM, BTN_LEFT, BTN_RIGHT, BTN_UP, BTN_DOWN, BTN_POWER', 'Button index constants.'],
         ]}
       />
@@ -34,6 +35,7 @@ export default function InputManager() {
           ['hasTouch()', 'Whether the active board has a touch controller.'],
           ['getTouchPoint() → TouchPoint{ valid, x, y }', 'Current touch point.'],
           ['isTouchPressed()', 'Level: touched now.'],
+          ['isTouchHeldAt(float& nx, float& ny) → bool', 'True while a touch is down, writing the current contact position (no tap-slop gate, so it follows a moving finger) — for drag interactions like sliders. The caller owns any threshold/hysteresis.'],
           ['wasTouchPressed() / wasTouchReleased()', 'Edge: touch down / up.'],
           ['wasTouchActivity() → bool', 'Edge: any touch press or release happened this frame — the touch analogue of wasAnyPressed(), for resetting idle/sleep timers. False on non-touch boards.'],
           ['wasTouchTap(float& nx, float& ny) → bool', 'Edge: a tap gesture released this frame, returning the normalized panel-native touch-down position (not the lift point — the reported centroid drifts 10–20 px as a finger rolls off, so routing to touch-down keeps small targets like steppers accurate). The app maps the coords to its logical frame. False (outputs untouched) if no release this frame or no touch HW.'],

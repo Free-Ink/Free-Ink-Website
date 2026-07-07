@@ -3,6 +3,7 @@
 // its component under ./pages and add one entry here.
 import Overview from './pages/Overview.jsx'
 import Quickstart from './pages/Quickstart.jsx'
+import Sticky from './pages/Sticky.jsx'
 import Installation from './pages/Installation.jsx'
 import Architecture from './pages/Architecture.jsx'
 import BuildComposition from './pages/BuildComposition.jsx'
@@ -48,6 +49,12 @@ export const DOC_GROUPS = [
         title: 'Quickstart',
         description: 'Drive an e-paper panel with FreeInk in a few minutes.',
         Content: Quickstart,
+      },
+      {
+        slug: 'sticky',
+        title: 'Sticky tutorial',
+        description: 'Build a reminder appliance: keyboard, RTC clock over Wi-Fi, buzzer alarm and icons.',
+        Content: Sticky,
       },
       {
         slug: 'installation',
@@ -146,7 +153,7 @@ export const DOC_GROUPS = [
       {
         slug: 'lib-rtc',
         title: 'Rtc',
-        description: 'PCF8563 real-time clock over I²C.',
+        description: 'PCF8563 / DS3231 real-time clock over I²C.',
         Content: Rtc,
       },
       {
