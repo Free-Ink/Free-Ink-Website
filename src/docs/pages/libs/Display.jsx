@@ -59,6 +59,9 @@ export default function Display() {
           ['requestResync(uint8_t settlePasses = 0)', 'X3: one-shot full resync on next update.'],
           ['skipInitialResync()', 'Skip the first-update resync.'],
           ['setFastRefreshCutoffMs(uint16_t ms) / fastRefreshCutoffMs()', 'M5 PaperColor: tune the interrupted-refresh cutoff in ms (0 = driver default). The cut now anchors to the BUSY falling edge — when the drive actually starts — so the timing is deterministic and sweepable on a live panel.'],
+          ['displayBufferAsync(mode = FAST_REFRESH)', 'Non-blocking refresh: push the frame, start the waveform, and return (~25 ms) while the panel refreshes from its own RAM (~0.3–2 s). The framebuffer is free to redraw immediately — so the loop keeps polling input instead of stalling. In single-buffer mode it lazily allocates one shadow buffer as the differential baseline (falls back to blocking if that fails).'],
+          ['refreshBusy() → bool', 'True while an async refresh is still running on the panel.'],
+          ['syncPendingAsync()', 'Block until a pending async refresh completes (no-op when none). Every blocking display call runs it first.'],
         ]}
       />
 

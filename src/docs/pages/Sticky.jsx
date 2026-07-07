@@ -42,7 +42,7 @@ build_flags =
   \${base.build_flags}
   -DFREEINK_DEVICE_STICKY=1
 lib_deps =
-  \${base.lib_deps}   ; BoardConfig, EInkDisplay, InputManager, FreeInkUI, …
+  \${base.lib_deps}   ; BoardConfig, EInkDisplay, InputManager, FreeInkUI
   Rtc=symlink://freeink-sdk/libs/hardware/Rtc
   Buzzer=symlink://freeink-sdk/libs/hardware/Buzzer
   Icons=symlink://freeink-sdk/libs/assets/Icons`}</CodeBlock>
@@ -67,6 +67,14 @@ python freeink-sdk/libs/assets/Icons/tools/gen_icons.py \\
     --svgdir   freeink-sdk/libs/assets/Icons/lucide/icons \\
     --sizes    24 \\
     --out      src/generated_icons.h`}</CodeBlock>
+      <P>
+        The same idea works for text: every <Code>DisplayTarget</Code> font slot defaults to the bundled
+        34px-line Noto Sans, and <Code>gen_font.py</Code> rasterizes any TTF into another slot. The
+        settings screen uses a larger anti-aliased variant for its row labels:
+      </P>
+      <CodeBlock>{`python freeink-sdk/libs/ui/FreeInkUI/tools/gen_font.py \\
+    --ttf NotoSans-Regular.ttf --size 32 --alpha \\
+    --name NotoSansLarge --out src/generated_font_large.h`}</CodeBlock>
 
       <H2>3. Boot and the app shell</H2>
       <P>
@@ -80,7 +88,9 @@ python freeink-sdk/libs/assets/Icons/tools/gen_icons.py \\
         boot loop). Keep an <Code>App*</Code> global, or other global pointer, and construct the target
         and app in <Code>setup()</Code>, after <Code>display.begin()</Code>. <Code>FreeInkApp</Code>{' '}
         sizes its theme to the target's actual font line height, and <Code>setClearColor()</Code> starts
-        every paint from a white canvas — frames don't clear the target on their own.
+        every paint from a white canvas — frames don't clear the target on their own. One{' '}
+        <Code>setTheme()</Code> tweak swaps the default filled buttons for outlined rounded ones
+        app-wide, so no button needs per-call styling later.
       </P>
       <CodeBlock lang="cpp">{`#include <EInkDisplay.h>
 #include <BoardConfig.h>
@@ -93,6 +103,7 @@ python freeink-sdk/libs/assets/Icons/tools/gen_icons.py \\
 #include <WiFi.h>
 #include <time.h>
 #include "generated_icons.h"
+#include "generated_font_large.h"   // 32px Noto Sans for the settings labels
 
 using namespace freeink;
 
@@ -110,6 +121,8 @@ Buzzer       buzzer;
 using App = ui::FreeInkApp<64, 24>;   // 64 interactions/frame, 24 action handlers
 App* app = nullptr;
 
+constexpr ui::FontId kFontLarge = 1;  // DisplayTarget slot for the generated font
+
 static ui::BitmapRef iconRef(const Icon& i) {   // 1-bit mask (bit 1 = transparent)
   return { i.bits, i.w, i.h, ui::BitmapFormat::Mask1, /*progmem=*/true };
 }
@@ -121,11 +134,24 @@ void setup() {
 
   display.begin();  input.begin();  rtc.begin();  buzzer.begin();
 
+  // Poll input on its own task: taps land in a queue (popTouchTap) no matter
+  // how long a render or panel refresh keeps loop() busy — the fix for
+  // dropped keystrokes. loop() must not call input.update() anymore.
+  input.beginAsync(/*taskPriority=*/2, /*pollMs=*/10);
+
   // Now the framebuffer exists — build the UI on top of it.
   static ui::DisplayTarget target(display.getFrameBuffer(), display.getDisplayWidth(),
                                   display.getDisplayHeight(), display.getDisplayWidthBytes());
+  target.setFont(kFontLarge, ui::kNotoSansLargeFont);   // slot 1: settings labels
   static App appInstance(target, target.deviceContext());
   app = &appInstance;
+
+  // One theme tweak: outlined rounded buttons everywhere (nav back button,
+  // footers, action bar). Every button inherits it — no per-call styling.
+  ui::ThemeTokens theme = app->theme();
+  theme.button = ui::outlinedButtonStyles(10);
+  app->setTheme(theme);
+
   app->setClearColor(ui::Color::White);
   app->setScreen(appScreen, &state);
   // ... register the action handlers (section 5)
@@ -149,7 +175,9 @@ void setup() {
         state (shift/symbol layers, UTF-8 append, multi-byte backspace) lives in the SDK's{' '}
         <Code>ui::KeyboardEntry</Code> — <Code>attach()</Code> binds whichever buffer the current screen
         edits. Sub-screens share consistent chrome via <Code>screen.navHeader()</Code>: a top-left back
-        button with a centered title.
+        button, a centered title, and an optional right label — Settings puts the live clock there,
+        matching the home status bar. A three-line wrapper saves repeating the back action and icon on
+        every screen.
       </P>
       <CodeBlock lang="cpp">{`enum : ui::ActionId {
   ActionNew = 1, ActionOpen, ActionDelete, ActionDismiss,
@@ -159,12 +187,15 @@ void setup() {
 };
 enum ScreenId { ScreenHome, ScreenNew, ScreenSettings, ScreenTz, ScreenWifiScan, ScreenWifiPass };
 
+constexpr uint8_t kMaxReminders = 12;
+constexpr uint8_t kMaxNets      = 12;
+
 struct Reminder { char text[40]; uint16_t dueMin; bool fired; };
 struct AppState {
   ScreenId      screen = ScreenHome;
   Rtc::DateTime now{};
   bool          haveTime = false;
-  Reminder      items[12];
+  Reminder      items[kMaxReminders];
   uint8_t       count = 0;
   int16_t       selected = -1;
   int16_t       dialogFor = -1;      // reminder index in the delete dialog
@@ -173,7 +204,7 @@ struct AppState {
   char          draft[40] = "";
   int16_t       leadMin = 15;
   int16_t       tzMin = 0;           // UTC offset in minutes
-  char          nets[12][33];  uint8_t netCount = 0;
+  char          nets[kMaxNets][33];  uint8_t netCount = 0;
   bool          scanPending = false; // scan runs after "Scanning..." is on the panel
   char          ssid[33] = "";
   char          pass[64] = "";
@@ -191,20 +222,19 @@ static void gotoScreen(AppState& s, ScreenId id) {
   }
 }
 
-static void navHeader(App::ScreenType& screen, const char* title) {
-  ui::HeaderProps props;
-  props.title = title;
-  props.centered = true;
-  props.borderEdges = ui::EdgeBottom;
-  props.leadingIcon = iconRef(icon_arrow_left_24);
-  props.leadingAction = ActionBack;
-  props.leadingStyles = ui::outlinedButtonStyles(10);
-  props.leadingRadius = 8;
-  screen.header(props);
+// Sub-screen chrome: back button + centered title + optional right label,
+// without the SDK's default bottom rule (borderEdges is HeaderProps' divider
+// setting: EdgeBottom draws it, EdgesNone drops it). An action/enabled pair
+// puts a trailing button (Save) on the right edge instead of the label.
+static void navHeader(App::ScreenType& screen, const char* title, const char* rightLabel = nullptr,
+                      const char* actionLabel = nullptr, ui::ActionId action = ui::NO_ACTION,
+                      bool actionEnabled = true) {
+  screen.navHeader(title, ActionBack, iconRef(icon_arrow_left_24), rightLabel, ui::EdgesNone,
+                   actionLabel, action, actionEnabled);
 }`}</CodeBlock>
       <P>
         The render function builds whichever screen is active. Two representative screens — the keyboard
-        entry (header, keyboard, save row, lead-time stepper, text area) and home (status-bar clock,
+        entry (header with a trailing Save, keyboard, lead-time stepper, text area) and home (status-bar clock,
         the reminder list with due times and countdowns, a bottom action bar, and the delete dialog as a
         modal overlay):
       </P>
@@ -214,18 +244,14 @@ static void navHeader(App::ScreenType& screen, const char* title) {
   const bool modal = s.dialogFor >= 0;
 
   if (s.screen == ScreenNew) {
-    navHeader(screen, "New reminder");
+    // Save lives in the header's trailing slot, mirroring the back button.
+    navHeader(screen, "New reminder", nullptr, "Save", ActionSave, !s.kb.empty());
     ui::QwertyKeyboardProps keys;
     keys.keyAction = ActionKey;  keys.shiftAction = ActionShift;
     keys.modeAction = ActionMode;
     keys.deleteAction = ActionBackspace;  keys.okAction = ActionSave;
     ui::applyEntry(keys, s.kb);           // shift/symbol layers from KeyboardEntry
     screen.qwertyKeyboard(keys, 260, ui::LayoutAnchor::Bottom);
-
-    const ui::FooterAction footer[] = {
-      { .label = "Save", .action = ActionSave, .enabled = !s.kb.empty() },
-    };
-    screen.footer(footer, 1);
 
     char leadStr[12];
     std::snprintf(leadStr, sizeof leadStr, "%d min", s.leadMin);
@@ -244,11 +270,17 @@ static void navHeader(App::ScreenType& screen, const char* title) {
     return;
   }
 
-  // ... ScreenSettings: settingRows (Wi-Fi & clock, 12/24h clock toggle,
-  //     clock adjuster, buzzer toggleRow) — see the repo for the full file.
-  // ... ScreenTz: live clock + stacked +1h/+15min/-15min/-1h buttons.
+  // ... ScreenSettings: navHeader(screen, "Settings", clock); roomy setting
+  //     rows — large-font labels (font slot 1) and taller rows via
+  //     screen.settingRow(props, rowH); the SDK's slot layout aligns the icon
+  //     and the right-side value/switch to the label's title band, so the
+  //     subtitle spans the full width beneath. Toggle rows use hitToggleOnly
+  //     (a deliberate tap on the switch toggles, not anywhere on the row).
+  // ... ScreenTz: large live clock between -/+ stepper buttons, 15 min per tap.
   // ... ScreenWifiScan: network list, or screen.centeredText("Scanning...").
-  // ... ScreenWifiPass: keyboard bound to the password buffer.
+  // ... ScreenWifiPass: keyboard bound to the password buffer; Connect in the
+  //     header's trailing slot, like Save (enabled even with an empty
+  //     password — open networks).
 
   // ---- Home ----------------------------------------------------------------
   char clock[12];
@@ -268,23 +300,25 @@ static void navHeader(App::ScreenType& screen, const char* title) {
                       band.height, band.height};
     ui::ButtonProps gear;
     gear.icon = iconRef(icon_settings_24);  gear.action = ActionOpenSettings;
-    gear.styles = ui::outlinedButtonStyles(10);  gear.radius = 10;
-    gear.minTouchSize = theme.minTouchSize;
-    ui::button(screen.frame(), gearRect, gear);
+    screen.button(gear, gearRect);   // themed at an explicit rect — outlined via setTheme()
     // ... "New reminder" button fills the bar up to the gear (same pattern).
   }
 
+  if (s.count == 0) {
+    screen.centeredText("Nothing scheduled");
+    return;
+  }
+
   // The list, with due time and countdown per row.
-  static char labels[12][44], values[12][12], subs[12][20];
+  static char values[kMaxReminders][12], subs[kMaxReminders][20];
   const uint16_t nowMin = s.now.hour * 60 + s.now.minute;
-  ui::ListItem rows[12];
+  ui::ListItem rows[kMaxReminders];
   for (uint8_t i = 0; i < s.count; ++i) {
-    std::snprintf(labels[i], sizeof labels[i], "%s", s.items[i].text);
     formatMin(s.use24h, s.items[i].dueMin, values[i], sizeof values[i]);
     if (s.items[i].fired) std::snprintf(subs[i], sizeof subs[i], "done");
     else std::snprintf(subs[i], sizeof subs[i], "in %u min",
                        (s.items[i].dueMin + 1440 - nowMin) % 1440);
-    rows[i].label = labels[i];  rows[i].subtitle = subs[i];  rows[i].value = values[i];
+    rows[i].label = s.items[i].text;  rows[i].subtitle = subs[i];  rows[i].value = values[i];
     rows[i].actionValue = i;
     rows[i].icon = iconRef(s.items[i].fired ? icon_bell_24 : icon_clock_24);
   }
@@ -331,7 +365,8 @@ static void navHeader(App::ScreenType& screen, const char* title) {
     gotoScreen(s, ScreenNew); s.draft[0] = 0;
     s.kb.attach(s.draft, sizeof s.draft, /*startShifted=*/true); }, &state);
 
-  // Clock adjuster: +-15min/+-1h buttons, wrapping at the UTC-12..UTC+14 ends.
+  // Clock adjuster: -/+ stepper buttons send 15-minute deltas, wrapping at the
+  // UTC-12..UTC+14 ends.
   app->on(ActionTz, [](const ui::ActionEvent& e, void* u){
     auto& s = *static_cast<AppState*>(u);
     int16_t next = s.tzMin + e.value;
@@ -349,8 +384,6 @@ static void navHeader(App::ScreenType& screen, const char* title) {
     gotoScreen(s, ScreenWifiScan); }, &state);
 
 void loop() {
-  input.update();
-
   static uint32_t lastTick = 0;
   static uint16_t lastMinute = 0xFFFF;
   if (millis() - lastTick > 1000) {                 // read the RTC ~1 Hz
@@ -369,60 +402,61 @@ void loop() {
     }
   }
 
-  ui::InputSnapshot snap = ui::snapshotFrom(input, app->device());
+  // Taps are sampled on the input task (beginAsync in setup) and queued —
+  // nothing is lost while this thread renders or the panel refreshes. route()
+  // dispatches each tap against the last rendered frame without drawing
+  // (microseconds), so a fast typing burst costs one repaint, not one 200ms
+  // render per key.
+  float nx, ny;
+  while (input.popTouchTap(nx, ny)) {
+    ui::InputSnapshot tap;
+    const ui::Point p = ui::touchToLogical(app->device(), nx, ny);
+    tap.touchReleased = true;
+    tap.touchX = p.x;
+    tap.touchY = p.y;
+    app->route(tap);
+  }
 
-  // Render on demand, not every loop: a full repaint costs real CPU time (the
-  // keyboard is ~40 per-pixel rounded fills), and rendering unconditionally
-  // starves the touch poll. Idle loops just poll input at full cadence.
-  const bool inputActive = snap.touchPressed || snap.touchReleased || snap.confirm ||
-                           snap.back || snap.focusNext || snap.focusPrev ||
-                           snap.prev || snap.next;
+  static ui::RefreshHint pending = ui::RefreshHint::None;
+  if (app->invalidated()) {
+    app->render();
+    const ui::RefreshHint hint = app->lastRenderRefreshHint();
+    if (static_cast<uint8_t>(hint) > static_cast<uint8_t>(pending)) pending = hint;
+  }
 
-  // Keystroke coalescing: a panel refresh blocks ~half a second and any tap
-  // completed inside it is lost, so refreshing per keystroke drops letters
-  // under fast typing. While text-entry actions keep arriving, keep capturing
-  // taps and hold the refresh; push one refresh when the typing pauses.
-  static uint32_t typeHoldUntil = 0;
-  const bool holdActive = typeHoldUntil != 0 && millis() < typeHoldUntil;
+  // Push the newest frame whenever the panel is idle. Under fast typing the
+  // refreshes chain back-to-back — each one shows every keystroke that landed
+  // while the previous refresh ran (the ~0.6s fast waveform is the pace) —
+  // and stop when nothing is dirty.
+  if (pending != ui::RefreshHint::None && !display.refreshBusy()) {
+    ui::presentAsync(display, pending);
+    pending = ui::RefreshHint::None;
 
-  if (inputActive || (app->invalidated() && !holdActive)) {
-    app->render(snap);
-
-    const ui::ActionEvent ev = app->lastEvent();
-    const bool kbScreen = state.screen == ScreenNew || state.screen == ScreenWifiPass;
-    if (ev && kbScreen && (ev.action == ActionKey || ev.action == ActionBackspace ||
-                           ev.action == ActionShift || ev.action == ActionMode)) {
-      typeHoldUntil = millis() + 250;   // batch this burst into one refresh
-    } else if (ev) {
-      typeHoldUntil = 0;                // any other action refreshes immediately
-    }
-
-    if (typeHoldUntil == 0 || millis() >= typeHoldUntil) {
-      typeHoldUntil = 0;
-      ui::present(display, app->lastRenderRefreshHint());
-
-      // A frame was just pushed; if it was the "Scanning..." screen, run the
-      // blocking Wi-Fi scan now that the user can see why we're busy.
-      if (state.scanPending && state.screen == ScreenWifiScan &&
-          app->lastRenderRefreshHint() != ui::RefreshHint::None) {
-        state.scanPending = false;
-        scanNets(state);
-        app->invalidate(ui::RefreshHint::Fast);
-      }
+    // The "Scanning..." frame is on its way to the panel; run the blocking
+    // Wi-Fi scan while the refresh runs.
+    if (state.scanPending && state.screen == ScreenWifiScan) {
+      state.scanPending = false;
+      scanNets(state);
+      app->invalidate(ui::RefreshHint::Fast);
     }
   }
   delay(10);
 }`}</CodeBlock>
 
-      <Callout tone="warn" title="Refresh only on change — and coalesce typing">
+      <Callout tone="warn" title="Never block the loop — on the panel or on input">
         <p>
-          <Code>FreeInkApp</Code> reports whether the frame changed via <Code>RefreshHint</Code> and{' '}
-          <Code>ui::present()</Code> pushes the panel only when it did. Screen changes use{' '}
-          <Code>invalidateTransition()</Code> — fast partial refreshes with a periodic full to clear
-          ghosting — and tap feedback is free: the tapped element paints its focused (gray) style in the
-          same refresh that shows the tap's result. Never render or refresh every loop, and never
-          refresh per keystroke: a refresh is a ~half-second blind window for touch, so batch typing
-          bursts into one refresh as above or fast typing drops letters.
+          Two things make e-paper typing feel broken: blocking on the panel and sampling input on the
+          render thread. A blocking <Code>ui::present()</Code> spins on the BUSY pin for the whole
+          waveform (~0.3–2 s), and a render pass costs ~200 ms — during either, taps vanish.{' '}
+          <Code>InputManager::beginAsync()</Code> samples touch on its own task and queues every
+          completed tap (<Code>popTouchTap</Code>), so nothing is ever lost;{' '}
+          <Code>app-&gt;route()</Code> dispatches queued taps against the last rendered frame without
+          drawing, so a typing burst costs one repaint. <Code>ui::presentAsync()</Code> starts the
+          refresh and returns in ~25 ms — the panel refreshes from its own RAM copy; poll{' '}
+          <Code>display.refreshBusy()</Code> and push the newest frame when idle. Refresh only on
+          change (accumulate the strongest <Code>RefreshHint</Code>), and use{' '}
+          <Code>invalidateTransition()</Code> for screen changes (fast partials with a periodic full to
+          clear ghosting).
         </p>
       </Callout>
 

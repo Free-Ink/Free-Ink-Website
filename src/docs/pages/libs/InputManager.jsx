@@ -59,6 +59,7 @@ export default function InputManager() {
         rows={[
           ['beginAsync(taskPriority = 2, pollMs = 15, queueLen = 32)', 'Spawn the polling task; it latches each press (a BTN_* index) into an internal queue. No-op if already started.'],
           ['popPress(uint8_t& button) → bool', 'Pop the next queued button index into button. False when nothing is pending (or async polling was never started).'],
+          ['popTouchTap(float& nx, float& ny) → bool', 'Pop the next queued touch tap (async polling latches taps too), returning its normalized panel-native position. So a tap that lands mid-refresh survives and drains here — the touch analogue of popPress.'],
         ]}
       />
 

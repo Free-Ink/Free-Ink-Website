@@ -146,8 +146,13 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
       <P>
         It also ships the chrome and helpers multi-screen apps otherwise hand-roll:{' '}
         <Code>screen.navHeader(title, backAction, backIcon)</Code> draws a sub-screen's back button +
-        centered title + rule, and <Code>screen.centeredText("Scanning…")</Code> centers a one-line
-        message for empty/loading states. Because frames <strong>don't clear the target</strong> on
+        centered title + rule — with an optional right-aligned <Code>rightLabel</Code> (a live clock or
+        count), a trailing action <strong>button</strong> (<Code>trailingLabel</Code> /{' '}
+        <Code>trailingAction</Code>, e.g. a "Save") in its place, and a <Code>borderEdges</Code> flag to
+        drop the divider. <Code>screen.centeredText("Scanning…")</Code> centers a one-line message for
+        empty/loading states, <Code>takeRow(anchor, height)</Code> reserves a row band whose inter-row
+        gap scales with the height, and a <Code>button(props, rect)</Code> overload places a themed
+        button at an explicit rect for layouts the row cadence can't express. Because frames <strong>don't clear the target</strong> on
         their own, call <Code>app.setClearColor(ui::Color::White)</Code> once so each paint starts from a
         white canvas. For snappy navigation, <Code>app.invalidateTransition()</Code> requests a fast
         partial refresh on a screen change and promotes to a full one every Nth transition
@@ -282,8 +287,10 @@ freeink::ui::list(ui, rect, props);`}</CodeBlock>
         first-class: <Code>BoxStyle.radius</Code> applies to fills and borders, <Code>tabBar</Code>{' '}
         renders filled pill tabs, and <Code>ListProps.hugContents</Code> shrinks selection pills to the
         label width — no custom drawing code. Defaults are <strong>border-free</strong> for a cleaner
-        1-bit look, and <Code>plainStyles(foreground = black)</Code> is a one-call <Code>StyleSet</Code>{' '}
-        for unstyled text and elements.
+        1-bit look; <Code>plainStyles(foreground = black)</Code> is a one-call <Code>StyleSet</Code> for
+        unstyled text, and <Code>outlinedButtonStyles(radius)</Code> gives outlined rounded buttons —
+        drop either into <Code>theme.button</Code> via <Code>app.setTheme()</Code> to restyle every
+        button at once.
       </P>
       <P>
         Theme ownership is split deliberately: <strong>the SDK owns the in-memory types</strong>{' '}
