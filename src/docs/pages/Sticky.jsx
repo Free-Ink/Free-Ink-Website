@@ -258,17 +258,21 @@ static void navHeader(App::ScreenType& screen, const char* title) {
   screen.status(sb);
 
   // Bottom action bar: left-aligned New button + square settings button.
+  // While the delete dialog is up the bar isn't drawn at all — a dithered
+  // "dim" can't hide 1-bit content, so ghost buttons under a modal read as a
+  // bug. The band is still consumed so the list doesn't shift.
   ui::Rect band = screen.takeBottom(static_cast<int16_t>(theme.rowHeight + 16), theme.spaceSm);
-  band = band.inset({4, 12, 4, 12});
-  ui::Rect gearRect{static_cast<int16_t>(band.right() - band.height), band.y,
-                    band.height, band.height};
-  ui::ButtonProps gear;
-  gear.icon = iconRef(icon_settings_24);  gear.action = ActionOpenSettings;
-  gear.enabled = !modal;
-  gear.styles = ui::outlinedButtonStyles(10);  gear.radius = 10;
-  gear.minTouchSize = theme.minTouchSize;
-  ui::button(screen.frame(), gearRect, gear);
-  // ... "New reminder" button fills the bar up to the gear (same pattern).
+  if (!modal) {
+    band = band.inset({4, 12, 4, 12});
+    ui::Rect gearRect{static_cast<int16_t>(band.right() - band.height), band.y,
+                      band.height, band.height};
+    ui::ButtonProps gear;
+    gear.icon = iconRef(icon_settings_24);  gear.action = ActionOpenSettings;
+    gear.styles = ui::outlinedButtonStyles(10);  gear.radius = 10;
+    gear.minTouchSize = theme.minTouchSize;
+    ui::button(screen.frame(), gearRect, gear);
+    // ... "New reminder" button fills the bar up to the gear (same pattern).
+  }
 
   // The list, with due time and countdown per row.
   static char labels[12][44], values[12][12], subs[12][20];
@@ -373,29 +377,52 @@ void loop() {
   const bool inputActive = snap.touchPressed || snap.touchReleased || snap.confirm ||
                            snap.back || snap.focusNext || snap.focusPrev ||
                            snap.prev || snap.next;
-  if (inputActive || app->invalidated()) {
-    app->render(snap);
-    ui::present(display, app->lastRenderRefreshHint());
 
-    // A frame was just pushed; if it was the "Scanning..." screen, run the
-    // blocking Wi-Fi scan now that the user can see why we're busy.
-    if (state.scanPending && state.screen == ScreenWifiScan &&
-        app->lastRenderRefreshHint() != ui::RefreshHint::None) {
-      state.scanPending = false;
-      scanNets(state);
-      app->invalidate(ui::RefreshHint::Fast);
+  // Keystroke coalescing: a panel refresh blocks ~half a second and any tap
+  // completed inside it is lost, so refreshing per keystroke drops letters
+  // under fast typing. While text-entry actions keep arriving, keep capturing
+  // taps and hold the refresh; push one refresh when the typing pauses.
+  static uint32_t typeHoldUntil = 0;
+  const bool holdActive = typeHoldUntil != 0 && millis() < typeHoldUntil;
+
+  if (inputActive || (app->invalidated() && !holdActive)) {
+    app->render(snap);
+
+    const ui::ActionEvent ev = app->lastEvent();
+    const bool kbScreen = state.screen == ScreenNew || state.screen == ScreenWifiPass;
+    if (ev && kbScreen && (ev.action == ActionKey || ev.action == ActionBackspace ||
+                           ev.action == ActionShift || ev.action == ActionMode)) {
+      typeHoldUntil = millis() + 250;   // batch this burst into one refresh
+    } else if (ev) {
+      typeHoldUntil = 0;                // any other action refreshes immediately
+    }
+
+    if (typeHoldUntil == 0 || millis() >= typeHoldUntil) {
+      typeHoldUntil = 0;
+      ui::present(display, app->lastRenderRefreshHint());
+
+      // A frame was just pushed; if it was the "Scanning..." screen, run the
+      // blocking Wi-Fi scan now that the user can see why we're busy.
+      if (state.scanPending && state.screen == ScreenWifiScan &&
+          app->lastRenderRefreshHint() != ui::RefreshHint::None) {
+        state.scanPending = false;
+        scanNets(state);
+        app->invalidate(ui::RefreshHint::Fast);
+      }
     }
   }
   delay(10);
 }`}</CodeBlock>
 
-      <Callout tone="warn" title="Refresh only on change">
+      <Callout tone="warn" title="Refresh only on change — and coalesce typing">
         <p>
           <Code>FreeInkApp</Code> reports whether the frame changed via <Code>RefreshHint</Code> and{' '}
           <Code>ui::present()</Code> pushes the panel only when it did. Screen changes use{' '}
           <Code>invalidateTransition()</Code> — fast partial refreshes with a periodic full to clear
           ghosting — and tap feedback is free: the tapped element paints its focused (gray) style in the
-          same refresh that shows the tap's result. Never refresh every loop.
+          same refresh that shows the tap's result. Never render or refresh every loop, and never
+          refresh per keystroke: a refresh is a ~half-second blind window for touch, so batch typing
+          bursts into one refresh as above or fast typing drops letters.
         </p>
       </Callout>
 
