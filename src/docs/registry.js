@@ -53,8 +53,8 @@ export const DOC_GROUPS = [
       },
       {
         slug: 'sticky',
-        title: 'Sticky tutorial',
-        description: 'Build a reminder appliance: keyboard, RTC clock over Wi-Fi, buzzer alarm and icons.',
+        title: 'Sticky reader starter',
+        description: 'Build a minimal EPUB reader: All Books list, paged reader, and edge gestures.',
         Content: Sticky,
       },
       {
