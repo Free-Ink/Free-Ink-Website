@@ -490,9 +490,14 @@ void drawReaderChromeOverlay() {
 
       <H2>6. Actions, setup, and render loop</H2>
       <P>
-        Action handlers only mutate state and invalidate or transition screens. The render loop lets
-        FreeInkApp draw the UI frame first; the reader page is then composited into the same framebuffer
-        below the chrome before the async panel refresh starts.
+        Action handlers only mutate state and invalidate or transition screens. For the reader,
+        <Code>{'app->render()'}</Code> registers the FreeInkUI input zones, then the app clears the visual
+        framebuffer, renders the cached EPUB page, draws reader chrome over it, and starts the async panel
+        refresh.
+      </P>
+      <P>
+        The explicit <Code>display.clearScreen(0xFF)</Code> in the reader branch matters:
+        <Code>book::PageRenderer</Code> draws ink but does not clear old glyph pixels.
       </P>
       <CodeBlock lang="cpp">{`void onOpenBook(const ui::ActionEvent& e, void*) {
   selectedBook = e.value;
@@ -595,6 +600,10 @@ void loop() {
   if (app->invalidated()) {
     app->render();
     if (screen == Screen::Reader && session.open) {
+      // PageRenderer only inks the glyph/image pixels present on this page; it
+      // does not erase pixels from the previous page. Start every reader frame
+      // from white before compositing the cached page.
+      display.clearScreen(0xFF);
       book::FrameTarget frame{
         display.getFrameBuffer(),
         static_cast<int16_t>(display.getDisplayWidth()),
