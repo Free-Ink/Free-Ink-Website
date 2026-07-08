@@ -32,6 +32,7 @@ import XteinkDetect from './pages/libs/XteinkDetect.jsx'
 import FreeInkUI from './pages/libs/FreeInkUI.jsx'
 import Components from './pages/libs/Components.jsx'
 import Icons from './pages/libs/Icons.jsx'
+import FreeInkBook from './pages/libs/FreeInkBook.jsx'
 import RepositoryLayout from './pages/RepositoryLayout.jsx'
 
 export const DOC_GROUPS = [
@@ -221,6 +222,12 @@ export const DOC_GROUPS = [
         title: 'Icons',
         description: 'freeink::Icon format, vendored Lucide set, and a generator.',
         Content: Icons,
+      },
+      {
+        slug: 'lib-book',
+        title: 'FreeInkBook',
+        description: 'A complete EPUB reading engine: layout, cache, fonts, international text.',
+        Content: FreeInkBook,
       },
     ],
   },

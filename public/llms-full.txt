@@ -811,7 +811,7 @@ The SDK is a set of self-contained libraries, each its own PlatformIO dependency
 
 Signatures track the SDK headers under `libs/`. For exact types and defaults, read the header for each library — see [Repository layout](https://freeink.org/docs/repository-layout).
 
-> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 / DS3231 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[RecoveryBootBoot-time OTA recovery escape hatch (button combo).](https://freeink.org/docs/lib-recovery)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BleKeyboardHostBLE HID host for keyboards, page turners and remotes.](https://freeink.org/docs/lib-ble)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[XteinkDetectRuntime X3/X4 detection via I²C fingerprinting.](https://freeink.org/docs/lib-detect)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Component galleryPrebuilt components, previewed from the real 1-bit renders.](https://freeink.org/docs/lib-ui-components)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)
+> [EInkDisplayThe facade: framebuffer, geometry, refresh modes and grayscale.](https://freeink.org/docs/lib-display)[InputManagerButtons plus capacitive touch (CHSC6x, GT911).](https://freeink.org/docs/lib-input)[BatteryMonitorADC, BQ27220 I²C fuel gauge, or M5PM1 PMIC — one API.](https://freeink.org/docs/lib-battery)[SDCardManagerSdFat-over-SPI or native 4-bit SDMMC, one API.](https://freeink.org/docs/lib-sd)[FrontlightManagerPWM frontlight with warm/cool control.](https://freeink.org/docs/lib-frontlight)[AudioManagerWAV playback through an I2S codec (ES8388 / ES8311).](https://freeink.org/docs/lib-audio)[LedManagerAddressable RGB LEDs: color, brightness, non-blocking flashes.](https://freeink.org/docs/lib-led)[BuzzerLEDC PWM square-wave tones on a passive buzzer.](https://freeink.org/docs/lib-buzzer)[MicrophonePDM microphone capture to 16-bit PCM.](https://freeink.org/docs/lib-mic)[RtcPCF8563 / DS3231 real-time clock over I²C.](https://freeink.org/docs/lib-rtc)[EnvironmentSensorSHT40 temperature + humidity over I²C.](https://freeink.org/docs/lib-env)[ImuLSM6DS3TR-C 6-axis accelerometer + gyroscope.](https://freeink.org/docs/lib-imu)[PowerManagerPortable deep-sleep wake-on-power-button.](https://freeink.org/docs/lib-power)[RecoveryBootBoot-time OTA recovery escape hatch (button combo).](https://freeink.org/docs/lib-recovery)[SecureNetOpt-in wolfSSL TLS 1.3 transport.](https://freeink.org/docs/networking)[BleKeyboardHostBLE HID host for keyboards, page turners and remotes.](https://freeink.org/docs/lib-ble)[BoardConfigBoard profiles and the runtime-active device.](https://freeink.org/docs/lib-board)[XteinkDetectRuntime X3/X4 detection via I²C fingerprinting.](https://freeink.org/docs/lib-detect)[FreeInkUIOptional immediate-mode UI framework for e-paper.](https://freeink.org/docs/lib-ui)[Component galleryPrebuilt components, previewed from the real 1-bit renders.](https://freeink.org/docs/lib-ui-components)[Iconsfreeink::Icon format, vendored Lucide set, and a generator.](https://freeink.org/docs/lib-icons)[FreeInkBookA complete EPUB reading engine — layout, cache, fonts, i18n text.](https://freeink.org/docs/lib-book)
 
 ---
 
@@ -1636,7 +1636,7 @@ The app owns persistent state — selected row, focused index, scroll offset, cl
 
 ## Rendering
 
-The built-in `DisplayTarget` (`FreeInkUIDisplayTarget.h`) is a self-contained `DrawTarget` that writes directly into a 1-bpp framebuffer — the same layout `FreeInkDisplay::getFrameBuffer()` hands back — with **no external graphics library**, so the exact same render runs in firmware and in host unit tests. It draws in **logical coordinates and rotates each pixel into the panel's native framebuffer** at draw time, so you lay out a screen in the orientation you intend with no separate rotated buffer: the four-argument constructor takes the panel's native dimensions and defaults a landscape-native panel (the X3/X4) to `Portrait` so a held-tall reader reads upright; pass an explicit `Orientation` to the five-argument overload to override, and `deviceContext()` carries that orientation so touch mapping agrees. It bundles a **Noto Sans bitmap font** across eight font slots; point a slot (or all of them) at your own `BitmapFont` with `setFont()`, generated from any TTF/OTF by `tools/gen_font.py` (1-bpp, or multi-bpp for anti-aliased glyphs). On a 1-bit panel the four UI grays (`Black` / `DarkGray` / `LightGray` / `White`) are reproduced with an ordered Bayer dither.
+The built-in `DisplayTarget` (`FreeInkUIDisplayTarget.h`) is a self-contained `DrawTarget` that writes directly into a 1-bpp framebuffer — the same layout `FreeInkDisplay::getFrameBuffer()` hands back — with **no external graphics library**, so the exact same render runs in firmware and in host unit tests. It draws in **logical coordinates and rotates each pixel into the panel's native framebuffer** at draw time, so you lay out a screen in the orientation you intend with no separate rotated buffer: the four-argument constructor takes the panel's native dimensions and defaults a landscape-native panel (the X3/X4) to `Portrait` so a held-tall reader reads upright; pass an explicit `Orientation` to the five-argument overload to override, and `deviceContext()` carries that orientation so touch mapping agrees. It bundles a **Noto Sans bitmap font** across eight font slots; point a slot (or all of them) at your own `BitmapFont` with `setFont()`, generated from any TTF/OTF by `tools/gen_font.py` (1-bpp, or multi-bpp for anti-aliased glyphs). A glyph the bitmap font is missing (Hangul, CJK book titles) can fall back to a TrueType face via the `TtfGlyphSource` bridge (`FreeInkUIBookFont.h`, shared with [FreeInkBook](https://freeink.org/docs/lib-book)). On a 1-bit panel the four UI grays (`Black` / `DarkGray` / `LightGray` / `White`) are reproduced with an ordered Bayer dither.
 
 Bridging to an app's own drawing stack is optional: the header-only `GfxRendererTarget` adapter (below) compiles only where a CrossPoint `GfxRenderer` is on the include path, for firmwares that already own a text/bidi pipeline. New apps just use `DisplayTarget`.
 
@@ -1712,7 +1712,7 @@ A set of immediate-mode components, deliberately not tied to any application's s
 | --- | --- |
 | `button` | Themed, state-styled, any input source via inputMask. |
 | `settingRow / toggleRow / stepperRow / radioGroup` | Settings-screen rows: label + value, an on/off switch, a −/+ stepper (drawn as centered strokes), and a single-choice group. |
-| `checkbox / slider / dropdown` | A label + checkable box, a continuous value slider (dithered track + knob; stepperRow covers discrete steps), and a dropdown that opens an app-owned selection. |
+| `checkbox / slider / dropdown` | A label + checkable box, a continuous value slider (dithered track + knob; stepperRow covers discrete steps), and a dropdown that opens an app-owned selection (optionally a two-line settingRow layout with the current selection as a subtitle). |
 | `table` | A rows × columns cell grid with grid lines, an optional header row and per-cell styles. |
 | `statusBar` | Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay. |
 | `tabBar` | Pill or underline-style tabs with an optional divider, per-tab icons and a disabled state. |
@@ -1927,6 +1927,109 @@ Lucide is vendored as a **git submodule** at `libs/assets/Icons/lucide` (run `gi
 
 ---
 
+# FreeInkBook
+
+> A complete EPUB reading engine: layout, cache, fonts, international text.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-book
+
+A complete **EPUB reading engine** (`libs/book/FreeInkBook`): it turns an EPUB on external storage into typeset, cached, tappable pages on an e-paper panel — container parsing, CSS, layout, pagination, fonts, images and links. Freestanding C++17 with no Arduino or ESP-IDF dependency; every byte of working memory is caller-supplied, and the whole pipeline runs (and is regression-tested) on a desktop host.
+
+## The four rules
+
+Everything follows from four rules, each enforced by host tests rather than convention:
+
+- **Never a DOM.** Chapters parse as a stream of SAX events feeding a layout state machine, so RAM is O(paragraph + page) — layout peak memory is byte-identical between a 1 KB chapter and a 19,000-page omnibus.
+- **Arenas only.** All memory comes from caller-sized bump allocators that reset wholesale at book/chapter/page boundaries. No `free()`, so no fragmentation; exhaustion returns a status, never aborts.
+- **Layout once, render many.** Pagination runs once per (book, settings) generation and serializes compact page records. A page turn is one small read + a glyph blit — no ZIP, no XML, no layout, ~2 KB of scratch.
+- **Host-testable end to end.** Test binaries cover container, layout, cache and fonts — including CI-asserted memory ceilings and O(1) proofs.
+
+## Pipeline
+
+| Stage | What it does |
+| --- | --- |
+| Container | ZIP catalog + streaming inflate; OPF metadata / manifest / spine; nav + NCX TOC; DRM detection. |
+| CSS | A tolerant subset cascade: element / .class selectors, ~15 properties, inline style="", chapter <style> blocks. |
+| Layout | SAX → block flow → UAX #14 line breaking → two-phase paragraph placement → page records. The same engine lays out .txt via layoutPlainText(). |
+| Cache | FIBP page records: generation hash, torn-write detection, char anchors, id-anchor table, per-chapter totals. |
+| Fonts | A RenderFont interface; an stb_truetype engine (kerning, ligatures, AA); a style-aware FontChain. |
+| Render | Page → framebuffer compositor (mono dithered / sharp / Gray8, 4 rotations); streaming image decode with box-filter + Floyd–Steinberg. |
+
+## Quick start
+
+The caller supplies storage adapters and arenas; the engine never touches a filesystem directly. Layout runs once into a cache, then pages read back forever:
+
+```cpp
+using namespace freeink::book;
+
+MyBookSource   source;   // BookSource:   readAt() / size() over the .epub
+MyCacheStorage cache;    // CacheStorage: read + streaming-write of cache files
+
+Arena bookArena(bookBuf, 512 * 1024);   // retained while the book is open
+Arena scratch(scratchBuf, 512 * 1024);  // transient; released per call
+
+Book book;
+book.open(source, bookArena, scratch);   // ZIP catalog, OPF, TOC
+
+TtfFont serif;  serif.init(ttfBytes, ttfLen, glyphArena);
+FontChain fonts; fonts.add(&serif);      // + bold/italic/CJK faces…
+
+LayoutParams params;                     // every reader setting in one struct
+params.pageWidth = 480;  params.pageHeight = 800;
+params.baseSizePx = 18;  params.font = &fonts;
+params.defaultAlign = TextAlign::Justify;
+
+// Paginate into the cache once per generation, then render any page.
+Page page{};
+reader.readPage(pageIndex, scratch, &page);
+FrameTarget frame{fb, panelW, panelH, panelWBytes,
+                  FrameFormat::Mono1Dithered, FrameRotation::Portrait};
+PageRenderer::render(page, fonts, source, book.zip(), scratch, frame);
+```
+
+## Typography
+
+The engine is script-aware, not just Latin. Line breaking is full Unicode **UAX #14** (correct break opportunities for every script, including CJK); justification distributes spare space across word gaps (Latin), inter-character gaps (spaceless CJK) or a mix, ending exactly at the margin without ever tearing words apart.
+
+- **CJK:** kinsoku via `language = "ja"` / `"ja-strict"`, Korean word-break via `"ko-keep-all"`, JLREQ full-width-punctuation compression, and the quarter-em CJK↔Latin gap (Japanese/Chinese; Korean attaches particles like "TV를" directly).
+- **Bidi / RTL** (UAX #9): Hebrew and Arabic — including embedded Latin words and numbers — are classified, level-ordered and bracket-mirrored, with glyphs stored in visual order so the renderer stays script-agnostic. RTL paragraphs mirror alignment and skip indent.
+- **Arabic shaping:** contextual joining forms (isolated / initial / medial / final, lam-alef fused) baked in as Presentation Forms (needs a face covering U+FB50–FEFF; guarded per glyph by `BookFont::covers()`).
+- **Hyphenation:** Liang/TeX patterns compiled by `tools/hyphc.py` (US English ships pre-generated); UTF-8 aware, with zero-width soft hyphens.
+- **Styles:** per-run sizes (headings, `small`, real sub/sup baseline shifts), bold/italic via real or synthetic faces, underline, kerning-aware measurement, and **ligatures** (fi fl ff… baked into page records, so rendering needs no shaping).
+- **Focus reading** (`LayoutParams.focusReading`): bolds each word's first ~45% as a fixation aid — resolved into ordinary bold runs at layout time.
+
+## Position, links, progress
+
+Every page record carries `charStart` — the codepoint offset of its first run within the chapter — and because that offset is independent of every layout parameter, it's the universal locator. **Bookmarks** are `(spineIndex, charStart)` pairs, so changing font/size/margins relayouts and lands on the same sentence. **Links**: `<a href>` regions become tappable `PageLink` rects and `id` anchors resolve a tapped footnote exactly. **Reading percentage** comes from each chapter's stored total character count.
+
+## Fonts
+
+`RenderFont` is the one interface (metrics + `rasterize()` + `hasGlyph()` + `ligature()`). `TtfFont` wraps stb_truetype over a borrowed pointer — SD-loaded into PSRAM, memory-mapped from a flash partition, or compiled in — with real kern/GPOS kerning and an arena-bounded glyph cache, so even PSRAM-less MCUs serve TTFs from mapped flash. `FontChain` registers up to 8 style-flagged faces with per-codepoint fallback, so mixed scripts never render tofu.
+
+Two opt-in [FreeInkUI](https://freeink.org/docs/lib-ui) bridges live in `FreeInkUIBookFont.h`: `BitmapBookFont` reads books with the bundled bitmap font (zero font files required), and `TtfGlyphSource` feeds UI chrome its missing-glyph fallback (Hangul / CJK titles) from a `TtfFont`.
+
+## Images
+
+`<img>` targets are probed for dimensions at layout time (header-only, no decode), placed aspect-fit and centered. At render time the decode **streams** — PNG scanline-by-scanline, JPEG in MCU bands — through box-filter resampling into Floyd–Steinberg dithering (1-bit) or raw grayscale (Gray8), so the full image never exists in memory. Unsupported formats (GIF, SVG, interlaced PNG) leave their reserved space blank rather than failing the page.
+
+## Memory profiles
+
+One build flag (`BookProfile.h`) tiers every fixed working set to the target's RAM class; CI builds and runs the layout suite under all three. Runtime choices (TTF vs bitmap fonts, Gray8 vs 1-bit, arena budgets) are orthogonal — the profile only sets the compile-time ceilings.
+
+| Profile | Flag | Fixture peak | For |
+| --- | --- | --- | --- |
+| Small | `-DFREEINK_BOOK_SMALL=1` | ~106 KB | PSRAM-less MCUs (ESP32-C3) |
+| Standard | *(default)* | ~152 KB | PSRAM parts (ESP32-S3) |
+| Large | `-DFREEINK_BOOK_LARGE=1` | ~231 KB | Big PSRAM budgets, host tools |
+
+Book arenas: 64 KB covers normal books (corpus high-water 5–40 KB); a 1,800-entry webnovel omnibus needs ~450 KB. Cache files are versioned (`FIBP` v3) and keyed by `layoutGenerationHash()` — every layout-relevant input plus the caller's font fingerprint — so a wrong hash means `Stale` → rebuild, and torn writes are caught by a footer magic.
+
+> **Proven on a real corpus**
+>
+> Beyond the host suites, `tools/fibcheck.cpp` runs any real EPUB through the whole pipeline. The current corpus is ~50 commercial and pathological books across Latin, Cyrillic and CJK — including Ulysses, a 3,742-page omnibus and 1,700-chapter webnovels — all clean, with DRM'd books correctly rejected as `Encrypted`.
+
+---
+
 # Adding a device
 
 > Bring up a new board: profile, driver config, build env.
@@ -2038,6 +2141,7 @@ libs/
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)
   network/BleKeyboardHost/     BLE HID host — keyboards, page turners (opt-in)
   ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)
+  book/FreeInkBook/            EPUB reading engine (layout, cache, fonts, i18n)
 ```
 
 The display package holds the facade (`FreeInkDisplay`), the `EInkDisplay` compatibility shim, each controller's `PanelDriver` in its own file under `src/driver/`, the shared `EpdBus`, and the waveform LUTs under `src/lut/`. For how these layers relate, see [Architecture](https://freeink.org/docs/architecture); for the public surface of each library, see the [Libraries](https://freeink.org/docs/api) overview.

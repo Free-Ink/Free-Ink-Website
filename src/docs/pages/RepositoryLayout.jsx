@@ -29,7 +29,8 @@ export default function RepositoryLayout() {
   hardware/Imu/                LSM6DS3TR-C 6-axis IMU (Sticky)
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)
   network/BleKeyboardHost/     BLE HID host — keyboards, page turners (opt-in)
-  ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)`}</CodeBlock>
+  ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)
+  book/FreeInkBook/            EPUB reading engine (layout, cache, fonts, i18n)`}</CodeBlock>
 
       <P>
         The display package holds the facade (<Code>FreeInkDisplay</Code>), the <Code>EInkDisplay</Code>{' '}

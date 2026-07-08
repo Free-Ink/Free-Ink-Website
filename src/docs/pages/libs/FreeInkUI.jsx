@@ -92,7 +92,10 @@ if (auto event = ui.finish()) {
         override, and <Code>deviceContext()</Code> carries that orientation so touch mapping agrees. It
         bundles a <strong>Noto Sans bitmap font</strong> across eight font slots; point a slot (or all of
         them) at your own <Code>BitmapFont</Code> with <Code>setFont()</Code>, generated from any TTF/OTF
-        by <Code>tools/gen_font.py</Code> (1-bpp, or multi-bpp for anti-aliased glyphs). On a 1-bit panel the four UI grays
+        by <Code>tools/gen_font.py</Code> (1-bpp, or multi-bpp for anti-aliased glyphs). A glyph the
+        bitmap font is missing (Hangul, CJK book titles) can fall back to a TrueType face via the{' '}
+        <Code>TtfGlyphSource</Code> bridge (<Code>FreeInkUIBookFont.h</Code>, shared with{' '}
+        <A href="/docs/lib-book">FreeInkBook</A>). On a 1-bit panel the four UI grays
         (<Code>Black</Code> / <Code>DarkGray</Code> / <Code>LightGray</Code> / <Code>White</Code>) are
         reproduced with an ordered Bayer dither.
       </P>
@@ -233,7 +236,7 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
         rows={[
           [<Code key="a">button</Code>, 'Themed, state-styled, any input source via inputMask.'],
           [<Code key="set">settingRow / toggleRow / stepperRow / radioGroup</Code>, 'Settings-screen rows: label + value, an on/off switch, a −/+ stepper (drawn as centered strokes), and a single-choice group.'],
-          [<Code key="form">checkbox / slider / dropdown</Code>, 'A label + checkable box, a continuous value slider (dithered track + knob; stepperRow covers discrete steps), and a dropdown that opens an app-owned selection.'],
+          [<Code key="form">checkbox / slider / dropdown</Code>, 'A label + checkable box, a continuous value slider (dithered track + knob; stepperRow covers discrete steps), and a dropdown that opens an app-owned selection (optionally a two-line settingRow layout with the current selection as a subtitle).'],
           [<Code key="tbl">table</Code>, 'A rows × columns cell grid with grid lines, an optional header row and per-cell styles.'],
           [<Code key="b">statusBar</Code>, 'Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay.'],
           [<Code key="c">tabBar</Code>, 'Pill or underline-style tabs with an optional divider, per-tab icons and a disabled state.'],

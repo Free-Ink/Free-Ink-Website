@@ -41,6 +41,7 @@ Hardware-independent C++ firmware SDK for e-paper readers. Source: [github.com/F
 - [FreeInkUI](https://freeink.org/docs/lib-ui): Optional immediate-mode UI framework for e-paper.
 - [Component gallery](https://freeink.org/docs/lib-ui-components): Prebuilt FreeInkUI components, previewed from the real 1-bit renders.
 - [Icons](https://freeink.org/docs/lib-icons): freeink::Icon format, vendored Lucide set, and a generator.
+- [FreeInkBook](https://freeink.org/docs/lib-book): A complete EPUB reading engine: layout, cache, fonts, international text.
 
 ## Guides
 
