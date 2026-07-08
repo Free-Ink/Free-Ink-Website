@@ -8,7 +8,7 @@ Hardware-independent C++ firmware SDK for e-paper readers. Source: [github.com/F
 
 - [Overview](https://freeink.org/docs/overview): What FreeInk is, why it exists, and how the pieces fit together.
 - [Quickstart](https://freeink.org/docs/quickstart): Drive an e-paper panel with FreeInk in a few minutes.
-- [Sticky tutorial](https://freeink.org/docs/sticky): Build a reminder appliance: keyboard, RTC clock over Wi-Fi, buzzer alarm and icons.
+- [Sticky reader starter](https://freeink.org/docs/sticky): Build a minimal EPUB reader: All Books list, paged reader, and edge gestures.
 - [PlatformIO setup](https://freeink.org/docs/installation): Add the FreeInk libraries to a PlatformIO project.
 
 ## Concepts

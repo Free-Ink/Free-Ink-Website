@@ -39,7 +39,7 @@ export default function FreeInkBook() {
       <Table
         head={['Stage', 'What it does']}
         rows={[
-          ['Container', 'ZIP catalog + streaming inflate; OPF metadata / manifest / spine; nav + NCX TOC; DRM detection.'],
+          ['Container', 'ZIP catalog + streaming inflate; OPF metadata / manifest / spine; nav + NCX TOC; encryption.xml parsing that tells font obfuscation from real DRM (obfuscated-font-only books still render; only true DRM → Encrypted).'],
           ['CSS', 'A tolerant subset cascade: element / .class selectors, ~15 properties, inline style="", chapter <style> blocks.'],
           ['Layout', 'SAX → block flow → UAX #14 line breaking → two-phase paragraph placement → page records. The same engine lays out .txt via layoutPlainText().'],
           ['Cache', 'FIBP page records: generation hash, torn-write detection, char anchors, id-anchor table, per-chapter totals.'],
@@ -47,6 +47,12 @@ export default function FreeInkBook() {
           ['Render', 'Page → framebuffer compositor (mono dithered / sharp / Gray8, 4 rotations); streaming image decode with box-filter + Floyd–Steinberg.'],
         ]}
       />
+
+      <P>
+        The engine vendors its dependencies (UAX #14 line breaking, stb_truetype, expat XML);{' '}
+        <Code>vendorVersions()</Code> reports the bundled versions, and the expat parser is exposed
+        (<Code>epub/Expat.h</Code>) for apps that need XML of their own.
+      </P>
 
       <H2>Quick start</H2>
       <P>
@@ -149,8 +155,10 @@ PageRenderer::render(page, fonts, source, book.zip(), scratch, frame);`}</CodeBl
         <Code>{'<img>'}</Code> targets are probed for dimensions at layout time (header-only, no decode),
         placed aspect-fit and centered. At render time the decode <strong>streams</strong> — PNG
         scanline-by-scanline, JPEG in MCU bands — through box-filter resampling into Floyd–Steinberg
-        dithering (1-bit) or raw grayscale (Gray8), so the full image never exists in memory. Unsupported
-        formats (GIF, SVG, interlaced PNG) leave their reserved space blank rather than failing the page.
+        dithering (1-bit) or raw grayscale (Gray8), so the full image never exists in memory. Progressive
+        JPEGs (common for covers) take a <strong>DC-only first-scan path</strong>, rendering a 1/8-scale
+        preview instead of a blank. Truly unsupported formats (GIF, SVG, interlaced PNG) leave their
+        reserved space blank rather than failing the page.
       </P>
 
       <H2>Memory profiles</H2>

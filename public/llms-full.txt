@@ -123,93 +123,78 @@ pio run -e xteink_x4 -t upload
 
 ---
 
-# Sticky tutorial
+# Sticky reader starter
 
-> Build a reminder appliance: keyboard, RTC clock over Wi-Fi, buzzer alarm and icons.
+> Build a minimal EPUB reader: All Books list, paged reader, and edge gestures.
 
 Group: Getting started · URL: https://freeink.org/docs/sticky
 
-A hands-on walkthrough: build a complete **reminder appliance** on the **Sticky** — a touch reminder list with a delete dialog, on-screen-keyboard entry, a settings screen with Wi-Fi/NTP clock sync, a time-zone/clock adjuster, a 12/24-hour toggle, and a buzzer that goes off when a reminder is due. It exercises [FreeInkUI](https://freeink.org/docs/lib-ui), the [RTC](https://freeink.org/docs/lib-rtc), [Buzzer](https://freeink.org/docs/lib-buzzer) and [Icons](https://freeink.org/docs/lib-icons) together.
+The smallest useful Sticky app: scan EPUBs from the SD card, show them in a FreeInkUI list, open one into a paged reader, and use the same edge gestures as the full reader app.
 
-> **Prerequisites**
+> **What this starter intentionally leaves out**
 >
-> A PlatformIO install and a Sticky (Seeed) board — an **ESP32-S3** with an SSD1677 3.97″ 800×480 panel, GT911 touch, a PCF8563 RTC and a buzzer. See [Supported devices](https://freeink.org/docs/devices).
+> No covers, tabs, settings, sleep screen, metadata cache, folder navigation, font picker, progress persistence, or TOC parsing. It is a deliberately tiny spine for a real reader.
 
-## 1. Project setup and build env
+## 1. Project setup
 
-Vendor the [FreeInk SDK](https://github.com/Free-Ink/freeink-sdk) into your project as a git submodule so the checkout travels with the repo:
+Vendor the [FreeInk SDK](https://github.com/Free-Ink/freeink-sdk) beside your firmware:
 
 ```bash
 git submodule add https://github.com/Free-Ink/freeink-sdk.git freeink-sdk
-git submodule update --init --recursive   # --recursive: the SDK nests the lucide icon set
-# collaborators: git clone --recurse-submodules
+git submodule update --init --recursive
 ```
 
-`-DFREEINK_DEVICE_STICKY=1` pulls in the SSD1677 driver and the Sticky profile (touch, RTC and buzzer default on). Add the libraries the app touches — the Icons lib provides the `Icon.h` the generated header includes, and Wi-Fi is built into the Arduino-ESP32 core:
+The starter uses `FreeInkApp` for screens/input routing, `FreeInkUI` for the list and reader chrome, `FreeInkBook` for EPUB parsing/layout, and `SDCardManager` for the card.
 
 ```platformio.ini
 [env:sticky]
-extends = base
+platform = https://github.com/pioarduino/platform-espressif32/releases/download/55.03.37/platform-espressif32.zip
+framework = arduino
 board = esp32-s3-devkitc1-n16r8
 board_build.mcu = esp32s3
+board_build.flash_mode = qio
+board_build.psram_type = opi
+board_upload.flash_size = 16MB
 build_flags =
-  ${base.build_flags}
+  -std=gnu++17
   -DFREEINK_DEVICE_STICKY=1
+  -DBOARD_HAS_PSRAM
+  -DARDUINO_USB_CDC_ON_BOOT=1
+  -DARDUINO_USB_MODE=1
 lib_deps =
-  ${base.lib_deps}   ; BoardConfig, EInkDisplay, InputManager, FreeInkUI
-  Rtc=symlink://freeink-sdk/libs/hardware/Rtc
-  Buzzer=symlink://freeink-sdk/libs/hardware/Buzzer
-  Icons=symlink://freeink-sdk/libs/assets/Icons
+  BoardConfig=symlink://freeink-sdk/libs/hardware/BoardConfig
+  EInkDisplay=symlink://freeink-sdk/libs/display/FreeInkDisplay
+  InputManager=symlink://freeink-sdk/libs/hardware/InputManager
+  BatteryMonitor=symlink://freeink-sdk/libs/hardware/BatteryMonitor
+  SDCardManager=symlink://freeink-sdk/libs/hardware/SDCardManager
+  FreeInkUI=symlink://freeink-sdk/libs/ui/FreeInkUI
+  FreeInkBook=symlink://freeink-sdk/libs/book/FreeInkBook
 ```
 
-## 2. Generate the icons
+## 2. Minimal reader
 
-The [Icons](https://freeink.org/docs/lib-icons) tool bakes only the glyphs you use into a header. List them in a manifest and run the generator to get a `generated_icons.h` with a `freeink::Icon` per icon per size:
-
-```
-# icons.txt
-bell       = bell
-clock      = clock
-wifi       = wifi
-plus       = plus
-settings   = settings
-arrow-left = arrow-left
-globe      = globe
-
-python freeink-sdk/libs/assets/Icons/tools/gen_icons.py \
-    --manifest icons.txt \
-    --svgdir   freeink-sdk/libs/assets/Icons/lucide/icons \
-    --sizes    24 \
-    --out      src/generated_icons.h
-```
-
-The same idea works for text: every `DisplayTarget` font slot defaults to the bundled 34px-line Noto Sans, and `gen_font.py` rasterizes any TTF into another slot. The settings screen uses a larger anti-aliased variant for its row labels:
-
-```
-python freeink-sdk/libs/ui/FreeInkUI/tools/gen_font.py \
-    --ttf NotoSans-Regular.ttf --size 32 --alpha \
-    --name NotoSansLarge --out src/generated_font_large.h
-```
-
-## 3. Boot and the app shell
-
-Construct the display and input from the board profile and drive them with `FreeInkApp`. Two boot rules on the Sticky: assert the battery power latch first (`BoardConfig::holdPowerRails()`), and rescue the SD power rail before touching the display (`BoardConfig::releaseSdRail()` — see the callout below). One trap: `FreeInkDisplay` only allocates its framebuffer in `begin()`, so `getFrameBuffer()` returns `nullptr` at static-init time — building the `DisplayTarget` as a global crashes the first render (`LoadProhibited` boot loop). Keep an `App*` global, or other global pointer, and construct the target and app in `setup()`, after `display.begin()`. `FreeInkApp` sizes its theme to the target's actual font line height, and `setClearColor()` starts every paint from a white canvas — frames don't clear the target on their own. One `setTheme()` tweak swaps the default filled buttons for outlined rounded ones app-wide, so no button needs per-call styling later.
+Put EPUB files anywhere on the SD card. The home screen recursively scans the card into a plain All Books list. Tap a row to open it. In the reader, tap left/right to turn pages. Swipe up from the very bottom edge to go home; swipe down from the very top edge to show the reader menu.
 
 ```cpp
-#include <EInkDisplay.h>
+#include <Arduino.h>
+#include <BookStorage.h>
 #include <BoardConfig.h>
-#include <InputManager.h>
+#include <EInkDisplay.h>
 #include <FreeInkApp.h>
+#include <FreeInkBook.h>
+#include <FreeInkUIBookFont.h>
 #include <FreeInkUIDisplayTarget.h>
-#include <FreeInkUIInputManager.h>
-#include <Rtc.h>
-#include <Buzzer.h>
-#include <WiFi.h>
-#include <time.h>
-#include "generated_icons.h"
-#include "generated_font_large.h"   // 32px Noto Sans for the settings labels
+#include <InputManager.h>
+#include <SDCardManager.h>
+#include <cache/PageCache.h>
+#include <layout/ChapterLayout.h>
+#include <render/PageRenderer.h>
+#include <render/TtfFont.h>
 
 using namespace freeink;
+
+enum : ui::ActionId { ActionOpenBook = 1, ActionPagePrev, ActionPageNext };
+enum class Screen : uint8_t { Books, Reader, Menu };
 
 EInkDisplay display(
   BoardConfig::ACTIVE.display.sclk, BoardConfig::ACTIVE.display.mosi,
@@ -217,287 +202,370 @@ EInkDisplay display(
   BoardConfig::ACTIVE.display.rst,  BoardConfig::ACTIVE.display.busy);
 
 InputManager input;
-Rtc          rtc;
-Buzzer       buzzer;
-
-// The framebuffer doesn't exist until display.begin(), so the DisplayTarget
-// and App are constructed in setup() — not here at static init.
-using App = ui::FreeInkApp<64, 24>;   // 64 interactions/frame, 24 action handlers
+using App = ui::FreeInkApp<32, 8>;
 App* app = nullptr;
+ui::DisplayTarget* target = nullptr;
+static constexpr book::FrameRotation kPageRotation = book::FrameRotation::Portrait;
 
-constexpr ui::FontId kFontLarge = 1;  // DisplayTarget slot for the generated font
+static constexpr uint8_t kMaxBooks = 64;
 
-static ui::BitmapRef iconRef(const Icon& i) {   // 1-bit mask (bit 1 = transparent)
-  return { i.bits, i.w, i.h, ui::BitmapFormat::Mask1, /*progmem=*/true };
+Screen screenId = Screen::Books;
+ui::BitmapBookFont fallbackFont;
+book::FontChain fonts;
+
+char bookPaths[kMaxBooks][160];
+char bookTitles[kMaxBooks][64];
+ui::ListItem bookRows[kMaxBooks];
+uint8_t bookCount = 0;
+uint16_t bookTop = 0;
+uint16_t bookVisibleRows = 0;
+int16_t selectedBook = 0;
+
+uint8_t* bookArenaBuf = nullptr;
+uint8_t* scratchBuf = nullptr;
+uint8_t* indexBuf = nullptr;
+
+class SdBookSource : public book::BookSource {
+ public:
+  bool open(const char* path) {
+    file_ = SdMan.open(path, O_RDONLY);
+    size_ = file_ ? file_.fileSize() : 0;
+    return file_ && size_ > 0;
+  }
+  void close() { if (file_) file_.close(); }
+  int32_t readAt(uint64_t offset, void* dst, uint32_t len) override {
+    if (!file_ || !file_.seekSet(offset)) return -1;
+    return file_.read(dst, len);
+  }
+  uint64_t size() const override { return size_; }
+ private:
+  FsFile file_;
+  uint64_t size_ = 0;
+};
+
+class SdPageCache : public book::CacheStorage {
+ public:
+  bool begin(const char* path, uint32_t hash) {
+    snprintf(dir_, sizeof(dir_), "/BookCache/%08lx", static_cast<unsigned long>(hash));
+    SdMan.ensureDirectoryExists("/BookCache");
+    SdMan.ensureDirectoryExists(dir_);
+    return true;
+  }
+  bool exists(const char* name) override { return SdMan.exists(fullPath(name)); }
+  bool remove(const char* name) override { return SdMan.remove(fullPath(name)); }
+  int64_t fileSize(const char* name) override {
+    FsFile f = SdMan.open(fullPath(name), O_RDONLY);
+    if (!f) return -1;
+    const int64_t size = f.fileSize();
+    f.close();
+    return size;
+  }
+  int32_t readAt(const char* name, uint32_t off, void* dst, uint32_t len) override {
+    FsFile f = SdMan.open(fullPath(name), O_RDONLY);
+    if (!f || !f.seekSet(off)) return -1;
+    const int32_t n = f.read(dst, len);
+    f.close();
+    return n;
+  }
+  bool beginWrite(const char* name) override {
+    snprintf(commitPath_, sizeof(commitPath_), "%s/%s", dir_, name);
+    write_ = SdMan.open(fullPath("_tmp.fibp"), O_WRONLY | O_CREAT | O_TRUNC);
+    return static_cast<bool>(write_);
+  }
+  bool write(const void* data, uint32_t len) override {
+    return write_ && write_.write(data, len) == len;
+  }
+  bool endWrite() override {
+    if (!write_) return false;
+    write_.close();
+    SdMan.remove(commitPath_);
+    return SdMan.rename(fullPath("_tmp.fibp"), commitPath_);
+  }
+ private:
+  const char* fullPath(const char* name) {
+    snprintf(pathBuf_, sizeof(pathBuf_), "%s/%s", dir_, name);
+    return pathBuf_;
+  }
+  char dir_[64] = "";
+  char pathBuf_[160] = "";
+  char commitPath_[160] = "";
+  FsFile write_;
+};
+
+struct Reader {
+  SdBookSource source;
+  SdPageCache cache;
+  book::Book book;
+  book::PageCacheReader pages;
+  book::Arena bookArena;
+  book::Arena scratch;
+  book::Arena indexArena;
+  book::LayoutParams params;
+  uint16_t spine = 0;
+  uint16_t page = 0;
+  bool open = false;
+
+  bool begin(const char* path) {
+    end();
+    bookArena.init(bookArenaBuf, 512 * 1024);
+    scratch.init(scratchBuf, 512 * 1024);
+    indexArena.init(indexBuf, 64 * 1024);
+    if (!source.open(path)) return false;
+    if (book.open(source, bookArena, scratch) != book::BookStatus::Ok) return false;
+
+    params.font = &fonts;
+    params.pageWidth = target->logicalWidth();
+    params.pageHeight = target->logicalHeight();
+    params.marginLeft = params.marginRight = 24;
+    params.marginTop = params.marginBottom = 36;
+    params.baseSizePx = 18;
+    params.lineSpacingPct = 140;
+
+    const uint32_t hash = book::ZipCatalog::hashPath(path);
+    cache.begin("chapter", hash);
+    return openChapter(0);
+  }
+
+  bool openChapter(uint16_t nextSpine) {
+    if (nextSpine >= book.spineCount()) return false;
+    spine = nextSpine;
+    page = 0;
+    const book::ManifestItem* item = book.spineItem(spine);
+    const book::ZipEntry* entry = item ? book.zip().find(item->href) : nullptr;
+    if (!item || !entry) return false;
+
+    const uint32_t generationHash = book::layoutGenerationHash(params, /*fontFingerprint=*/1);
+    char cacheName[64];
+    if (!book::pageCacheName(spine, generationHash, cacheName, sizeof(cacheName))) return false;
+
+    indexArena.reset();
+    if (cache.exists(cacheName) &&
+        pages.open(cache, cacheName, generationHash, indexArena) == book::BookStatus::Ok) {
+      open = true;
+      return true;
+    }
+
+    book::PageCacheWriter writer;
+    if (!writer.begin(cache, cacheName, generationHash, scratch)) return false;
+    uint32_t totalChars = 0;
+    const book::BookStatus st = book::ChapterLayout::layout(
+      source, book.zip(), *entry, item->href, params, scratch, writer, nullptr, &totalChars);
+    writer.setTotalChars(totalChars);
+    if (st != book::BookStatus::Ok || !writer.finish()) return false;
+    indexArena.reset();
+    open = pages.open(cache, cacheName, generationHash, indexArena) == book::BookStatus::Ok;
+    return open;
+  }
+
+  bool turn(int delta) {
+    if (!open) return false;
+    if (delta > 0 && page + 1 < pages.pageCount()) { ++page; return true; }
+    if (delta > 0 && openChapter(spine + 1)) return true;
+    if (delta < 0 && page > 0) { --page; return true; }
+    if (delta < 0 && spine > 0 && openChapter(spine - 1)) {
+      page = pages.pageCount() ? pages.pageCount() - 1 : 0;
+      return true;
+    }
+    return false;
+  }
+
+  void render(book::FrameTarget& frame) {
+    if (!open) return;
+    const size_t mark = scratch.mark();
+    book::Page p;
+    if (pages.readPage(page, scratch, &p) == book::BookStatus::Ok) {
+      book::PageRenderer::renderText(p, fonts, frame, nullptr);
+      book::PageRenderer::renderImages(p, source, book.zip(), scratch, frame);
+    }
+    scratch.release(mark);
+  }
+
+  void end() {
+    source.close();
+    open = false;
+  }
+} reader;
+
+void booksScreen(App::ScreenType& s, void*);
+void readerScreen(App::ScreenType& s, void*);
+void menuScreen(App::ScreenType& s, void*);
+
+void go(Screen next, bool initialPaint = false) {
+  float sx0, sy0, sx1, sy1;
+  while (input.popSwipe(sx0, sy0, sx1, sy1)) {
+  }
+  screenId = next;
+  app->clearTapFlash();
+  app->setScreen(
+    next == Screen::Books ? booksScreen : next == Screen::Reader ? readerScreen : menuScreen,
+    nullptr, ui::RefreshHint::None);
+  if (initialPaint) {
+    app->invalidate(ui::RefreshHint::Full);
+  } else {
+    app->invalidateTransition();
+  }
+}
+
+bool isBookFileName(const char* name) {
+  const size_t len = strlen(name);
+  return len > 5 && strcasecmp(name + len - 5, ".epub") == 0;
+}
+
+bool isHiddenOrSystemDir(const char* name) {
+  return name == nullptr || name[0] == 0 || name[0] == '.' ||
+         strcasecmp(name, "BookCache") == 0 || strcasecmp(name, "System Volume Information") == 0;
+}
+
+void scanBooksIn(const char* dirPath, uint8_t depth) {
+  const bool root = dirPath[0] == '/' && dirPath[1] == 0;
+  FsFile dir = SdMan.open(dirPath, O_RDONLY);
+  if (!dir || !dir.isDirectory()) {
+    if (dir) dir.close();
+    return;
+  }
+
+  char name[128];
+  for (FsFile f = dir.openNextFile(); f && bookCount < kMaxBooks; f = dir.openNextFile()) {
+    f.getName(name, sizeof(name));
+    if (f.isDirectory()) {
+      if (depth < 6 && !isHiddenOrSystemDir(name)) {
+        char child[160];
+        snprintf(child, sizeof(child), "%s%s%s", dirPath, root ? "" : "/", name);
+        f.close();
+        scanBooksIn(child, static_cast<uint8_t>(depth + 1));
+        continue;
+      }
+      f.close();
+      continue;
+    }
+    f.close();
+
+    if (name[0] == '.' || !isBookFileName(name)) continue;
+    snprintf(bookPaths[bookCount], sizeof(bookPaths[bookCount]), "%s%s%s", dirPath, root ? "" : "/", name);
+    snprintf(bookTitles[bookCount], sizeof(bookTitles[bookCount]), "%.*s",
+             static_cast<int>(strlen(name) - 5), name);
+    bookRows[bookCount] = ui::ListItem{};
+    bookRows[bookCount].label = bookTitles[bookCount];
+    bookRows[bookCount].actionValue = static_cast<int16_t>(bookCount);
+    ++bookCount;
+  }
+  dir.close();
+}
+
+void scanBooks() {
+  bookCount = 0;
+  for (uint8_t i = 0; i < kMaxBooks; ++i) bookRows[i] = ui::ListItem{};
+  scanBooksIn("/", 0);
+}
+
+void booksScreen(App::ScreenType& s, void*) {
+  s.header("All Books");
+  ui::ListProps list;
+  list.items = bookRows;
+  list.count = bookCount;
+  list.selectedIndex = selectedBook;
+  list.topIndex = bookTop;
+  list.action = ActionOpenBook;
+  list.rowStyles = ui::selectedPlainListRowStyles();
+  list.labelText = s.theme().bodyText;
+  list.rowHeight = s.theme().rowHeight;
+  list.scrollIndicator = true;
+  bookVisibleRows = ui::listVisibleRows(s.body(), list.rowHeight, list.rowGap);
+  ui::list(s.frame(), s.body().inset({0, 10, 0, 10}), list);
+}
+
+void readerScreen(App::ScreenType& s, void*) {
+  const ui::Rect body = s.body();
+  const int16_t half = static_cast<int16_t>(body.width / 2);
+  const ui::TapZone zones[2] = {
+      {ui::Rect{body.x, body.y, half, body.height}, ActionPagePrev},
+      {ui::Rect{static_cast<int16_t>(body.x + half), body.y,
+                static_cast<int16_t>(body.width - half), body.height},
+       ActionPageNext},
+  };
+  ui::TapZonesProps taps;
+  taps.zones = zones;
+  taps.count = 2;
+  ui::tapZones(s.frame(), body, taps);
+}
+
+void menuScreen(App::ScreenType& s, void*) {
+  char progress[32];
+  snprintf(progress, sizeof(progress), "Chapter %u", static_cast<unsigned>(reader.spine + 1));
+  ui::StatusBarProps bar;
+  bar.title = "Reader Menu";
+  bar.trailing = progress;
+  bar.text = s.theme().bodyText;
+  s.status(bar);
+  s.centeredText("Swipe up from the bottom edge to resume.");
+}
+
+void onOpenBook(const ui::ActionEvent& e, void*) {
+  selectedBook = e.value;
+  if (selectedBook >= 0 && selectedBook < bookCount && reader.begin(bookPaths[selectedBook])) {
+    go(Screen::Reader);
+  }
+}
+
+void onPageTurn(const ui::ActionEvent& e, void*) {
+  if (reader.turn(e.action == ActionPageNext ? 1 : -1)) app->invalidate(ui::RefreshHint::Fast);
 }
 
 void setup() {
-  BoardConfig::holdPowerRails();   // battery latch (Sticky PWR_HOLD / PWR_LOCK)
-  BoardConfig::releaseSdRail();    // SD shares the display SPI bus — see callout
+  BoardConfig::holdPowerRails();
+  BoardConfig::releaseSdRail();
   delay(10);
 
-  display.begin();  input.begin();  rtc.begin();  buzzer.begin();
+  SdMan.begin();
+  display.begin();
+  input.begin();
+  input.beginAsync(2, 10);
+  bookArenaBuf = static_cast<uint8_t*>(ps_malloc(512 * 1024));
+  scratchBuf = static_cast<uint8_t*>(ps_malloc(512 * 1024));
+  indexBuf = static_cast<uint8_t*>(ps_malloc(64 * 1024));
 
-  // Poll input on its own task: taps land in a queue (popTouchTap) no matter
-  // how long a render or panel refresh keeps loop() busy — the fix for
-  // dropped keystrokes. loop() must not call input.update() anymore.
-  input.beginAsync(/*taskPriority=*/2, /*pollMs=*/10);
-
-  // Now the framebuffer exists — build the UI on top of it.
-  static ui::DisplayTarget target(display.getFrameBuffer(), display.getDisplayWidth(),
-                                  display.getDisplayHeight(), display.getDisplayWidthBytes());
-  target.setFont(kFontLarge, ui::kNotoSansLargeFont);   // slot 1: settings labels
-  static App appInstance(target, target.deviceContext());
-  app = &appInstance;
-
-  // One theme tweak: outlined rounded buttons everywhere (nav back button,
-  // footers, action bar). Every button inherits it — no per-call styling.
-  ui::ThemeTokens theme = app->theme();
-  theme.button = ui::outlinedButtonStyles(10);
-  app->setTheme(theme);
-
+  static ui::DisplayTarget displayTarget(display.getFrameBuffer(), display.getDisplayWidth(),
+                                         display.getDisplayHeight(), display.getDisplayWidthBytes(),
+                                         ui::Orientation::Portrait);
+  static App application(displayTarget, displayTarget.deviceContext());
+  target = &displayTarget;
+  app = &application;
   app->setClearColor(ui::Color::White);
-  app->setScreen(appScreen, &state);
-  // ... register the action handlers (section 5)
+  fonts.add(&fallbackFont);
+
+  app->on(ActionOpenBook, onOpenBook);
+  app->on(ActionPagePrev, onPageTurn);
+  app->on(ActionPageNext, onPageTurn);
+
+  scanBooks();
+  go(Screen::Books, /*initialPaint=*/true);
 }
-```
-
-> **Blank panel? Check the shared SD bus**
->
-> On the Sticky the MicroSD sits on the *same SPI bus* as the panel, and a rail latched off with `gpio_hold` by a previous firmware's sleep path **survives reset and reflashing**. An unpowered card clamps the shared lines and the display goes completely dead — firmware runs, panel never updates. `BoardConfig::releaseSdRail()` releases the hold, powers the card and deselects it; [SDCardManager](https://freeink.org/docs/lib-sd)'s `begin()` does the same if your app mounts the card anyway.
-
-## 4. State and screens
-
-One `ScreenId` enum switches a single render function between the home list, the keyboard entry, settings, the clock adjuster and the two Wi-Fi views. The keyboard's editing state (shift/symbol layers, UTF-8 append, multi-byte backspace) lives in the SDK's `ui::KeyboardEntry` — `attach()` binds whichever buffer the current screen edits. Sub-screens share consistent chrome via `screen.navHeader()`: a top-left back button, a centered title, and an optional right label — Settings puts the live clock there, matching the home status bar. A three-line wrapper saves repeating the back action and icon on every screen.
-
-```cpp
-enum : ui::ActionId {
-  ActionNew = 1, ActionOpen, ActionDelete, ActionDismiss,
-  ActionKey, ActionShift, ActionMode, ActionBackspace, ActionSave, ActionLead,
-  ActionOpenSettings, ActionToggleSound, ActionClockFmt, ActionOpenTz, ActionTz,
-  ActionOpenWifi, ActionRescan, ActionPickNet, ActionConnect, ActionBack
-};
-enum ScreenId { ScreenHome, ScreenNew, ScreenSettings, ScreenTz, ScreenWifiScan, ScreenWifiPass };
-
-constexpr uint8_t kMaxReminders = 12;
-constexpr uint8_t kMaxNets      = 12;
-
-struct Reminder { char text[40]; uint16_t dueMin; bool fired; };
-struct AppState {
-  ScreenId      screen = ScreenHome;
-  Rtc::DateTime now{};
-  bool          haveTime = false;
-  Reminder      items[kMaxReminders];
-  uint8_t       count = 0;
-  int16_t       selected = -1;
-  int16_t       dialogFor = -1;      // reminder index in the delete dialog
-  bool          soundOn = true;
-  bool          use24h = true;
-  char          draft[40] = "";
-  int16_t       leadMin = 15;
-  int16_t       tzMin = 0;           // UTC offset in minutes
-  char          nets[kMaxNets][33];  uint8_t netCount = 0;
-  bool          scanPending = false; // scan runs after "Scanning..." is on the panel
-  char          ssid[33] = "";
-  char          pass[64] = "";
-  const char*   wifiStatus = "";
-  ui::KeyboardEntry kb;              // SDK-owned keyboard editing state
-} state;
-
-// Switch screens. invalidateTransition() keeps transitions on FAST partial
-// refreshes (a FULL is a 1-2s stall) with a periodic FULL to clear ghosting.
-static void gotoScreen(AppState& s, ScreenId id) {
-  s.screen = id;
-  if (app) {
-    app->invalidateTransition();
-    app->clearTapFlash();  // the tapped element doesn't exist on the next screen
-  }
-}
-
-// Sub-screen chrome: back button + centered title + optional right label,
-// without the SDK's default bottom rule (borderEdges is HeaderProps' divider
-// setting: EdgeBottom draws it, EdgesNone drops it). An action/enabled pair
-// puts a trailing button (Save) on the right edge instead of the label.
-static void navHeader(App::ScreenType& screen, const char* title, const char* rightLabel = nullptr,
-                      const char* actionLabel = nullptr, ui::ActionId action = ui::NO_ACTION,
-                      bool actionEnabled = true) {
-  screen.navHeader(title, ActionBack, iconRef(icon_arrow_left_24), rightLabel, ui::EdgesNone,
-                   actionLabel, action, actionEnabled);
-}
-```
-
-The render function builds whichever screen is active. Two representative screens — the keyboard entry (header with a trailing Save, keyboard, lead-time stepper, text area) and home (status-bar clock, the reminder list with due times and countdowns, a bottom action bar, and the delete dialog as a modal overlay):
-
-```cpp
-void appScreen(App::ScreenType& screen, void* user) {
-  auto& s = *static_cast<AppState*>(user);
-  const auto& theme = screen.theme();
-  const bool modal = s.dialogFor >= 0;
-
-  if (s.screen == ScreenNew) {
-    // Save lives in the header's trailing slot, mirroring the back button.
-    navHeader(screen, "New reminder", nullptr, "Save", ActionSave, !s.kb.empty());
-    ui::QwertyKeyboardProps keys;
-    keys.keyAction = ActionKey;  keys.shiftAction = ActionShift;
-    keys.modeAction = ActionMode;
-    keys.deleteAction = ActionBackspace;  keys.okAction = ActionSave;
-    ui::applyEntry(keys, s.kb);           // shift/symbol layers from KeyboardEntry
-    screen.qwertyKeyboard(keys, 260, ui::LayoutAnchor::Bottom);
-
-    char leadStr[12];
-    std::snprintf(leadStr, sizeof leadStr, "%d min", s.leadMin);
-    ui::StepperRowProps step;
-    step.row.label = "Remind in";  step.value = leadStr;
-    step.increment = ActionLead;   step.incrementValue = 5;
-    step.decrement = ActionLead;   step.decrementValue = -5;
-    step.widestValue = "240 min";  // keeps the value slot from shifting
-    screen.stepperRow(step, ui::LayoutAnchor::Bottom);
-
-    screen.insetContent({8, 12, 8, 12});
-    ui::TextAreaProps body;
-    body.text = s.draft;  body.cursor = static_cast<int16_t>(s.kb.length());
-    body.showCaret = true;
-    screen.textArea(body);
-    return;
-  }
-
-  // ... ScreenSettings: navHeader(screen, "Settings", clock); roomy setting
-  //     rows — large-font labels (font slot 1) and taller rows via
-  //     screen.settingRow(props, rowH); the SDK's slot layout aligns the icon
-  //     and the right-side value/switch to the label's title band, so the
-  //     subtitle spans the full width beneath. Toggle rows use hitToggleOnly
-  //     (a deliberate tap on the switch toggles, not anywhere on the row).
-  // ... ScreenTz: large live clock between -/+ stepper buttons, 15 min per tap.
-  // ... ScreenWifiScan: network list, or screen.centeredText("Scanning...").
-  // ... ScreenWifiPass: keyboard bound to the password buffer; Connect in the
-  //     header's trailing slot, like Save (enabled even with an empty
-  //     password — open networks).
-
-  // ---- Home ----------------------------------------------------------------
-  char clock[12];
-  formatClock(s, clock, sizeof clock);   // honors the 12/24-hour setting
-  ui::StatusBarProps sb;
-  sb.title = "Reminders";  sb.trailing = clock;  sb.leadingIcon = iconRef(icon_bell_24);
-  screen.status(sb);
-
-  // Bottom action bar: left-aligned New button + square settings button.
-  // While the delete dialog is up the bar isn't drawn at all — a dithered
-  // "dim" can't hide 1-bit content, so ghost buttons under a modal read as a
-  // bug. The band is still consumed so the list doesn't shift.
-  ui::Rect band = screen.takeBottom(static_cast<int16_t>(theme.rowHeight + 16), theme.spaceSm);
-  if (!modal) {
-    band = band.inset({4, 12, 4, 12});
-    ui::Rect gearRect{static_cast<int16_t>(band.right() - band.height), band.y,
-                      band.height, band.height};
-    ui::ButtonProps gear;
-    gear.icon = iconRef(icon_settings_24);  gear.action = ActionOpenSettings;
-    screen.button(gear, gearRect);   // themed at an explicit rect — outlined via setTheme()
-    // ... "New reminder" button fills the bar up to the gear (same pattern).
-  }
-
-  if (s.count == 0) {
-    screen.centeredText("Nothing scheduled");
-    return;
-  }
-
-  // The list, with due time and countdown per row.
-  static char values[kMaxReminders][12], subs[kMaxReminders][20];
-  const uint16_t nowMin = s.now.hour * 60 + s.now.minute;
-  ui::ListItem rows[kMaxReminders];
-  for (uint8_t i = 0; i < s.count; ++i) {
-    formatMin(s.use24h, s.items[i].dueMin, values[i], sizeof values[i]);
-    if (s.items[i].fired) std::snprintf(subs[i], sizeof subs[i], "done");
-    else std::snprintf(subs[i], sizeof subs[i], "in %u min",
-                       (s.items[i].dueMin + 1440 - nowMin) % 1440);
-    rows[i].label = s.items[i].text;  rows[i].subtitle = subs[i];  rows[i].value = values[i];
-    rows[i].actionValue = i;
-    rows[i].icon = iconRef(s.items[i].fired ? icon_bell_24 : icon_clock_24);
-  }
-  screen.insetContent({4, 12, 0, 12});
-  screen.list(rows, s.count, s.selected, modal ? ui::NO_ACTION : ActionOpen);
-
-  if (modal) {   // tapping a row opens a delete dialog over the list
-    static const ui::DialogOption opts[] = {
-      { .label = "Delete", .action = ActionDelete },
-      { .label = "Cancel", .action = ActionDismiss },
-    };
-    ui::OptionDialogProps dlg;
-    dlg.title = "Reminder";
-    dlg.headline = s.items[s.dialogFor].text;
-    dlg.message = "Remove this reminder?";
-    dlg.options = opts;  dlg.optionCount = 2;
-    dlg.dimBackground = true;
-    screen.dialog(dlg);
-  }
-}
-```
-
-## 5. Actions and the loop
-
-Handlers stay tiny: the four keyboard actions route straight into `KeyboardEntry`, the clock adjuster uses `Rtc::adjust()` (calendar-correct across midnight, works before any NTP sync — dialing the clock by hand is a legitimate way to set it), and the Wi-Fi scan is deferred with a `scanPending` flag so the "Scanning..." screen reaches the panel before the 2-4s blocking scan runs. `Connect` joins with the typed password, pulls the time over NTP with the configured UTC offset, and writes it into the RTC so the clock survives reboots.
-
-```cpp
-  // The keyboard: KeyboardEntry owns append/backspace and the layer flags.
-  app->on(ActionKey, [](const ui::ActionEvent& e, void* u){
-    static_cast<AppState*>(u)->kb.key(e.value); }, &state);
-  app->on(ActionBackspace, [](const ui::ActionEvent&, void* u){
-    static_cast<AppState*>(u)->kb.backspace(); }, &state);
-  app->on(ActionShift, [](const ui::ActionEvent&, void* u){
-    static_cast<AppState*>(u)->kb.shift(); }, &state);
-  app->on(ActionMode, [](const ui::ActionEvent&, void* u){
-    static_cast<AppState*>(u)->kb.mode(); }, &state);
-
-  app->on(ActionNew, [](const ui::ActionEvent&, void* u){
-    auto& s = *static_cast<AppState*>(u);
-    gotoScreen(s, ScreenNew); s.draft[0] = 0;
-    s.kb.attach(s.draft, sizeof s.draft, /*startShifted=*/true); }, &state);
-
-  // Clock adjuster: -/+ stepper buttons send 15-minute deltas, wrapping at the
-  // UTC-12..UTC+14 ends.
-  app->on(ActionTz, [](const ui::ActionEvent& e, void* u){
-    auto& s = *static_cast<AppState*>(u);
-    int16_t next = s.tzMin + e.value;
-    if (next > 840)  next = -720;
-    if (next < -720) next = 840;
-    const int16_t delta = next - s.tzMin;
-    s.tzMin = next;
-    if (delta && rtc.adjust(delta * 60L, &s.now)) s.haveTime = true;
-  }, &state);
-
-  // Wi-Fi: show "Scanning..." first, scan after that frame is on the panel.
-  app->on(ActionOpenWifi, [](const ui::ActionEvent&, void* u){
-    auto& s = *static_cast<AppState*>(u);
-    s.netCount = 0; s.scanPending = true; s.wifiStatus = "";
-    gotoScreen(s, ScreenWifiScan); }, &state);
 
 void loop() {
-  static uint32_t lastTick = 0;
-  static uint16_t lastMinute = 0xFFFF;
-  if (millis() - lastTick > 1000) {                 // read the RTC ~1 Hz
-    lastTick = millis();
-    if (rtc.now(state.now)) {                       // false until the clock is set
-      state.haveTime = true;
-      uint16_t nowMin = state.now.hour * 60 + state.now.minute;
-      for (uint8_t i = 0; i < state.count; ++i) {
-        if (!state.items[i].fired && nowMin == state.items[i].dueMin) {
-          if (state.soundOn) buzzer.tone(2000, 400); // alert!
-          state.items[i].fired = true;
-          app->invalidate(ui::RefreshHint::Fast);
-        }
-      }
-      if (nowMin != lastMinute) { lastMinute = nowMin; app->invalidate(ui::RefreshHint::Fast); }
+  float sx0, sy0, sx1, sy1;
+  while (input.popSwipe(sx0, sy0, sx1, sy1)) {
+    const ui::Point a = ui::touchToLogical(app->device(), sx0, sy0);
+    const ui::Point b = ui::touchToLogical(app->device(), sx1, sy1);
+    const int16_t dy = static_cast<int16_t>(b.y - a.y);
+    const int16_t dx = static_cast<int16_t>(b.x - a.x);
+    const bool vertical = abs(dy) > abs(dx);
+    if (screenId == Screen::Reader && vertical && a.y <= app->device().height * 14 / 100 && dy > 0) {
+      go(Screen::Menu);
+    } else if (screenId != Screen::Books && vertical && a.y >= app->device().height - 40 && dy < 0) {
+      if (screenId == Screen::Menu) go(Screen::Reader);
+      else { reader.end(); go(Screen::Books); }
+    } else if (screenId == Screen::Books && vertical && bookVisibleRows > 0 && bookCount > bookVisibleRows) {
+      const uint16_t maxTop = bookCount - bookVisibleRows;
+      const uint16_t step = bookVisibleRows > 1 ? bookVisibleRows - 1 : 1;
+      bookTop = dy < 0 ? min<uint16_t>(bookTop + step, maxTop) : (bookTop > step ? bookTop - step : 0);
+      app->invalidate(ui::RefreshHint::Fast);
     }
   }
 
-  // Taps are sampled on the input task (beginAsync in setup) and queued —
-  // nothing is lost while this thread renders or the panel refreshes. route()
-  // dispatches each tap against the last rendered frame without drawing
-  // (microseconds), so a fast typing burst costs one repaint, not one 200ms
-  // render per key.
   float nx, ny;
   while (input.popTouchTap(nx, ny)) {
-    ui::InputSnapshot tap;
     const ui::Point p = ui::touchToLogical(app->device(), nx, ny);
+    ui::InputSnapshot tap;
     tap.touchReleased = true;
     tap.touchX = p.x;
     tap.touchY = p.y;
@@ -507,47 +575,44 @@ void loop() {
   static ui::RefreshHint pending = ui::RefreshHint::None;
   if (app->invalidated()) {
     app->render();
+    if (screenId == Screen::Reader && reader.open) {
+      book::FrameTarget frame{display.getFrameBuffer(),
+                              static_cast<int16_t>(display.getDisplayWidth()),
+                              static_cast<int16_t>(display.getDisplayHeight()),
+                              static_cast<int16_t>(display.getDisplayWidthBytes()),
+                              book::FrameFormat::Mono1Dithered,
+                              kPageRotation};
+      reader.render(frame);
+    }
     const ui::RefreshHint hint = app->lastRenderRefreshHint();
     if (static_cast<uint8_t>(hint) > static_cast<uint8_t>(pending)) pending = hint;
   }
-
-  // Push the newest frame whenever the panel is idle. Under fast typing the
-  // refreshes chain back-to-back — each one shows every keystroke that landed
-  // while the previous refresh ran (the ~0.6s fast waveform is the pace) —
-  // and stop when nothing is dirty.
   if (pending != ui::RefreshHint::None && !display.refreshBusy()) {
     ui::presentAsync(display, pending);
     pending = ui::RefreshHint::None;
-
-    // The "Scanning..." frame is on its way to the panel; run the blocking
-    // Wi-Fi scan while the refresh runs.
-    if (state.scanPending && state.screen == ScreenWifiScan) {
-      state.scanPending = false;
-      scanNets(state);
-      app->invalidate(ui::RefreshHint::Fast);
-    }
   }
-  delay(10);
 }
 ```
 
-> **Never block the loop — on the panel or on input**
->
-> Two things make e-paper typing feel broken: blocking on the panel and sampling input on the render thread. A blocking `ui::present()` spins on the BUSY pin for the whole waveform (~0.3–2 s), and a render pass costs ~200 ms — during either, taps vanish. `InputManager::beginAsync()` samples touch on its own task and queues every completed tap (`popTouchTap`), so nothing is ever lost; `app->route()` dispatches queued taps against the last rendered frame without drawing, so a typing burst costs one repaint. `ui::presentAsync()` starts the refresh and returns in ~25 ms — the panel refreshes from its own RAM copy; poll `display.refreshBusy()` and push the newest frame when idle. Refresh only on change (accumulate the strongest `RefreshHint`), and use `invalidateTransition()` for screen changes (fast partials with a periodic full to clear ghosting).
+## 3. Gesture contract
 
-## 6. Build and flash
+Keep edge gestures strict. The starter only treats a bottom swipe as Home when the gesture starts in the bottom 40 logical pixels, so ordinary list scrolling does not exit the screen. The reader menu uses the mirror rule: the top swipe must start in the top 14% of the screen.
 
-```bash
-pio run -e sticky -t upload
-```
+## 4. Where to grow from here
 
-Open **Settings** from the gear, tap **Wi-Fi & clock** to scan, pick your network, type the password and **Connect** to sync the clock — or dial the time by hand in **Adjust clock**. Back on the list, add a reminder with **New**; when its minute arrives the buzzer sounds and the row flips from clock to bell. The full firmware lives in the [sticky-reminders](https://github.com/Free-Ink/sticky-reminders) repo.
+Keep the first version boring. A reader gets painful when navigation, caching, and power behavior are added too late, so grow the starter in this order:
 
-## Going further
+- **Persist reading position.** Write a tiny progress record beside the page cache, for example `/BookCache/<book-id>/progress.bin`, with the current spine, character offset, font size, and percentage. Save after page turns and before leaving the reader.
+- **Cache library metadata.** Parse each EPUB once for title, author, and cover href, then store that in `/BookCache`. The list should render from cached metadata and only fall back to filenames when metadata is missing.
+- **Add a real reader menu.** Replace the placeholder menu with a scrollable TOC list. Use the book TOC when present, fall back to spine items when it is not, and keep the bottom-edge swipe as the fast path back to the page.
+- **Make opening feel responsive.** If a first open needs to paginate, draw a FreeInkUI toast or popup before indexing. Kick off the panel refresh, then do CPU/SD work while the e-paper update is in flight.
+- **Improve the library one surface at a time.** Add folder navigation before covers if you expect large SD cards. Add covers later, cache decoded thumbnails, and keep the All Books path as a simple list so it stays fast.
+- **Add settings after the core loop is solid.** Start with font size, line height, margins, orientation, and embedded CSS. Store settings in one small binary or JSON file and make every setting invalidate the page cache only when it changes layout.
+- **Support the hardware buttons.** Map side buttons to page up/down in the reader, list scrolling in the library/menu, and power to a sleep screen plus deep sleep. Keep touch and buttons using the same action handlers where possible.
+- **Protect the gesture edges.** Bottom-home and top-menu gestures should only trigger when the swipe starts in the edge band. That prevents list scrolling from accidentally exiting the screen.
+- **Watch memory early.** EPUB parsing, page layout, image decoding, and UI buffers all compete for RAM. Prefer fixed-size arenas, cache files on SD, and one decoded cover buffer per visible item instead of keeping the whole library hot.
 
-1. Persist reminders, the Wi-Fi network and the UTC offset across reboots with [SDCardManager](https://freeink.org/docs/lib-sd), and reload them in `setup()`.
-2. Localize the keyboard via `QwertyKeyboardProps.layout`, or design richer screens in the [visual builder](https://freeink.org/docs/lib-ui) and browse the [component gallery](https://freeink.org/docs/lib-ui-components).
-3. Sleep between checks: arm a timer/touch wake and call [PowerManager](https://freeink.org/docs/lib-power)'s `powerDownRailsForSleep()` before `deepSleep()` to cut standby drain.
+Once those pieces are in place, the starter has the same shape as a production reader: a fast library, a cached paged reading surface, a small menu stack, and predictable e-paper refreshes. Everything else is polish.
 
 ---
 
@@ -1716,7 +1781,7 @@ A set of immediate-mode components, deliberately not tied to any application's s
 | `table` | A rows × columns cell grid with grid lines, an optional header row and per-cell styles. |
 | `statusBar` | Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay. |
 | `tabBar` | Pill or underline-style tabs with an optional divider, per-tab icons and a disabled state. |
-| `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers. |
+| `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers; an optional per-row subtitle beneath the label; vertically-centered row content. |
 | `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, Shift + symbols; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting. |
 | `textArea` | A multi-line scrollable writing canvas (the editor body). The app owns the text buffer and caret offset; it word-wraps, draws the window of lines from topLine, and an optional caret. textAreaMeasure() / textAreaTopLineFor() keep the caret on screen, mirroring lists. |
 | `readerChrome / tapZones` | Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing. |
@@ -1948,12 +2013,14 @@ Everything follows from four rules, each enforced by host tests rather than conv
 
 | Stage | What it does |
 | --- | --- |
-| Container | ZIP catalog + streaming inflate; OPF metadata / manifest / spine; nav + NCX TOC; DRM detection. |
+| Container | ZIP catalog + streaming inflate; OPF metadata / manifest / spine; nav + NCX TOC; encryption.xml parsing that tells font obfuscation from real DRM (obfuscated-font-only books still render; only true DRM → Encrypted). |
 | CSS | A tolerant subset cascade: element / .class selectors, ~15 properties, inline style="", chapter <style> blocks. |
 | Layout | SAX → block flow → UAX #14 line breaking → two-phase paragraph placement → page records. The same engine lays out .txt via layoutPlainText(). |
 | Cache | FIBP page records: generation hash, torn-write detection, char anchors, id-anchor table, per-chapter totals. |
 | Fonts | A RenderFont interface; an stb_truetype engine (kerning, ligatures, AA); a style-aware FontChain. |
 | Render | Page → framebuffer compositor (mono dithered / sharp / Gray8, 4 rotations); streaming image decode with box-filter + Floyd–Steinberg. |
+
+The engine vendors its dependencies (UAX #14 line breaking, stb_truetype, expat XML); `vendorVersions()` reports the bundled versions, and the expat parser is exposed (`epub/Expat.h`) for apps that need XML of their own.
 
 ## Quick start
 
@@ -2010,7 +2077,7 @@ Two opt-in [FreeInkUI](https://freeink.org/docs/lib-ui) bridges live in `FreeInk
 
 ## Images
 
-`<img>` targets are probed for dimensions at layout time (header-only, no decode), placed aspect-fit and centered. At render time the decode **streams** — PNG scanline-by-scanline, JPEG in MCU bands — through box-filter resampling into Floyd–Steinberg dithering (1-bit) or raw grayscale (Gray8), so the full image never exists in memory. Unsupported formats (GIF, SVG, interlaced PNG) leave their reserved space blank rather than failing the page.
+`<img>` targets are probed for dimensions at layout time (header-only, no decode), placed aspect-fit and centered. At render time the decode **streams** — PNG scanline-by-scanline, JPEG in MCU bands — through box-filter resampling into Floyd–Steinberg dithering (1-bit) or raw grayscale (Gray8), so the full image never exists in memory. Progressive JPEGs (common for covers) take a **DC-only first-scan path**, rendering a 1/8-scale preview instead of a blank. Truly unsupported formats (GIF, SVG, interlaced PNG) leave their reserved space blank rather than failing the page.
 
 ## Memory profiles
 
