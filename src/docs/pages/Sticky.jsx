@@ -168,6 +168,7 @@ enum : ui::ActionId {
   ActionPageNext,
   ActionPagePrev,
   ActionBackToReader,
+  ActionBackToLibrary,
 };
 
 enum class Screen : uint8_t { Library, Reader, Menu };
@@ -228,7 +229,6 @@ int bookCount = 0;
 uint16_t bookTop = 0;
 uint16_t bookVisibleRows = 0;
 int16_t selectedBook = 0;
-uint8_t readerFastTurns = 0;
 
 uint8_t* bookBuf = nullptr;
 uint8_t* scratchBuf = nullptr;
@@ -447,16 +447,20 @@ void readerScreen(App::ScreenType& s, void*) {
   // hit zones. Reader chrome is also drawn after the page so text cannot
   // overwrite it.
   const ui::Rect body = s.body();
-  const int16_t half = static_cast<int16_t>(body.width / 2);
-  const ui::TapZone zones[2] = {
-    {ui::Rect{body.x, body.y, half, body.height}, ActionPagePrev},
-    {ui::Rect{static_cast<int16_t>(body.x + half), body.y,
-              static_cast<int16_t>(body.width - half), body.height}, ActionPageNext},
+  const int16_t third = static_cast<int16_t>(body.width / 3);
+  const ui::TapZone zones[3] = {
+    {ui::Rect{body.x, body.y, third, body.height}, ActionPagePrev},
+    {ui::Rect{static_cast<int16_t>(body.x + third), body.y, third, body.height}, ActionBackToReader},
+    {ui::Rect{static_cast<int16_t>(body.x + 2 * third), body.y,
+              static_cast<int16_t>(body.width - 2 * third), body.height}, ActionPageNext},
   };
 
   ui::TapZonesProps taps;
   taps.zones = zones;
-  taps.count = 2;
+  taps.count = 3;
+  taps.swipeLeft = ActionPageNext;
+  taps.swipeRight = ActionPagePrev;
+  taps.back = ActionBackToLibrary;
   ui::tapZones(s.frame(), body, taps);
 }
 
@@ -494,20 +498,23 @@ void drawReaderChromeOverlay() {
   selectedBook = e.value;
   if (selectedBook >= 0 && selectedBook < bookCount &&
       session.begin(bookPaths[selectedBook])) {
-    readerFastTurns = 0;
     goToPage(Screen::Reader);
   }
 }
 
 void onPageTurn(const ui::ActionEvent& e, void*) {
   if (session.turn(e.action == ActionPageNext ? 1 : -1)) {
-    readerFastTurns = static_cast<uint8_t>(readerFastTurns + 1);
-    app->invalidate(readerFastTurns % 6 == 0 ? ui::RefreshHint::Full : ui::RefreshHint::Fast);
+    app->invalidate(ui::RefreshHint::Fast);
   }
 }
 
 void onBackToReader(const ui::ActionEvent&, void*) {
   goToPage(Screen::Reader);
+}
+
+void onBackToLibrary(const ui::ActionEvent&, void*) {
+  session.end();
+  goToPage(Screen::Library);
 }
 
 void setup() {
@@ -538,6 +545,7 @@ void setup() {
   app->on(ActionPageNext, onPageTurn);
   app->on(ActionPagePrev, onPageTurn);
   app->on(ActionBackToReader, onBackToReader);
+  app->on(ActionBackToLibrary, onBackToLibrary);
 
   scanBooks();
   goToPage(Screen::Library, /*initialPaint=*/true);
@@ -558,7 +566,7 @@ void loop() {
       break;
     }
     if (screen != Screen::Library && vertical &&
-        a.y >= app->device().height - 40 && dy < 0) {
+        a.y >= app->device().height * 86 / 100 && dy < 0) {
       if (screen == Screen::Menu) goToPage(Screen::Reader);
       else { session.end(); goToPage(Screen::Library); }
       break;
@@ -611,11 +619,21 @@ void loop() {
       <H2>7. Gesture contract</H2>
       <P>
         Keep edge gestures strict. The bottom-home gesture only triggers when the swipe starts in the
-        bottom 40 logical pixels, so ordinary list scrolling does not exit the screen. The menu gesture is
+        bottom 14% of the screen, so ordinary list scrolling does not exit the screen. The menu gesture is
         the mirror: top-edge downward swipe, starting in the top 14% of the reader surface.
       </P>
 
-      <H2>8. Where to grow from here</H2>
+      <H2>8. E-paper refresh policy</H2>
+      <P>
+        Page turns use <Code>ui::RefreshHint::Fast</Code>, just like the full reader app. Ghost prevention
+        is handled below the reader: <Code>ui::presentAsync(display, hint)</Code> calls
+        <Code>FreeInkDisplay::displayBufferAsync()</Code>, which supplies the panel driver with the
+        previous displayed frame. On differential panels, that previous-frame baseline is what keeps fast
+        reader turns from smearing. The first boot paint is still <Code>Full</Code>, and each panel driver
+        may promote or clear internally when its controller requires it.
+      </P>
+
+      <H2>9. Where to grow from here</H2>
       <P>
         Keep the first version boring. A reader gets painful when navigation, caching, and power behavior
         are added too late, so grow the starter in this order:
