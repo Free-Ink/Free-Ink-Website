@@ -28,6 +28,16 @@ git submodule update --init --recursive`}</CodeBlock>
         shell, <Code>FreeInkBook</Code> for EPUB layout/cache/rendering, and <Code>SDCardManager</Code>
         for the card.
       </P>
+      <P>The reader path in this tutorial uses the same SDK stack you use in a real app:</P>
+      <Ul>
+        <Li><Code>book::Book</Code> opens the EPUB package and exposes metadata, TOC, manifest, and spine.</Li>
+        <Li><Code>book::ChapterLayout::layout()</Code> paginates one spine item into cache records.</Li>
+        <Li><Code>book::PageCacheWriter</Code> receives those pages during layout.</Li>
+        <Li><Code>book::PageCacheReader</Code> reopens cached pages for fast page turns.</Li>
+        <Li><Code>book::PageRenderer</Code> renders the current cached page into the framebuffer.</Li>
+        <Li><Code>ui::tapZones()</Code> provides invisible reader hit zones.</Li>
+        <Li><Code>ui::readerChrome()</Code> draws reader status chrome over the page.</Li>
+      </Ul>
       <CodeBlock lang="platformio.ini">{`[env:sticky]
 platform = https://github.com/pioarduino/platform-espressif32/releases/download/55.03.37/platform-espressif32.zip
 framework = arduino
@@ -218,6 +228,7 @@ int bookCount = 0;
 uint16_t bookTop = 0;
 uint16_t bookVisibleRows = 0;
 int16_t selectedBook = 0;
+uint8_t readerFastTurns = 0;
 
 uint8_t* bookBuf = nullptr;
 uint8_t* scratchBuf = nullptr;
@@ -432,6 +443,9 @@ void libraryScreen(App::ScreenType& s, void*) {
 }
 
 void readerScreen(App::ScreenType& s, void*) {
+  // The visible page is composited in loop() after FreeInkApp registers these
+  // hit zones. Reader chrome is also drawn after the page so text cannot
+  // overwrite it.
   const ui::Rect body = s.body();
   const int16_t half = static_cast<int16_t>(body.width / 2);
   const ui::TapZone zones[2] = {
@@ -449,6 +463,25 @@ void readerScreen(App::ScreenType& s, void*) {
 void menuScreen(App::ScreenType& s, void*) {
   s.navHeader("Reader Menu", ActionBackToReader, ui::BitmapRef{}, nullptr, ui::EdgesNone);
   s.centeredText("Swipe up from the bottom edge to resume.");
+}
+
+void drawReaderChromeOverlay() {
+  ui::InteractionBuffer<1> interactions;
+  ui::InputSnapshot input;
+  ui::Frame<1> frame(*target, app->device(), input, interactions, app->assets());
+
+  char pageLabel[24];
+  snprintf(pageLabel, sizeof(pageLabel), "%lu/%lu",
+           static_cast<unsigned long>(session.pageInChapter + 1),
+           static_cast<unsigned long>(session.reader.pageCount()));
+
+  ui::ReaderChromeProps chrome;
+  chrome.showTop = false;
+  chrome.bottom.title = "Reader";
+  chrome.bottom.trailing = pageLabel;
+  chrome.bottom.text = app->theme().smallText;
+  chrome.bottom.fillBackground = true;
+  ui::readerChrome(frame, frame.safeRect(), chrome);
 }`}</CodeBlock>
 
       <H2>6. Actions, setup, and render loop</H2>
@@ -461,13 +494,15 @@ void menuScreen(App::ScreenType& s, void*) {
   selectedBook = e.value;
   if (selectedBook >= 0 && selectedBook < bookCount &&
       session.begin(bookPaths[selectedBook])) {
+    readerFastTurns = 0;
     goToPage(Screen::Reader);
   }
 }
 
 void onPageTurn(const ui::ActionEvent& e, void*) {
   if (session.turn(e.action == ActionPageNext ? 1 : -1)) {
-    app->invalidate(ui::RefreshHint::Fast);
+    readerFastTurns = static_cast<uint8_t>(readerFastTurns + 1);
+    app->invalidate(readerFastTurns % 6 == 0 ? ui::RefreshHint::Full : ui::RefreshHint::Fast);
   }
 }
 
@@ -561,6 +596,7 @@ void loop() {
         book::FrameRotation::Portrait,
       };
       session.renderCurrent(frame);
+      drawReaderChromeOverlay();
     }
     const ui::RefreshHint hint = app->lastRenderRefreshHint();
     if (static_cast<uint8_t>(hint) > static_cast<uint8_t>(pending)) pending = hint;
