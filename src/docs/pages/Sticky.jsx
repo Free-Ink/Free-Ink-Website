@@ -351,26 +351,65 @@ struct ReaderSession {
         (<Code>s.header()</Code>, <Code>s.body()</Code>, <Code>s.navHeader()</Code>) and FreeInkUI
         components for interactive surfaces.
       </P>
-      <CodeBlock lang="cpp">{`void scanBooks() {
-  bookCount = 0;
-  FsFile dir = SdMan.open("/", O_RDONLY);
+      <CodeBlock lang="cpp">{`bool isEpubFile(const char* name) {
+  const size_t len = strlen(name);
+  return len > 5 && strcasecmp(name + len - 5, ".epub") == 0;
+}
+
+bool isHiddenOrSystemDir(const char* name) {
+  return name == nullptr || name[0] == 0 || name[0] == '.' ||
+         strcasecmp(name, "BookCache") == 0 ||
+         strcasecmp(name, "System Volume Information") == 0 ||
+         strcasecmp(name, "fonts") == 0 ||
+         strcasecmp(name, "sleep") == 0 ||
+         strcasecmp(name, "screenshots") == 0 ||
+         strcasecmp(name, "themes") == 0;
+}
+
+void scanBooksIn(const char* dirPath, uint8_t depth) {
+  if (bookCount >= kMaxBooks) return;
+  const bool root = dirPath[0] == '/' && dirPath[1] == 0;
+  FsFile dir = SdMan.open(dirPath, O_RDONLY);
+  if (!dir || !dir.isDirectory()) {
+    if (dir) dir.close();
+    return;
+  }
+
   for (FsFile f = dir.openNextFile(); f && bookCount < kMaxBooks; f = dir.openNextFile()) {
     char name[128];
     f.getName(name, sizeof(name));
-    const size_t len = strlen(name);
-    const bool epub = !f.isDirectory() && len > 5 && strcasecmp(name + len - 5, ".epub") == 0;
-    f.close();
-    if (!epub || name[0] == '.') continue;
 
-    snprintf(bookPaths[bookCount], sizeof(bookPaths[bookCount]), "/%s", name);
+    if (f.isDirectory()) {
+      if (depth < 6 && !isHiddenOrSystemDir(name)) {
+        char child[160];
+        snprintf(child, sizeof(child), "%s%s%s", dirPath, root ? "" : "/", name);
+        f.close();
+        scanBooksIn(child, static_cast<uint8_t>(depth + 1));
+        continue;
+      }
+      f.close();
+      continue;
+    }
+
+    f.close();
+    if (name[0] == '.' || !isEpubFile(name)) continue;
+
+    snprintf(bookPaths[bookCount], sizeof(bookPaths[bookCount]),
+             "%s%s%s", dirPath, root ? "" : "/", name);
     snprintf(bookTitles[bookCount], sizeof(bookTitles[bookCount]), "%.*s",
-             static_cast<int>(len - 5), name);
+             static_cast<int>(strlen(name) - 5), name);
     bookItems[bookCount] = ui::ListItem{};
     bookItems[bookCount].label = bookTitles[bookCount];
     bookItems[bookCount].actionValue = static_cast<int16_t>(bookCount);
     ++bookCount;
   }
   if (dir) dir.close();
+}
+
+void scanBooks() {
+  bookCount = 0;
+  for (int i = 0; i < kMaxBooks; ++i) bookItems[i] = ui::ListItem{};
+  scanBooksIn("/", 0);
 }
 
 void libraryScreen(App::ScreenType& s, void*) {
