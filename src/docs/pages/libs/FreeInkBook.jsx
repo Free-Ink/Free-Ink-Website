@@ -182,6 +182,16 @@ PageRenderer::render(page, fonts, source, book.zip(), scratch, frame);`}</CodeBl
         fingerprint — so a wrong hash means <Code>Stale</Code> → rebuild, and torn writes are caught by a
         footer magic.
       </P>
+      <P>
+        Two extras keep huge or slow books usable. A container too big to hold in RAM (a 1,700-spine
+        omnibus) can use an <strong>SD-backed catalog</strong> (<Code>BookCatalog</Code>) that keeps only
+        fixed FNV-1a hash tables resident — ~44 KB instead of ~400 KB — trading a one-time index build
+        for the savings; the cache index itself grows on demand in 128-entry chunks, so a 10–30 page
+        chapter uses ~1 KB rather than reserving the full 8 KB. And layout is <strong>incremental</strong>:{' '}
+        <Code>readBackAt()</Code> serves already-written pages while pagination continues, and{' '}
+        <Code>suspend()</Code> checkpoints a partial build so reopening a book shows pages instantly while
+        a background pass finishes the rest (up to 4,096 pages per spine).
+      </P>
 
       <Callout title="Proven on a real corpus">
         <p>

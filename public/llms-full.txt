@@ -129,11 +129,11 @@ pio run -e xteink_x4 -t upload
 
 Group: Getting started · URL: https://freeink.org/docs/sticky
 
-The smallest useful Sticky app: scan EPUBs from the SD card, show them in a FreeInkUI list, open one into a paged reader, and use the same edge gestures as the full reader app.
+A minimal Sticky reader starter: scan EPUBs from the SD card, render an All Books list with FreeInkUI, open a book with FreeInkBook, and use FreeInkApp for screen transitions and input routing.
 
 > **What this starter intentionally leaves out**
 >
-> No covers, tabs, settings, sleep screen, metadata cache, folder navigation, font picker, progress persistence, or TOC parsing. It is a deliberately tiny spine for a real reader.
+> No covers, tabs, settings, sleep screen, metadata cache, folder navigation, font picker, progress persistence, or real TOC list. The goal is the smallest SDK-native reader loop.
 
 ## 1. Project setup
 
@@ -144,7 +144,17 @@ git submodule add https://github.com/Free-Ink/freeink-sdk.git freeink-sdk
 git submodule update --init --recursive
 ```
 
-The starter uses `FreeInkApp` for screens/input routing, `FreeInkUI` for the list and reader chrome, `FreeInkBook` for EPUB parsing/layout, and `SDCardManager` for the card.
+The important dependencies are `FreeInkUI` and `FreeInkApp` for the UI shell, `FreeInkBook` for EPUB layout/cache/rendering, and `SDCardManager`for the card.
+
+The reader path in this tutorial uses the same SDK stack you use in a real app:
+
+- `book::Book` opens the EPUB package and exposes metadata, TOC, manifest, and spine.
+- `book::ChapterLayout::layout()` paginates one spine item into cache records.
+- `book::PageCacheWriter` receives those pages during layout.
+- `book::PageCacheReader` reopens cached pages for fast page turns.
+- `book::PageRenderer` renders the current cached page into the framebuffer.
+- `ui::tapZones()` provides invisible reader hit zones.
+- `ui::readerChrome()` draws reader status chrome over the page.
 
 ```platformio.ini
 [env:sticky]
@@ -158,6 +168,7 @@ board_upload.flash_size = 16MB
 build_flags =
   -std=gnu++17
   -DFREEINK_DEVICE_STICKY=1
+  -DEINK_DISPLAY_SINGLE_BUFFER_MODE=1
   -DBOARD_HAS_PSRAM
   -DARDUINO_USB_CDC_ON_BOOT=1
   -DARDUINO_USB_MODE=1
@@ -165,19 +176,96 @@ lib_deps =
   BoardConfig=symlink://freeink-sdk/libs/hardware/BoardConfig
   EInkDisplay=symlink://freeink-sdk/libs/display/FreeInkDisplay
   InputManager=symlink://freeink-sdk/libs/hardware/InputManager
-  BatteryMonitor=symlink://freeink-sdk/libs/hardware/BatteryMonitor
   SDCardManager=symlink://freeink-sdk/libs/hardware/SDCardManager
   FreeInkUI=symlink://freeink-sdk/libs/ui/FreeInkUI
   FreeInkBook=symlink://freeink-sdk/libs/book/FreeInkBook
 ```
 
-## 2. Minimal reader
+## 2. Storage adapters
 
-Put EPUB files anywhere on the SD card. The home screen recursively scans the card into a plain All Books list. Tap a row to open it. In the reader, tap left/right to turn pages. Swipe up from the very bottom edge to go home; swipe down from the very top edge to show the reader menu.
+FreeInkBook does not know about SD cards. The app supplies a `book::BookSource` for random-access reads and a `book::CacheStorage` for page-cache files. Put this in`src/BookStorageAdapters.h`.
+
+```cpp
+#pragma once
+
+#include <BookStorage.h>
+#include <SDCardManager.h>
+
+class SdBookSource : public freeink::book::BookSource {
+ public:
+  bool open(const char* path) {
+    file_ = SdMan.open(path, O_RDONLY);
+    return file_ && (size_ = file_.fileSize()) > 0;
+  }
+  void close() {
+    if (file_) file_.close();
+  }
+  int32_t readAt(uint64_t offset, void* dst, uint32_t len) override {
+    if (!file_ || !file_.seekSet(offset)) return -1;
+    return file_.read(dst, len);
+  }
+  uint64_t size() const override { return size_; }
+
+ private:
+  FsFile file_;
+  uint64_t size_ = 0;
+};
+
+class SdCacheStorage : public freeink::book::CacheStorage {
+ public:
+  void setDir(const char* dir) {
+    snprintf(dir_, sizeof(dir_), "%s", dir);
+    SdMan.ensureDirectoryExists(dir_);
+  }
+  bool exists(const char* name) override { return SdMan.exists(path(name)); }
+  bool remove(const char* name) override { return SdMan.remove(path(name)); }
+  int64_t fileSize(const char* name) override {
+    FsFile f = SdMan.open(path(name), O_RDONLY);
+    if (!f) return -1;
+    const int64_t size = f.fileSize();
+    f.close();
+    return size;
+  }
+  int32_t readAt(const char* name, uint32_t offset, void* dst, uint32_t len) override {
+    FsFile f = SdMan.open(path(name), O_RDONLY);
+    if (!f || !f.seekSet(offset)) return -1;
+    const int32_t n = f.read(dst, len);
+    f.close();
+    return n;
+  }
+  bool beginWrite(const char* name) override {
+    snprintf(commitPath_, sizeof(commitPath_), "%s/%s", dir_, name);
+    write_ = SdMan.open(path("_tmp.fibp"), O_WRONLY | O_CREAT | O_TRUNC);
+    return static_cast<bool>(write_);
+  }
+  bool write(const void* data, uint32_t len) override {
+    return write_ && write_.write(data, len) == len;
+  }
+  bool endWrite() override {
+    if (!write_) return false;
+    write_.close();
+    SdMan.remove(commitPath_);
+    return SdMan.rename(path("_tmp.fibp"), commitPath_);
+  }
+
+ private:
+  const char* path(const char* name) {
+    snprintf(pathBuf_, sizeof(pathBuf_), "%s/%s", dir_, name);
+    return pathBuf_;
+  }
+  char dir_[96] = "/BookCache";
+  char pathBuf_[192];
+  char commitPath_[192];
+  FsFile write_;
+};
+```
+
+## 3. FreeInkApp shell
+
+FreeInkApp owns the screen function, action routing, tap flash, and transition invalidation. Screens are plain functions that receive `App::ScreenType&` and lay themselves out with the FreeInkUI screen builder.
 
 ```cpp
 #include <Arduino.h>
-#include <BookStorage.h>
 #include <BoardConfig.h>
 #include <EInkDisplay.h>
 #include <FreeInkApp.h>
@@ -189,12 +277,23 @@ Put EPUB files anywhere on the SD card. The home screen recursively scans the ca
 #include <cache/PageCache.h>
 #include <layout/ChapterLayout.h>
 #include <render/PageRenderer.h>
-#include <render/TtfFont.h>
+
+#include "BookStorageAdapters.h"
 
 using namespace freeink;
+using book::BookStatus;
 
-enum : ui::ActionId { ActionOpenBook = 1, ActionPagePrev, ActionPageNext };
-enum class Screen : uint8_t { Books, Reader, Menu };
+enum : ui::ActionId {
+  ActionOpenBook = 1,
+  ActionPageNext,
+  ActionPagePrev,
+  ActionBackToReader,
+  ActionBackToLibrary,
+};
+
+enum class Screen : uint8_t { Library, Reader, Menu };
+
+using App = ui::FreeInkApp<48, 16>;
 
 EInkDisplay display(
   BoardConfig::ACTIVE.display.sclk, BoardConfig::ACTIVE.display.mosi,
@@ -202,180 +301,170 @@ EInkDisplay display(
   BoardConfig::ACTIVE.display.rst,  BoardConfig::ACTIVE.display.busy);
 
 InputManager input;
-using App = ui::FreeInkApp<32, 8>;
-App* app = nullptr;
 ui::DisplayTarget* target = nullptr;
-static constexpr book::FrameRotation kPageRotation = book::FrameRotation::Portrait;
+App* app = nullptr;
+Screen screen = Screen::Library;
 
-static constexpr uint8_t kMaxBooks = 64;
+void libraryScreen(App::ScreenType& s, void*);
+void readerScreen(App::ScreenType& s, void*);
+void menuScreen(App::ScreenType& s, void*);
 
-Screen screenId = Screen::Books;
-ui::BitmapBookFont fallbackFont;
-book::FontChain fonts;
+void goToPage(Screen next, bool initialPaint = false) {
+  float sx0, sy0, sx1, sy1;
+  while (input.popSwipe(sx0, sy0, sx1, sy1)) {
+    // Drop gestures completed on the previous screen.
+  }
+
+  screen = next;
+  app->clearTapFlash();
+  switch (next) {
+    case Screen::Library:
+      app->setScreen(libraryScreen, nullptr, ui::RefreshHint::None);
+      break;
+    case Screen::Reader:
+      app->setScreen(readerScreen, nullptr, ui::RefreshHint::None);
+      break;
+    case Screen::Menu:
+      app->setScreen(menuScreen, nullptr, ui::RefreshHint::None);
+      break;
+  }
+
+  if (initialPaint) app->invalidate(ui::RefreshHint::Full);
+  else app->invalidateTransition();
+}
+```
+
+## 4. Library and reader state
+
+The starter keeps the library as a fixed array of `ui::ListItem` rows and opens one chapter at a time through `book::PageCacheReader`. The page-cache filename comes from`book::pageCacheName()`, and cache invalidation comes from `book::layoutGenerationHash()`.
+
+```cpp
+static constexpr int kMaxBooks = 64;
 
 char bookPaths[kMaxBooks][160];
 char bookTitles[kMaxBooks][64];
-ui::ListItem bookRows[kMaxBooks];
-uint8_t bookCount = 0;
+ui::ListItem bookItems[kMaxBooks];
+int bookCount = 0;
 uint16_t bookTop = 0;
 uint16_t bookVisibleRows = 0;
 int16_t selectedBook = 0;
 
-uint8_t* bookArenaBuf = nullptr;
+uint8_t* bookBuf = nullptr;
 uint8_t* scratchBuf = nullptr;
 uint8_t* indexBuf = nullptr;
 
-class SdBookSource : public book::BookSource {
- public:
-  bool open(const char* path) {
-    file_ = SdMan.open(path, O_RDONLY);
-    size_ = file_ ? file_.fileSize() : 0;
-    return file_ && size_ > 0;
-  }
-  void close() { if (file_) file_.close(); }
-  int32_t readAt(uint64_t offset, void* dst, uint32_t len) override {
-    if (!file_ || !file_.seekSet(offset)) return -1;
-    return file_.read(dst, len);
-  }
-  uint64_t size() const override { return size_; }
- private:
-  FsFile file_;
-  uint64_t size_ = 0;
-};
+ui::BitmapBookFont builtinFont;
+book::FontChain fonts;
 
-class SdPageCache : public book::CacheStorage {
- public:
-  bool begin(const char* path, uint32_t hash) {
-    snprintf(dir_, sizeof(dir_), "/BookCache/%08lx", static_cast<unsigned long>(hash));
-    SdMan.ensureDirectoryExists("/BookCache");
-    SdMan.ensureDirectoryExists(dir_);
-    return true;
-  }
-  bool exists(const char* name) override { return SdMan.exists(fullPath(name)); }
-  bool remove(const char* name) override { return SdMan.remove(fullPath(name)); }
-  int64_t fileSize(const char* name) override {
-    FsFile f = SdMan.open(fullPath(name), O_RDONLY);
-    if (!f) return -1;
-    const int64_t size = f.fileSize();
-    f.close();
-    return size;
-  }
-  int32_t readAt(const char* name, uint32_t off, void* dst, uint32_t len) override {
-    FsFile f = SdMan.open(fullPath(name), O_RDONLY);
-    if (!f || !f.seekSet(off)) return -1;
-    const int32_t n = f.read(dst, len);
-    f.close();
-    return n;
-  }
-  bool beginWrite(const char* name) override {
-    snprintf(commitPath_, sizeof(commitPath_), "%s/%s", dir_, name);
-    write_ = SdMan.open(fullPath("_tmp.fibp"), O_WRONLY | O_CREAT | O_TRUNC);
-    return static_cast<bool>(write_);
-  }
-  bool write(const void* data, uint32_t len) override {
-    return write_ && write_.write(data, len) == len;
-  }
-  bool endWrite() override {
-    if (!write_) return false;
-    write_.close();
-    SdMan.remove(commitPath_);
-    return SdMan.rename(fullPath("_tmp.fibp"), commitPath_);
-  }
- private:
-  const char* fullPath(const char* name) {
-    snprintf(pathBuf_, sizeof(pathBuf_), "%s/%s", dir_, name);
-    return pathBuf_;
-  }
-  char dir_[64] = "";
-  char pathBuf_[160] = "";
-  char commitPath_[160] = "";
-  FsFile write_;
-};
-
-struct Reader {
+struct ReaderSession {
   SdBookSource source;
-  SdPageCache cache;
-  book::Book book;
-  book::PageCacheReader pages;
+  SdCacheStorage cache;
   book::Arena bookArena;
   book::Arena scratch;
   book::Arena indexArena;
+  book::Book bk;
   book::LayoutParams params;
-  uint16_t spine = 0;
-  uint16_t page = 0;
+  book::PageCacheReader reader;
+  char cacheDir[96];
+  char cacheName[64];  // PageCacheReader borrows this name while open.
+  uint16_t spineIndex = 0;
+  uint32_t pageInChapter = 0;
   bool open = false;
 
   bool begin(const char* path) {
     end();
-    bookArena.init(bookArenaBuf, 512 * 1024);
+    bookArena.init(bookBuf, 512 * 1024);
     scratch.init(scratchBuf, 512 * 1024);
     indexArena.init(indexBuf, 64 * 1024);
     if (!source.open(path)) return false;
-    if (book.open(source, bookArena, scratch) != book::BookStatus::Ok) return false;
+    if (bk.open(source, bookArena, scratch) != BookStatus::Ok) return false;
 
-    params.font = &fonts;
+    const uint32_t id = book::ZipCatalog::hashPath(path);
+    snprintf(cacheDir, sizeof(cacheDir), "/BookCache/%08x", id);
+    cache.setDir(cacheDir);
+
+    params = book::LayoutParams{};
     params.pageWidth = target->logicalWidth();
     params.pageHeight = target->logicalHeight();
     params.marginLeft = params.marginRight = 24;
-    params.marginTop = params.marginBottom = 36;
+    params.marginTop = params.marginBottom = 24;
     params.baseSizePx = 18;
-    params.lineSpacingPct = 140;
+    params.lineSpacingPct = 120;
+    params.font = &fonts;
 
-    const uint32_t hash = book::ZipCatalog::hashPath(path);
-    cache.begin("chapter", hash);
-    return openChapter(0);
-  }
-
-  bool openChapter(uint16_t nextSpine) {
-    if (nextSpine >= book.spineCount()) return false;
-    spine = nextSpine;
-    page = 0;
-    const book::ManifestItem* item = book.spineItem(spine);
-    const book::ZipEntry* entry = item ? book.zip().find(item->href) : nullptr;
-    if (!item || !entry) return false;
-
-    const uint32_t generationHash = book::layoutGenerationHash(params, /*fontFingerprint=*/1);
-    char cacheName[64];
-    if (!book::pageCacheName(spine, generationHash, cacheName, sizeof(cacheName))) return false;
-
-    indexArena.reset();
-    if (cache.exists(cacheName) &&
-        pages.open(cache, cacheName, generationHash, indexArena) == book::BookStatus::Ok) {
-      open = true;
-      return true;
-    }
-
-    book::PageCacheWriter writer;
-    if (!writer.begin(cache, cacheName, generationHash, scratch)) return false;
-    uint32_t totalChars = 0;
-    const book::BookStatus st = book::ChapterLayout::layout(
-      source, book.zip(), *entry, item->href, params, scratch, writer, nullptr, &totalChars);
-    writer.setTotalChars(totalChars);
-    if (st != book::BookStatus::Ok || !writer.finish()) return false;
-    indexArena.reset();
-    open = pages.open(cache, cacheName, generationHash, indexArena) == book::BookStatus::Ok;
+    open = ensureChapter(0) == BookStatus::Ok;
     return open;
   }
 
-  bool turn(int delta) {
+  uint32_t generation() const {
+    return book::layoutGenerationHash(params, /*fontFingerprint=*/1);
+  }
+
+  BookStatus ensureChapter(uint16_t nextSpine) {
+    if (nextSpine >= bk.spineCount()) return BookStatus::NotFound;
+    spineIndex = nextSpine;
+    pageInChapter = 0;
+
+    const uint32_t hash = generation();
+    if (!book::pageCacheName(spineIndex, hash, cacheName, sizeof(cacheName))) {
+      return BookStatus::IoError;
+    }
+
+    indexArena.reset();
+    BookStatus st = reader.open(cache, cacheName, hash, indexArena);
+    if (st == BookStatus::Ok) return st;
+
+    const book::ManifestItem* item = bk.spineItem(spineIndex);
+    const book::ZipEntry* entry = item ? bk.zip().find(item->href) : nullptr;
+    if (!item || !entry) return BookStatus::NotFound;
+
+    const size_t mark = scratch.mark();
+    book::PageCacheWriter writer;
+    if (!writer.begin(cache, cacheName, hash, scratch)) {
+      scratch.release(mark);
+      return BookStatus::IoError;
+    }
+
+    uint32_t totalChars = 0;
+    st = book::ChapterLayout::layout(
+      source, bk.zip(), *entry, item->href, params, scratch, writer,
+      nullptr, &totalChars);
+    writer.setTotalChars(totalChars);
+    if (st == BookStatus::Ok && !writer.finish()) st = BookStatus::IoError;
+    scratch.release(mark);
+    if (st != BookStatus::Ok) return st;
+
+    indexArena.reset();
+    return reader.open(cache, cacheName, hash, indexArena);
+  }
+
+  bool turn(int dir) {
     if (!open) return false;
-    if (delta > 0 && page + 1 < pages.pageCount()) { ++page; return true; }
-    if (delta > 0 && openChapter(spine + 1)) return true;
-    if (delta < 0 && page > 0) { --page; return true; }
-    if (delta < 0 && spine > 0 && openChapter(spine - 1)) {
-      page = pages.pageCount() ? pages.pageCount() - 1 : 0;
+    if (dir > 0 && pageInChapter + 1 < reader.pageCount()) {
+      ++pageInChapter;
+      return true;
+    }
+    if (dir > 0 && spineIndex + 1 < bk.spineCount()) {
+      return ensureChapter(spineIndex + 1) == BookStatus::Ok;
+    }
+    if (dir < 0 && pageInChapter > 0) {
+      --pageInChapter;
+      return true;
+    }
+    if (dir < 0 && spineIndex > 0 && ensureChapter(spineIndex - 1) == BookStatus::Ok) {
+      pageInChapter = reader.pageCount() > 0 ? reader.pageCount() - 1 : 0;
       return true;
     }
     return false;
   }
 
-  void render(book::FrameTarget& frame) {
+  void renderCurrent(const book::FrameTarget& frame) {
     if (!open) return;
     const size_t mark = scratch.mark();
-    book::Page p;
-    if (pages.readPage(page, scratch, &p) == book::BookStatus::Ok) {
-      book::PageRenderer::renderText(p, fonts, frame, nullptr);
-      book::PageRenderer::renderImages(p, source, book.zip(), scratch, frame);
+    book::Page page{};
+    if (reader.readPage(pageInChapter, scratch, &page) == BookStatus::Ok) {
+      book::PageRenderer::renderText(page, fonts, frame, nullptr);
+      book::PageRenderer::renderImages(page, source, bk.zip(), scratch, frame);
     }
     scratch.release(mark);
   }
@@ -384,39 +473,31 @@ struct Reader {
     source.close();
     open = false;
   }
-} reader;
+} session;
+```
 
-void booksScreen(App::ScreenType& s, void*);
-void readerScreen(App::ScreenType& s, void*);
-void menuScreen(App::ScreenType& s, void*);
+## 5. FreeInkUI screens
 
-void go(Screen next, bool initialPaint = false) {
-  float sx0, sy0, sx1, sy1;
-  while (input.popSwipe(sx0, sy0, sx1, sy1)) {
-  }
-  screenId = next;
-  app->clearTapFlash();
-  app->setScreen(
-    next == Screen::Books ? booksScreen : next == Screen::Reader ? readerScreen : menuScreen,
-    nullptr, ui::RefreshHint::None);
-  if (initialPaint) {
-    app->invalidate(ui::RefreshHint::Full);
-  } else {
-    app->invalidateTransition();
-  }
-}
+The library, reader, and menu are real FreeInkApp screens. Use the screen builder for layout (`s.header()`, `s.body()`, `s.navHeader()`) and FreeInkUI components for interactive surfaces.
 
-bool isBookFileName(const char* name) {
+```cpp
+bool isEpubFile(const char* name) {
   const size_t len = strlen(name);
   return len > 5 && strcasecmp(name + len - 5, ".epub") == 0;
 }
 
 bool isHiddenOrSystemDir(const char* name) {
   return name == nullptr || name[0] == 0 || name[0] == '.' ||
-         strcasecmp(name, "BookCache") == 0 || strcasecmp(name, "System Volume Information") == 0;
+         strcasecmp(name, "BookCache") == 0 ||
+         strcasecmp(name, "System Volume Information") == 0 ||
+         strcasecmp(name, "fonts") == 0 ||
+         strcasecmp(name, "sleep") == 0 ||
+         strcasecmp(name, "screenshots") == 0 ||
+         strcasecmp(name, "themes") == 0;
 }
 
 void scanBooksIn(const char* dirPath, uint8_t depth) {
+  if (bookCount >= kMaxBooks) return;
   const bool root = dirPath[0] == '/' && dirPath[1] == 0;
   FsFile dir = SdMan.open(dirPath, O_RDONLY);
   if (!dir || !dir.isDirectory()) {
@@ -424,9 +505,10 @@ void scanBooksIn(const char* dirPath, uint8_t depth) {
     return;
   }
 
-  char name[128];
   for (FsFile f = dir.openNextFile(); f && bookCount < kMaxBooks; f = dir.openNextFile()) {
+    char name[128];
     f.getName(name, sizeof(name));
+
     if (f.isDirectory()) {
       if (depth < 6 && !isHiddenOrSystemDir(name)) {
         char child[160];
@@ -438,77 +520,122 @@ void scanBooksIn(const char* dirPath, uint8_t depth) {
       f.close();
       continue;
     }
-    f.close();
 
-    if (name[0] == '.' || !isBookFileName(name)) continue;
-    snprintf(bookPaths[bookCount], sizeof(bookPaths[bookCount]), "%s%s%s", dirPath, root ? "" : "/", name);
+    f.close();
+    if (name[0] == '.' || !isEpubFile(name)) continue;
+
+    snprintf(bookPaths[bookCount], sizeof(bookPaths[bookCount]),
+             "%s%s%s", dirPath, root ? "" : "/", name);
     snprintf(bookTitles[bookCount], sizeof(bookTitles[bookCount]), "%.*s",
              static_cast<int>(strlen(name) - 5), name);
-    bookRows[bookCount] = ui::ListItem{};
-    bookRows[bookCount].label = bookTitles[bookCount];
-    bookRows[bookCount].actionValue = static_cast<int16_t>(bookCount);
+    bookItems[bookCount] = ui::ListItem{};
+    bookItems[bookCount].label = bookTitles[bookCount];
+    bookItems[bookCount].actionValue = static_cast<int16_t>(bookCount);
     ++bookCount;
   }
-  dir.close();
+  if (dir) dir.close();
 }
 
 void scanBooks() {
   bookCount = 0;
-  for (uint8_t i = 0; i < kMaxBooks; ++i) bookRows[i] = ui::ListItem{};
+  for (int i = 0; i < kMaxBooks; ++i) bookItems[i] = ui::ListItem{};
   scanBooksIn("/", 0);
 }
 
-void booksScreen(App::ScreenType& s, void*) {
+void libraryScreen(App::ScreenType& s, void*) {
   s.header("All Books");
+  ui::Rect listRect = s.body().inset({0, 10, 0, 10});
+
   ui::ListProps list;
-  list.items = bookRows;
+  list.items = bookItems;
   list.count = bookCount;
   list.selectedIndex = selectedBook;
   list.topIndex = bookTop;
   list.action = ActionOpenBook;
-  list.rowStyles = ui::selectedPlainListRowStyles();
   list.labelText = s.theme().bodyText;
+  list.rowStyles = ui::selectedPlainListRowStyles();
   list.rowHeight = s.theme().rowHeight;
   list.scrollIndicator = true;
-  bookVisibleRows = ui::listVisibleRows(s.body(), list.rowHeight, list.rowGap);
-  ui::list(s.frame(), s.body().inset({0, 10, 0, 10}), list);
+
+  bookVisibleRows = ui::listVisibleRows(listRect, list.rowHeight, list.rowGap);
+  ui::list(s.frame(), listRect, list);
 }
 
 void readerScreen(App::ScreenType& s, void*) {
+  // The visible page is composited in loop() after FreeInkApp registers these
+  // hit zones. Reader chrome is also drawn after the page so text cannot
+  // overwrite it.
   const ui::Rect body = s.body();
-  const int16_t half = static_cast<int16_t>(body.width / 2);
-  const ui::TapZone zones[2] = {
-      {ui::Rect{body.x, body.y, half, body.height}, ActionPagePrev},
-      {ui::Rect{static_cast<int16_t>(body.x + half), body.y,
-                static_cast<int16_t>(body.width - half), body.height},
-       ActionPageNext},
+  const int16_t third = static_cast<int16_t>(body.width / 3);
+  const ui::TapZone zones[3] = {
+    {ui::Rect{body.x, body.y, third, body.height}, ActionPagePrev},
+    {ui::Rect{static_cast<int16_t>(body.x + third), body.y, third, body.height}, ActionBackToReader},
+    {ui::Rect{static_cast<int16_t>(body.x + 2 * third), body.y,
+              static_cast<int16_t>(body.width - 2 * third), body.height}, ActionPageNext},
   };
+
   ui::TapZonesProps taps;
   taps.zones = zones;
-  taps.count = 2;
+  taps.count = 3;
+  taps.swipeLeft = ActionPageNext;
+  taps.swipeRight = ActionPagePrev;
+  taps.back = ActionBackToLibrary;
   ui::tapZones(s.frame(), body, taps);
 }
 
 void menuScreen(App::ScreenType& s, void*) {
-  char progress[32];
-  snprintf(progress, sizeof(progress), "Chapter %u", static_cast<unsigned>(reader.spine + 1));
-  ui::StatusBarProps bar;
-  bar.title = "Reader Menu";
-  bar.trailing = progress;
-  bar.text = s.theme().bodyText;
-  s.status(bar);
+  s.navHeader("Reader Menu", ActionBackToReader, ui::BitmapRef{}, nullptr, ui::EdgesNone);
   s.centeredText("Swipe up from the bottom edge to resume.");
 }
 
+void drawReaderChromeOverlay() {
+  ui::InteractionBuffer<1> interactions;
+  ui::InputSnapshot input;
+  ui::Frame<1> frame(*target, app->device(), input, interactions, app->assets());
+
+  char pageLabel[24];
+  snprintf(pageLabel, sizeof(pageLabel), "%lu/%lu",
+           static_cast<unsigned long>(session.pageInChapter + 1),
+           static_cast<unsigned long>(session.reader.pageCount()));
+
+  ui::ReaderChromeProps chrome;
+  chrome.showTop = false;
+  chrome.bottom.title = "Reader";
+  chrome.bottom.trailing = pageLabel;
+  chrome.bottom.text = app->theme().smallText;
+  chrome.bottom.fillBackground = true;
+  ui::readerChrome(frame, frame.safeRect(), chrome);
+}
+```
+
+## 6. Actions, setup, and render loop
+
+Action handlers only mutate state and invalidate or transition screens. For the reader,`app->render()` registers the FreeInkUI input zones, then the app clears the visual framebuffer, renders the cached EPUB page, draws reader chrome over it, and starts the async panel refresh.
+
+The explicit `display.clearScreen(0xFF)` in the reader branch matters:`book::PageRenderer` draws ink but does not clear old glyph pixels.
+
+```cpp
 void onOpenBook(const ui::ActionEvent& e, void*) {
   selectedBook = e.value;
-  if (selectedBook >= 0 && selectedBook < bookCount && reader.begin(bookPaths[selectedBook])) {
-    go(Screen::Reader);
+  if (selectedBook >= 0 && selectedBook < bookCount &&
+      session.begin(bookPaths[selectedBook])) {
+    goToPage(Screen::Reader);
   }
 }
 
 void onPageTurn(const ui::ActionEvent& e, void*) {
-  if (reader.turn(e.action == ActionPageNext ? 1 : -1)) app->invalidate(ui::RefreshHint::Fast);
+  if (session.turn(e.action == ActionPageNext ? 1 : -1)) {
+    app->invalidate(ui::RefreshHint::Fast);
+  }
+}
+
+void onBackToReader(const ui::ActionEvent&, void*) {
+  goToPage(Screen::Reader);
+}
+
+void onBackToLibrary(const ui::ActionEvent&, void*) {
+  session.end();
+  goToPage(Screen::Library);
 }
 
 void setup() {
@@ -519,26 +646,30 @@ void setup() {
   SdMan.begin();
   display.begin();
   input.begin();
-  input.beginAsync(2, 10);
-  bookArenaBuf = static_cast<uint8_t*>(ps_malloc(512 * 1024));
-  scratchBuf = static_cast<uint8_t*>(ps_malloc(512 * 1024));
-  indexBuf = static_cast<uint8_t*>(ps_malloc(64 * 1024));
+  input.beginAsync(/*taskPriority=*/2, /*pollMs=*/10);
 
-  static ui::DisplayTarget displayTarget(display.getFrameBuffer(), display.getDisplayWidth(),
-                                         display.getDisplayHeight(), display.getDisplayWidthBytes(),
-                                         ui::Orientation::Portrait);
+  static ui::DisplayTarget displayTarget(
+    display.getFrameBuffer(), display.getDisplayWidth(),
+    display.getDisplayHeight(), display.getDisplayWidthBytes(),
+    ui::Orientation::Portrait);
   static App application(displayTarget, displayTarget.deviceContext());
   target = &displayTarget;
   app = &application;
   app->setClearColor(ui::Color::White);
-  fonts.add(&fallbackFont);
+
+  bookBuf = static_cast<uint8_t*>(ps_malloc(512 * 1024));
+  scratchBuf = static_cast<uint8_t*>(ps_malloc(512 * 1024));
+  indexBuf = static_cast<uint8_t*>(ps_malloc(64 * 1024));
+  fonts.add(&builtinFont);
 
   app->on(ActionOpenBook, onOpenBook);
-  app->on(ActionPagePrev, onPageTurn);
   app->on(ActionPageNext, onPageTurn);
+  app->on(ActionPagePrev, onPageTurn);
+  app->on(ActionBackToReader, onBackToReader);
+  app->on(ActionBackToLibrary, onBackToLibrary);
 
   scanBooks();
-  go(Screen::Books, /*initialPaint=*/true);
+  goToPage(Screen::Library, /*initialPaint=*/true);
 }
 
 void loop() {
@@ -546,18 +677,27 @@ void loop() {
   while (input.popSwipe(sx0, sy0, sx1, sy1)) {
     const ui::Point a = ui::touchToLogical(app->device(), sx0, sy0);
     const ui::Point b = ui::touchToLogical(app->device(), sx1, sy1);
-    const int16_t dy = static_cast<int16_t>(b.y - a.y);
     const int16_t dx = static_cast<int16_t>(b.x - a.x);
+    const int16_t dy = static_cast<int16_t>(b.y - a.y);
     const bool vertical = abs(dy) > abs(dx);
-    if (screenId == Screen::Reader && vertical && a.y <= app->device().height * 14 / 100 && dy > 0) {
-      go(Screen::Menu);
-    } else if (screenId != Screen::Books && vertical && a.y >= app->device().height - 40 && dy < 0) {
-      if (screenId == Screen::Menu) go(Screen::Reader);
-      else { reader.end(); go(Screen::Books); }
-    } else if (screenId == Screen::Books && vertical && bookVisibleRows > 0 && bookCount > bookVisibleRows) {
-      const uint16_t maxTop = bookCount - bookVisibleRows;
+
+    if (screen == Screen::Reader && vertical &&
+        a.y <= app->device().height * 14 / 100 && dy > 0) {
+      goToPage(Screen::Menu);
+      break;
+    }
+    if (screen != Screen::Library && vertical &&
+        a.y >= app->device().height * 86 / 100 && dy < 0) {
+      if (screen == Screen::Menu) goToPage(Screen::Reader);
+      else { session.end(); goToPage(Screen::Library); }
+      break;
+    }
+    if (screen == Screen::Library && vertical && bookVisibleRows > 0 &&
+        bookCount > bookVisibleRows) {
       const uint16_t step = bookVisibleRows > 1 ? bookVisibleRows - 1 : 1;
-      bookTop = dy < 0 ? min<uint16_t>(bookTop + step, maxTop) : (bookTop > step ? bookTop - step : 0);
+      const uint16_t maxTop = static_cast<uint16_t>(bookCount - bookVisibleRows);
+      bookTop = dy < 0 ? min<uint16_t>(bookTop + step, maxTop)
+                       : (bookTop > step ? bookTop - step : 0);
       app->invalidate(ui::RefreshHint::Fast);
     }
   }
@@ -575,18 +715,26 @@ void loop() {
   static ui::RefreshHint pending = ui::RefreshHint::None;
   if (app->invalidated()) {
     app->render();
-    if (screenId == Screen::Reader && reader.open) {
-      book::FrameTarget frame{display.getFrameBuffer(),
-                              static_cast<int16_t>(display.getDisplayWidth()),
-                              static_cast<int16_t>(display.getDisplayHeight()),
-                              static_cast<int16_t>(display.getDisplayWidthBytes()),
-                              book::FrameFormat::Mono1Dithered,
-                              kPageRotation};
-      reader.render(frame);
+    if (screen == Screen::Reader && session.open) {
+      // PageRenderer only inks the glyph/image pixels present on this page; it
+      // does not erase pixels from the previous page. Start every reader frame
+      // from white before compositing the cached page.
+      display.clearScreen(0xFF);
+      book::FrameTarget frame{
+        display.getFrameBuffer(),
+        static_cast<int16_t>(display.getDisplayWidth()),
+        static_cast<int16_t>(display.getDisplayHeight()),
+        static_cast<int16_t>(display.getDisplayWidthBytes()),
+        book::FrameFormat::Mono1Dithered,
+        book::FrameRotation::Portrait,
+      };
+      session.renderCurrent(frame);
+      drawReaderChromeOverlay();
     }
     const ui::RefreshHint hint = app->lastRenderRefreshHint();
     if (static_cast<uint8_t>(hint) > static_cast<uint8_t>(pending)) pending = hint;
   }
+
   if (pending != ui::RefreshHint::None && !display.refreshBusy()) {
     ui::presentAsync(display, pending);
     pending = ui::RefreshHint::None;
@@ -594,11 +742,15 @@ void loop() {
 }
 ```
 
-## 3. Gesture contract
+## 7. Gesture contract
 
-Keep edge gestures strict. The starter only treats a bottom swipe as Home when the gesture starts in the bottom 40 logical pixels, so ordinary list scrolling does not exit the screen. The reader menu uses the mirror rule: the top swipe must start in the top 14% of the screen.
+Keep edge gestures strict. The bottom-home gesture only triggers when the swipe starts in the bottom 14% of the screen, so ordinary list scrolling does not exit the screen. The menu gesture is the mirror: top-edge downward swipe, starting in the top 14% of the reader surface.
 
-## 4. Where to grow from here
+## 8. E-paper refresh policy
+
+Page turns use `ui::RefreshHint::Fast`, just like the full reader app. Ghost prevention is handled below the reader: `ui::presentAsync(display, hint)` calls`FreeInkDisplay::displayBufferAsync()`, which supplies the panel driver with the previous displayed frame. On differential panels, that previous-frame baseline is what keeps fast reader turns from smearing. The first boot paint is still `Full`, and each panel driver may promote or clear internally when its controller requires it.
+
+## 9. Where to grow from here
 
 Keep the first version boring. A reader gets painful when navigation, caching, and power behavior are added too late, so grow the starter in this order:
 
@@ -609,10 +761,7 @@ Keep the first version boring. A reader gets painful when navigation, caching, a
 - **Improve the library one surface at a time.** Add folder navigation before covers if you expect large SD cards. Add covers later, cache decoded thumbnails, and keep the All Books path as a simple list so it stays fast.
 - **Add settings after the core loop is solid.** Start with font size, line height, margins, orientation, and embedded CSS. Store settings in one small binary or JSON file and make every setting invalidate the page cache only when it changes layout.
 - **Support the hardware buttons.** Map side buttons to page up/down in the reader, list scrolling in the library/menu, and power to a sleep screen plus deep sleep. Keep touch and buttons using the same action handlers where possible.
-- **Protect the gesture edges.** Bottom-home and top-menu gestures should only trigger when the swipe starts in the edge band. That prevents list scrolling from accidentally exiting the screen.
 - **Watch memory early.** EPUB parsing, page layout, image decoding, and UI buffers all compete for RAM. Prefer fixed-size arenas, cache files on SD, and one decoded cover buffer per visible item instead of keeping the whole library hot.
-
-Once those pieces are in place, the starter has the same shape as a production reader: a fast library, a cached paged reading surface, a small menu stack, and predictable e-paper refreshes. Everything else is polish.
 
 ---
 
@@ -965,7 +1114,7 @@ The facade owns the write and previous-frame framebuffers. They can be freed and
 
 | Member | Description |
 | --- | --- |
-| `releaseBuffers()` | Free both framebuffers back to the heap. No display ops until begin() is called again — for sessions that reboot on exit. Safe no-op if already released. |
+| `releaseBuffers() / reallocBuffers()` | Free both framebuffers back to the heap, then bring them back (white) when needed — for a transient session that reclaims the ~100 KB. After reallocBuffers() the caller must fully redraw; it returns false if the heap can’t supply the buffers (display then unusable). |
 | `releaseSecondaryBuffer() / reallocSecondaryBuffer() / hasSecondaryBuffer()` | Free only the previous-frame buffer (~48–52 KB); B/W and fast differential refresh keep working (the driver re-seeds RAM when prev is null), but grayscale AA is unavailable until it’s reallocated. |
 | `syncWriteBufferFromActive()` | Copy the just-displayed frame back into the write buffer, so you can patch a few regions and re-display instead of fully re-rendering. No-op in single-buffer mode. |
 | `cleanupGrayscaleWithPreviousBuffer()` | Restore the B/W baseline after a grayscale refresh, using the active buffer (falls back when the secondary is released). |
@@ -2090,6 +2239,8 @@ One build flag (`BookProfile.h`) tiers every fixed working set to the target's R
 | Large | `-DFREEINK_BOOK_LARGE=1` | ~231 KB | Big PSRAM budgets, host tools |
 
 Book arenas: 64 KB covers normal books (corpus high-water 5–40 KB); a 1,800-entry webnovel omnibus needs ~450 KB. Cache files are versioned (`FIBP` v3) and keyed by `layoutGenerationHash()` — every layout-relevant input plus the caller's font fingerprint — so a wrong hash means `Stale` → rebuild, and torn writes are caught by a footer magic.
+
+Two extras keep huge or slow books usable. A container too big to hold in RAM (a 1,700-spine omnibus) can use an **SD-backed catalog** (`BookCatalog`) that keeps only fixed FNV-1a hash tables resident — ~44 KB instead of ~400 KB — trading a one-time index build for the savings; the cache index itself grows on demand in 128-entry chunks, so a 10–30 page chapter uses ~1 KB rather than reserving the full 8 KB. And layout is **incremental**: `readBackAt()` serves already-written pages while pagination continues, and `suspend()` checkpoints a partial build so reopening a book shows pages instantly while a background pass finishes the rest (up to 4,096 pages per spine).
 
 > **Proven on a real corpus**
 >

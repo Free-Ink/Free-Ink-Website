@@ -95,7 +95,7 @@ export default function Display() {
       </P>
       <ApiTable
         rows={[
-          ['releaseBuffers()', 'Free both framebuffers back to the heap. No display ops until begin() is called again — for sessions that reboot on exit. Safe no-op if already released.'],
+          ['releaseBuffers() / reallocBuffers()', 'Free both framebuffers back to the heap, then bring them back (white) when needed — for a transient session that reclaims the ~100 KB. After reallocBuffers() the caller must fully redraw; it returns false if the heap can’t supply the buffers (display then unusable).'],
           ['releaseSecondaryBuffer() / reallocSecondaryBuffer() / hasSecondaryBuffer()', 'Free only the previous-frame buffer (~48–52 KB); B/W and fast differential refresh keep working (the driver re-seeds RAM when prev is null), but grayscale AA is unavailable until it’s reallocated.'],
           ['syncWriteBufferFromActive()', 'Copy the just-displayed frame back into the write buffer, so you can patch a few regions and re-display instead of fully re-rendering. No-op in single-buffer mode.'],
           ['cleanupGrayscaleWithPreviousBuffer()', 'Restore the B/W baseline after a grayscale refresh, using the active buffer (falls back when the secondary is released).'],
