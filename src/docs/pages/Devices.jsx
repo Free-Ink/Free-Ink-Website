@@ -35,7 +35,7 @@ export default function Devices() {
           ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s" full>full</Status>],
           ['LilyGo T5 S3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '960×540 16-gray, GT911 touch, backlight, I²C gauge', <Status key="s" full>full · via LovyanGFX</Status>],
           ['M5Paper v1.1', 'ESP32 (classic)', 'IT8951E', '540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery', <Status key="s" full>full · hand-rolled IT8951</Status>],
-          ['Sticky', 'ESP32-S3', 'SSD1677', '3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer', <Status key="s">upcoming · validating</Status>],
+          ['Sticky', 'ESP32-S3', 'SSD1677', '3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer', <Status key="s" full>full</Status>],
         ]}
       />
       <P>
@@ -97,8 +97,7 @@ export default function Devices() {
         drives the <Code>ext1</Code> deep-sleep wakeup). Back/Left/Right come from the touch panel.
       </P>
       <P>
-        The <strong>Sticky</strong> (Seeed) is an <strong>upcoming</strong> ESP32-S3 device and the
-        most sensor-rich board in the matrix. It reuses the X4-class <strong>SSD1677</strong> driver for
+        The <strong>Sticky</strong> (Seeed) reuses the X4-class <strong>SSD1677</strong> driver for
         its 3.97″ 800×480 B/W panel (its 24-pin FPC needs vendor full/fast update sequences and border
         tracking, supplied as driver config), with GT911 touch. Beyond the display it carries a whole
         peripheral suite, each behind its own opt-in library: a <strong>PDM microphone</strong>{' '}
@@ -113,8 +112,7 @@ export default function Devices() {
         apart so neither stalls the other. Power-enable GPIOs gate the panel, touch controller, SD rail
         and mic rail independently (the board profile names each pin; the SDK raises them at{' '}
         <Code>begin()</Code>). Its GT911 is mounted rotated, corrected SDK-side by the touch profile's{' '}
-        <Code>swapXY</Code> / <Code>flipX</Code> / <Code>flipY</Code> flags. Orientation and the
-        display/SD bus-sharing are pending hardware validation.
+        <Code>swapXY</Code> / <Code>flipX</Code> / <Code>flipY</Code> flags.
       </P>
 
       <H2>M5Stack PaperColor refresh behavior</H2>
