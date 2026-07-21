@@ -2,6 +2,36 @@ import { HeroSchematic } from './Schematics.jsx'
 import { Button, Eyebrow } from './ui.jsx'
 import { GitHubIcon } from './icons.jsx'
 
+const PARTNERS = [
+  { name: 'Xteink', href: 'https://www.xteink.com', src: '/img/partners/xteink.svg', className: 'h-5' },
+  { name: 'Seeed Studio', href: 'https://www.seeedstudio.com', src: '/img/partners/seeed-studio.png', className: 'h-4' },
+]
+
+function PartnerStrip() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+      <p className="font-mono text-xs tracking-wide text-stone-400 uppercase dark:text-stone-500">
+        Official partners of
+      </p>
+      {PARTNERS.map((partner) => (
+        <a
+          key={partner.name}
+          href={partner.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={partner.name}
+        >
+          <img
+            src={partner.src}
+            alt={partner.name}
+            className={`${partner.className} w-auto brightness-0 opacity-50 transition-opacity hover:opacity-80 dark:invert`}
+          />
+        </a>
+      ))}
+    </div>
+  )
+}
+
 export default function Hero() {
   return (
     <section className="relative overflow-hidden">
@@ -33,20 +63,9 @@ export default function Hero() {
             </Button>
           </div>
 
-          <dl className="mt-12 grid max-w-lg grid-cols-3 gap-x-6 border-t border-stone-200 pt-8 dark:border-white/10">
-            {[
-              { v: '100%', k: 'Open source' },
-              { v: 'MIT', k: '& open hardware' },
-              { v: '∞', k: 'Forks welcome' },
-            ].map((s) => (
-              <div key={s.k}>
-                <dt className="font-display text-2xl font-semibold tracking-tight text-stone-900 tabular-nums dark:text-white">
-                  {s.v}
-                </dt>
-                <dd className="mt-1 font-mono text-xs text-stone-500 dark:text-stone-400">{s.k}</dd>
-              </div>
-            ))}
-          </dl>
+          <div className="mt-12 max-w-lg border-t border-stone-200 pt-8 dark:border-white/10">
+            <PartnerStrip />
+          </div>
         </div>
 
         <div className="lg:col-span-6">

@@ -39,6 +39,15 @@ export default function Networking() {
           plus <Code>setInsecure()</Code> / <Code>setCACert()</Code>).
         </Li>
       </Ul>
+      <P>
+        <Code>SecureHttpClient</Code> has grown into a real HTTP/1.1 client: <strong>streaming</strong>{' '}
+        responses (<Code>GET(onData, shouldAbort)</Code> hands the body back in chunks instead of
+        buffering it), <strong>connection keep-alive</strong> across requests (<Code>setReuse(true)</Code>),
+        <strong> opt-in redirect following</strong> (<Code>setFollowRedirects(maxHops)</Code>, with{' '}
+        <Code>setAllowRedirectDowngrade()</Code> for https→http), <strong>HTTP Basic auth</strong>{' '}
+        (<Code>setBasicAuth(user, pass)</Code>), a custom <Code>setUserAgent()</Code> sent on every
+        request, and a <Code>setProgressCallback()</Code> (return false to abort a long download).
+      </P>
 
       <H2>Enabling it</H2>
       <P>

@@ -1089,6 +1089,8 @@ Refresh modes: `FULL_REFRESH` / `HALF_REFRESH` / `FAST_REFRESH`.
 | `displayBufferAsync(mode = FAST_REFRESH)` | Non-blocking refresh: push the frame, start the waveform, and return (~25 ms) while the panel refreshes from its own RAM (~0.3–2 s). The framebuffer is free to redraw immediately — so the loop keeps polling input instead of stalling. In single-buffer mode it lazily allocates one shadow buffer as the differential baseline (falls back to blocking if that fails). |
 | `refreshBusy() → bool` | True while an async refresh is still running on the panel. |
 | `syncPendingAsync()` | Block until a pending async refresh completes (no-op when none). Every blocking display call runs it first. |
+| `displayBufferAsyncNoShadow(mode = FAST_REFRESH)` | Async refresh that skips the single-buffer shadow allocation (identical to displayBufferAsync in dual-buffer mode) — for tight-RAM single-buffer builds. |
+| `triggerDisplay(mode) / completeDisplay() · triggerDisplayAsync(mode) / finishDisplayAsync()` | Split a refresh into start + finish so the app can overlap other work with the panel drive (the X4 / CrossPoint trigger-complete pattern). isRefreshPending() is true while any deferred refresh is in flight. |
 
 ## Grayscale / anti-aliased
 
@@ -1116,6 +1118,7 @@ The facade owns the write and previous-frame framebuffers. They can be freed and
 | --- | --- |
 | `releaseBuffers() / reallocBuffers()` | Free both framebuffers back to the heap, then bring them back (white) when needed — for a transient session that reclaims the ~100 KB. After reallocBuffers() the caller must fully redraw; it returns false if the heap can’t supply the buffers (display then unusable). |
 | `releaseSecondaryBuffer() / reallocSecondaryBuffer() / hasSecondaryBuffer()` | Free only the previous-frame buffer (~48–52 KB); B/W and fast differential refresh keep working (the driver re-seeds RAM when prev is null), but grayscale AA is unavailable until it’s reallocated. |
+| `borrowSecondaryBuffer(size_t* size) → uint8_t* / returnSecondaryBuffer()` | Lend the secondary buffer’s memory to the app as scratch without freeing it (drops to single-buffer semantics). The block never enters the heap, so returning it can’t fail and can’t fragment — unlike release/realloc. |
 | `syncWriteBufferFromActive()` | Copy the just-displayed frame back into the write buffer, so you can patch a few regions and re-display instead of fully re-rendering. No-op in single-buffer mode. |
 | `cleanupGrayscaleWithPreviousBuffer()` | Restore the B/W baseline after a grayscale refresh, using the active buffer (falls back when the secondary is released). |
 
@@ -1533,6 +1536,7 @@ Group: Libraries · URL: https://freeink.org/docs/lib-imu
 | `begin() → bool` | Probe WHO_AM_I and configure accel + gyro. False when the board has no IMU or the part doesn’t identify. |
 | `present() → bool` | Whether the IMU initialized. |
 | `read(Sample& out) → bool` | Read one accel + gyro sample. False on I²C error. |
+| `sleep() / wake() → bool` | Power the sensor down / back up. Config is retained, so wake() resumes sampling without a full begin(). |
 | `Sample { ax, ay, az, gx, gy, gz }` | Acceleration in g; angular rate in °/s. |
 
 ```cpp
@@ -1637,6 +1641,8 @@ The precompiled mbedTLS in the ESP-IDF / pioarduino package ships TLS 1.3 as emp
 - `freeink::SecureClient` — an Arduino `Client` doing TLS 1.3 over `WiFiClient`, with a **TLS 1.2 fallback** for servers that are intolerant of a 1.3 handshake.
 - `freeink::SecureHttpClient` — a **standalone** HTTPS client (`GET` / `POST` / `PUT` with custom headers and a buffered response body; handles Content-Length, chunked and connection-close framing). It's *deliberately not* a wrapper over Arduino `HTTPClient` — that binds a `NetworkClient`, and `SecureClient` is a plain `Client` running wolfSSL over its own transport — but it keeps the familiar call shape (`begin()` / `addHeader()` / `GET()` / `getString()`, plus `setInsecure()` / `setCACert()`).
 
+`SecureHttpClient` has grown into a real HTTP/1.1 client: **streaming** responses (`GET(onData, shouldAbort)` hands the body back in chunks instead of buffering it), **connection keep-alive** across requests (`setReuse(true)`),** opt-in redirect following** (`setFollowRedirects(maxHops)`, with `setAllowRedirectDowngrade()` for https→http), **HTTP Basic auth** (`setBasicAuth(user, pass)`), a custom `setUserAgent()` sent on every request, and a `setProgressCallback()` (return false to abort a long download).
+
 ## Enabling it
 
 It's opt-in: `-DFREEINK_NET_WOLFSSL=1` plus a wolfSSL source `lib_dep`. With the flag off it compiles to an inert stub, so the rest of the SDK builds without wolfSSL.
@@ -1713,7 +1719,7 @@ void loop() {
 
 ## How it works
 
-**Scan** is an active scan that upserts every advertiser into a fixed array and records the HID service UUID; HID is validated at connect time, so devices that hide their name or services in scan-response / extended-advertising fragments still appear in the pairing UI. **Connect** runs on a dedicated FreeRTOS task: connect → discover HID → bond (`secureConnection()`) → switch to **Report Protocol** mode → subscribe to Input reports, falling back to Boot Keyboard Input (`0x2A22`) for boot-only devices. **Reports** are normalized to `[mod][k0..k5]`, diffed against the previous report, and translated (US QWERTY HID usages) into `KeyEvent`s — page turners' arrow / page-up/down usages arrive as `SpecialKey`. Since HID sends one report per state change, `poll()` **synthesizes auto-repeat** for a held key after an initial delay.
+**Scan** is an active scan that upserts every advertiser into a fixed array and records the HID service UUID; HID is validated at connect time, so devices that hide their name or services in scan-response / extended-advertising fragments still appear in the pairing UI. **Connect** runs on a dedicated FreeRTOS task: connect → discover HID → bond (`secureConnection()`) → switch to **Report Protocol** mode → subscribe to Input reports, falling back to Boot Keyboard Input (`0x2A22`) for boot-only devices. **Reports** are normalized to `[mod][k0..k5]`, diffed against the previous report, and translated (US QWERTY HID usages) into `KeyEvent`s — page turners' arrow / page-up/down usages arrive as `SpecialKey`. Gamepad-style remotes (a HID button bitfield that only clears the pressed bit on release) are decoded without phantom double-presses. Since HID sends one report per state change, `poll()` **synthesizes auto-repeat** for a held key after an initial delay.
 
 ## Memory
 
@@ -1931,7 +1937,7 @@ A set of immediate-mode components, deliberately not tied to any application's s
 | `statusBar` | Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay. |
 | `tabBar` | Pill or underline-style tabs with an optional divider, per-tab icons and a disabled state. |
 | `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers; an optional per-row subtitle beneath the label; vertically-centered row content. |
-| `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, Shift + symbols; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting. |
+| `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, and an optional prepended number row; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting. |
 | `textArea` | A multi-line scrollable writing canvas (the editor body). The app owns the text buffer and caret offset; it word-wraps, draws the window of lines from topLine, and an optional caret. textAreaMeasure() / textAreaTopLineFor() keep the caret on screen, mirroring lists. |
 | `readerChrome / tapZones` | Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing. |
 | `bookCard / coverGrid` | Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection (a fixed array, or a CoverGridItemProvider callback that supplies items lazily by index). |

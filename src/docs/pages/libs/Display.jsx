@@ -62,6 +62,8 @@ export default function Display() {
           ['displayBufferAsync(mode = FAST_REFRESH)', 'Non-blocking refresh: push the frame, start the waveform, and return (~25 ms) while the panel refreshes from its own RAM (~0.3–2 s). The framebuffer is free to redraw immediately — so the loop keeps polling input instead of stalling. In single-buffer mode it lazily allocates one shadow buffer as the differential baseline (falls back to blocking if that fails).'],
           ['refreshBusy() → bool', 'True while an async refresh is still running on the panel.'],
           ['syncPendingAsync()', 'Block until a pending async refresh completes (no-op when none). Every blocking display call runs it first.'],
+          ['displayBufferAsyncNoShadow(mode = FAST_REFRESH)', 'Async refresh that skips the single-buffer shadow allocation (identical to displayBufferAsync in dual-buffer mode) — for tight-RAM single-buffer builds.'],
+          ['triggerDisplay(mode) / completeDisplay() · triggerDisplayAsync(mode) / finishDisplayAsync()', 'Split a refresh into start + finish so the app can overlap other work with the panel drive (the X4 / CrossPoint trigger-complete pattern). isRefreshPending() is true while any deferred refresh is in flight.'],
         ]}
       />
 
@@ -97,6 +99,7 @@ export default function Display() {
         rows={[
           ['releaseBuffers() / reallocBuffers()', 'Free both framebuffers back to the heap, then bring them back (white) when needed — for a transient session that reclaims the ~100 KB. After reallocBuffers() the caller must fully redraw; it returns false if the heap can’t supply the buffers (display then unusable).'],
           ['releaseSecondaryBuffer() / reallocSecondaryBuffer() / hasSecondaryBuffer()', 'Free only the previous-frame buffer (~48–52 KB); B/W and fast differential refresh keep working (the driver re-seeds RAM when prev is null), but grayscale AA is unavailable until it’s reallocated.'],
+          ['borrowSecondaryBuffer(size_t* size) → uint8_t* / returnSecondaryBuffer()', 'Lend the secondary buffer’s memory to the app as scratch without freeing it (drops to single-buffer semantics). The block never enters the heap, so returning it can’t fail and can’t fragment — unlike release/realloc.'],
           ['syncWriteBufferFromActive()', 'Copy the just-displayed frame back into the write buffer, so you can patch a few regions and re-display instead of fully re-rendering. No-op in single-buffer mode.'],
           ['cleanupGrayscaleWithPreviousBuffer()', 'Restore the B/W baseline after a grayscale refresh, using the active buffer (falls back when the secondary is released).'],
         ]}

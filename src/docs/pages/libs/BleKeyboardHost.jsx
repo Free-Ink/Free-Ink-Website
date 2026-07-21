@@ -79,7 +79,9 @@ void loop() {
         to Input reports, falling back to Boot Keyboard Input (<Code>0x2A22</Code>) for boot-only
         devices. <strong>Reports</strong> are normalized to <Code>[mod][k0..k5]</Code>, diffed against
         the previous report, and translated (US QWERTY HID usages) into <Code>KeyEvent</Code>s — page
-        turners' arrow / page-up/down usages arrive as <Code>SpecialKey</Code>. Since HID sends one
+        turners' arrow / page-up/down usages arrive as <Code>SpecialKey</Code>. Gamepad-style remotes (a
+        HID button bitfield that only clears the pressed bit on release) are decoded without phantom
+        double-presses. Since HID sends one
         report per state change, <Code>poll()</Code> <strong>synthesizes auto-repeat</strong> for a held
         key after an initial delay.
       </P>

@@ -25,6 +25,7 @@ export default function Imu() {
           ['begin() → bool', 'Probe WHO_AM_I and configure accel + gyro. False when the board has no IMU or the part doesn’t identify.'],
           ['present() → bool', 'Whether the IMU initialized.'],
           ['read(Sample& out) → bool', 'Read one accel + gyro sample. False on I²C error.'],
+          ['sleep() / wake() → bool', 'Power the sensor down / back up. Config is retained, so wake() resumes sampling without a full begin().'],
           ['Sample { ax, ay, az, gx, gy, gz }', 'Acceleration in g; angular rate in °/s.'],
         ]}
       />
