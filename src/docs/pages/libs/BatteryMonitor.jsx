@@ -16,8 +16,10 @@ export default function BatteryMonitor() {
         The <strong>ADC</strong> backend reads a divided LiPo voltage off an ADC pin; an optional
         charge-status pin (MCP73832 <Code>/STAT</Code>, active-LOW) drives <Code>isCharging()</Code>.
         The <strong>I²C fuel-gauge</strong> backend (<Code>-DFREEINK_BATTERY_I2C_GAUGE=1</Code>) reads
-        SoC / voltage / charge from a BQ27220 gauge (+ optional BQ25896 charger) and ignores the ADC
-        pin/divider — used by X3 and the LilyGo T5 S3. Config comes from{' '}
+        SoC / voltage / charge from the gauge selected by <Code>GaugeType</Code> — a{' '}
+        <strong>BQ27220</strong> (+ optional BQ25896 charger) on X3 and the LilyGo T5 S3, or a{' '}
+        <strong>CW2017</strong> on the X4 Pro (which re-uploads its 80-byte BATINFO profile if the gauge
+        has lost it) — and ignores the ADC pin/divider. Config comes from{' '}
         <Code>BoardConfig::ACTIVE.batteryGauge</Code>, and gauge-vs-ADC is chosen at <em>runtime</em>{' '}
         (gauge address non-zero), so X3 (gauge) and X4 (ADC) work from one C3 binary.
       </P>

@@ -24,6 +24,7 @@ import Rtc from './pages/libs/Rtc.jsx'
 import EnvironmentSensor from './pages/libs/EnvironmentSensor.jsx'
 import Imu from './pages/libs/Imu.jsx'
 import PowerManager from './pages/libs/PowerManager.jsx'
+import MemoryManager from './pages/libs/MemoryManager.jsx'
 import RecoveryBoot from './pages/libs/RecoveryBoot.jsx'
 import Networking from './pages/Networking.jsx'
 import BleKeyboardHost from './pages/libs/BleKeyboardHost.jsx'
@@ -176,6 +177,12 @@ export const DOC_GROUPS = [
         Content: PowerManager,
       },
       {
+        slug: 'lib-memory',
+        title: 'MemoryManager',
+        description: 'On-demand RAM reclaim via priority-ordered cache sinks.',
+        Content: MemoryManager,
+      },
+      {
         slug: 'lib-recovery',
         title: 'RecoveryBoot',
         description: 'Boot-time OTA recovery escape hatch (button combo).',
@@ -202,7 +209,7 @@ export const DOC_GROUPS = [
       {
         slug: 'lib-detect',
         title: 'XteinkDetect',
-        description: 'Runtime X3/X4 detection via I²C fingerprinting.',
+        description: 'Runtime X3/X4 and display-controller detection via bus fingerprinting.',
         Content: XteinkDetect,
       },
       {

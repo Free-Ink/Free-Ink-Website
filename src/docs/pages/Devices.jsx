@@ -29,6 +29,7 @@ export default function Devices() {
         head={['Device', 'MCU', 'Controller', 'Panel', 'Status']}
         rows={[
           ['Xteink X4', 'ESP32-C3', 'SSD1677', '800×480 B/W + 4-level gray', <Status key="s" full>full</Status>],
+          ['Xteink X4 Pro', 'ESP32-S3', 'SSD1677 / UC8179', '800×480 B/W, GT911 touch, warm/cool frontlight, PCF8563 RTC, CW2017 gauge, SDMMC SD, USB MSC', <Status key="s" full>full · controller runtime-probed</Status>],
           ['Xteink X3', 'ESP32-C3', 'UC8253', '792×528 B/W + 4-level gray, BQ27220 I²C gauge, DS3231 RTC, QMI8658 IMU', <Status key="s" full>full · runtime-selected</Status>],
           ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD', <Status key="s" full>full</Status>],
           ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs', <Status key="s" full>full · native + M5GFX backend</Status>],
@@ -43,9 +44,20 @@ export default function Devices() {
         both board profiles (<Code>XTEINK_X4</Code> and <Code>XTEINK_X3</Code>) and picks one at runtime
         via <Code>setDisplayX3()</Code>, which swaps the active profile and driver. Distinct-MCU boards
         build their own binary, selected with a board macro. A build targets exactly one of{' '}
-        <strong>three MCU families</strong> — ESP32-C3 (X3/X4), ESP32-S3 (de-link, PaperColor, Murphy,
-        LilyGo, Sticky) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects mixing
-        families at compile time.
+        <strong>three MCU families</strong> — ESP32-C3 (X3/X4), ESP32-S3 (X4 Pro, de-link, PaperColor,
+        Murphy, LilyGo, Sticky) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects
+        mixing families at compile time.
+      </P>
+      <P>
+        The <strong>Xteink X4 Pro</strong> is a distinct ESP32-S3 device, not the C3 X4 — its own{' '}
+        <Code>XTEINK_X4_PRO</Code> profile (16&nbsp;MB flash, 8&nbsp;MB PSRAM), built with{' '}
+        <Code>-DFREEINK_DEVICE_X4PRO=1</Code>. It reuses the X4's 800×480 SSD1677 panel and OTP waveform,
+        and adds GT911 touch, a dual warm/cool frontlight, a PCF8563-compatible RTC, a CW2017 fuel gauge,
+        native 1-bit SDMMC storage and USB mass storage. The panel controller <strong>varies by production
+        batch</strong> — original units carry the SSD1677, newer ones a UC8179 (an UltraChip part on the
+        same glass and pinout) — so the firmware fingerprints the live display bus at boot and promotes
+        to the matching driver via <A href="/docs/lib-detect">XteinkDetect</A>'s{' '}
+        <Code>applyXteinkDisplayController()</Code> before <Code>begin()</Code>.
       </P>
       <P>
         de-link reuses the X4's SSD1677 panel on an ESP32-S3, adding a warm/cool frontlight and{' '}
@@ -204,7 +216,7 @@ export default function Devices() {
           <strong>CHSC6x</strong> (Murphy M3) — IRQ-driven, ported from the upstream driver.
         </Li>
         <Li>
-          <strong>GT911</strong> (LilyGo T5 S3, M5Paper v1.1 and Sticky) — raw register reads plus the
+          <strong>GT911</strong> (X4 Pro, LilyGo T5 S3, M5Paper v1.1 and Sticky) — raw register reads plus the
           reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive home key is
           surfaced via <Code>wasHomeKeyPressed()</Code>.
         </Li>

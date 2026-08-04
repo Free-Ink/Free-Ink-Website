@@ -46,6 +46,7 @@ const FEATURES = [
 // Supported devices, pulled from the SDK README's device matrix.
 const DEVICES = [
   { name: 'Xteink X4', mcu: 'ESP32-C3', controller: 'SSD1677', panel: '800×480 B/W + 4-level gray', status: 'full' },
+  { name: 'Xteink X4 Pro', mcu: 'ESP32-S3', controller: 'SSD1677 / UC8179', panel: '800×480 B/W, GT911 touch, warm/cool frontlight', status: 'full' },
   { name: 'Xteink X3', mcu: 'ESP32-C3', controller: 'UC8253', panel: '792×528 B/W + 4-level gray', status: 'full' },
   { name: 'de-link', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + gray, frontlight', status: 'full' },
   { name: 'M5Stack PaperColor', mcu: 'ESP32-S3', controller: 'ED2208', panel: '400×600 Spectra-6 color', status: 'full' },

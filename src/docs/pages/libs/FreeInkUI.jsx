@@ -168,9 +168,12 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
           buffer, route the keyboard's key/shift/mode/delete actions to its methods, and it handles the
           shift/symbol layers, layout-correct UTF-8 append and multi-byte backspace. Key actions report a
           stable <strong>id</strong> in <Code>ActionEvent::value</Code> — ASCII keys their code point,
-          localized keys (é, ñ, ß) ids above 1000 — so casting the value straight to <Code>char</Code>{' '}
-          corrupts non-ASCII layouts. Insert through <Code>KeyboardEntry</Code> (or{' '}
-          <Code>keyboardKeyText()</Code>) instead.
+          localized keys (é, ñ, ß, and every Cyrillic / Hebrew glyph) ids above 1000 — so casting the
+          value straight to <Code>char</Code> corrupts non-ASCII layouts. Insert through{' '}
+          <Code>KeyboardEntry</Code> (or <Code>keyboardKeyText()</Code>) instead — it appends
+          layout-correct UTF-8 and, with a script-switch key, tracks the active{' '}
+          <Code>KeyboardLayoutId</Code>. Right-to-left is the renderer's job; the Hebrew layout inserts
+          code points in logical order.
         </p>
       </Callout>
 
@@ -241,7 +244,7 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
           [<Code key="b">statusBar</Code>, 'Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay.'],
           [<Code key="c">tabBar</Code>, 'Pill or underline-style tabs with an optional divider, per-tab icons and a disabled state.'],
           [<Code key="d">list</Code>, 'Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers; an optional per-row subtitle beneath the label; vertically-centered row content.'],
-          [<Code key="e">keyGrid / keyboard / textField</Code>, 'A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, and an optional prepended number row; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting.'],
+          [<Code key="e">keyGrid / keyboard / textField</Code>, 'A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, four ЙЦУКЕН Cyrillic layouts — Russian, Ukrainian, Belarusian, Kazakh — and a Hebrew RTL layout, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, an optional script-switch key for apps that reach more than one script, and an optional prepended number row; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting.'],
           [<Code key="ta">textArea</Code>, 'A multi-line scrollable writing canvas (the editor body). The app owns the text buffer and caret offset; it word-wraps, draws the window of lines from topLine, and an optional caret. textAreaMeasure() / textAreaTopLineFor() keep the caret on screen, mirroring lists.'],
           [<Code key="rd">readerChrome / tapZones</Code>, 'Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing.'],
           [<Code key="lib">bookCard / coverGrid</Code>, 'Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection (a fixed array, or a CoverGridItemProvider callback that supplies items lazily by index).'],
@@ -413,7 +416,7 @@ freeink::ui::Frame<32> ui(target, device, input, interactions);
           ['Label', 'Primitive: DrawTarget::text; used by header, statusBar, rows, dialogs'],
           ['Image / canvas / line', 'Primitive: bitmap, fill, stroke, line, triangle; DisplayTarget renders into the 1-bit framebuffer'],
           ['Button', 'button, gestureBar, FooterAction / FooterProps'],
-          ['Button matrix / keyboard', 'keyGrid, keyboard, qwertyKeyboard — built-in QWERTY (English), AZERTY (French), QWERTZ (German), Spanish layouts'],
+          ['Button matrix / keyboard', 'keyGrid, keyboard, qwertyKeyboard — built-in Latin (QWERTY, AZERTY, QWERTZ, Spanish), Cyrillic (Russian, Ukrainian, Belarusian, Kazakh) and Hebrew (RTL) layouts, with a script-switch key'],
           ['Checkbox', 'checkbox'],
           ['Switch', 'toggleRow'],
           ['Slider', 'slider; discrete setting changes use stepperRow'],

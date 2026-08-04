@@ -957,6 +957,7 @@ FreeInk ships drivers and board profiles for the following devices. Related boar
 | Device | MCU | Controller | Panel | Status |
 | --- | --- | --- | --- | --- |
 | Xteink X4 | ESP32-C3 | SSD1677 | 800×480 B/W + 4-level gray | full |
+| Xteink X4 Pro | ESP32-S3 | SSD1677 / UC8179 | 800×480 B/W, GT911 touch, warm/cool frontlight, PCF8563 RTC, CW2017 gauge, SDMMC SD, USB MSC | full · controller runtime-probed |
 | Xteink X3 | ESP32-C3 | UC8253 | 792×528 B/W + 4-level gray, BQ27220 I²C gauge, DS3231 RTC, QMI8658 IMU | full · runtime-selected |
 | de-link | ESP32-S3 | SSD1677 | 800×480 B/W + gray, frontlight, SDMMC SD | full |
 | M5Stack PaperColor | ESP32-S3 | ED2208 | 400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs | full · native + M5GFX backend |
@@ -965,7 +966,9 @@ FreeInk ships drivers and board profiles for the following devices. Related boar
 | M5Paper v1.1 | ESP32 (classic) | IT8951E | 540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery | full · hand-rolled IT8951 |
 | Sticky | ESP32-S3 | SSD1677 | 3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer | full |
 
-X3 and X4 share the ESP32-C3 and a pinout, so a single firmware binary drives both — it carries both board profiles (`XTEINK_X4` and `XTEINK_X3`) and picks one at runtime via `setDisplayX3()`, which swaps the active profile and driver. Distinct-MCU boards build their own binary, selected with a board macro. A build targets exactly one of **three MCU families** — ESP32-C3 (X3/X4), ESP32-S3 (de-link, PaperColor, Murphy, LilyGo, Sticky) or classic ESP32 (M5Paper v1.1) — and `BoardConfig` rejects mixing families at compile time.
+X3 and X4 share the ESP32-C3 and a pinout, so a single firmware binary drives both — it carries both board profiles (`XTEINK_X4` and `XTEINK_X3`) and picks one at runtime via `setDisplayX3()`, which swaps the active profile and driver. Distinct-MCU boards build their own binary, selected with a board macro. A build targets exactly one of **three MCU families** — ESP32-C3 (X3/X4), ESP32-S3 (X4 Pro, de-link, PaperColor, Murphy, LilyGo, Sticky) or classic ESP32 (M5Paper v1.1) — and `BoardConfig` rejects mixing families at compile time.
+
+The **Xteink X4 Pro** is a distinct ESP32-S3 device, not the C3 X4 — its own `XTEINK_X4_PRO` profile (16 MB flash, 8 MB PSRAM), built with `-DFREEINK_DEVICE_X4PRO=1`. It reuses the X4's 800×480 SSD1677 panel and OTP waveform, and adds GT911 touch, a dual warm/cool frontlight, a PCF8563-compatible RTC, a CW2017 fuel gauge, native 1-bit SDMMC storage and USB mass storage. The panel controller **varies by production batch** — original units carry the SSD1677, newer ones a UC8179 (an UltraChip part on the same glass and pinout) — so the firmware fingerprints the live display bus at boot and promotes to the matching driver via [XteinkDetect](https://freeink.org/docs/lib-detect)'s `applyXteinkDisplayController()` before `begin()`.
 
 de-link reuses the X4's SSD1677 panel on an ESP32-S3, adding a warm/cool frontlight and **native 4-bit SDMMC storage**. SdFat can't drive SDIO, so FreeInk mounts a volume on an esp-idf SDMMC block device (auto-enabled via `FREEINK_SD_SDMMC`) — see [Build composition](https://freeink.org/docs/build-composition). Its panel orientation is set in the board profile rather than at compile time, so an upside-down PCB just sets `ROTATE_180` and the driver mirrors in hardware.
 
@@ -1007,7 +1010,7 @@ The same PMIC also reports power telemetry, which [BatteryMonitor](https://freei
 Touch is implemented for two controllers (gated by `FREEINK_CAP_TOUCH`):
 
 - **CHSC6x** (Murphy M3) — IRQ-driven, ported from the upstream driver.
-- **GT911** (LilyGo T5 S3, M5Paper v1.1 and Sticky) — raw register reads plus the reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive home key is surfaced via `wasHomeKeyPressed()`.
+- **GT911** (X4 Pro, LilyGo T5 S3, M5Paper v1.1 and Sticky) — raw register reads plus the reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive home key is surfaced via `wasHomeKeyPressed()`.
 
 The InputManager exposes `hasTouch` / `isTouchPressed` / `wasTouchPressed` / `wasTouchReleased` / `getTouchPoint`, plus tap, swipe and activity edges (see the [InputManager reference](https://freeink.org/docs/lib-input)). GT911 boards set their `TouchConfig` in the board profile (e.g. `BoardConfig::LILYGO_T5_PRO_GT911`).
 
@@ -1206,7 +1209,7 @@ BatteryMonitor(uint8_t adcPin, float dividerMultiplier = 2.0f,
                int8_t chargeStatusPin = PIN_NONE);
 ```
 
-The **ADC** backend reads a divided LiPo voltage off an ADC pin; an optional charge-status pin (MCP73832 `/STAT`, active-LOW) drives `isCharging()`. The **I²C fuel-gauge** backend (`-DFREEINK_BATTERY_I2C_GAUGE=1`) reads SoC / voltage / charge from a BQ27220 gauge (+ optional BQ25896 charger) and ignores the ADC pin/divider — used by X3 and the LilyGo T5 S3. Config comes from `BoardConfig::ACTIVE.batteryGauge`, and gauge-vs-ADC is chosen at *runtime* (gauge address non-zero), so X3 (gauge) and X4 (ADC) work from one C3 binary.
+The **ADC** backend reads a divided LiPo voltage off an ADC pin; an optional charge-status pin (MCP73832 `/STAT`, active-LOW) drives `isCharging()`. The **I²C fuel-gauge** backend (`-DFREEINK_BATTERY_I2C_GAUGE=1`) reads SoC / voltage / charge from the gauge selected by `GaugeType` — a **BQ27220** (+ optional BQ25896 charger) on X3 and the LilyGo T5 S3, or a **CW2017** on the X4 Pro (which re-uploads its 80-byte BATINFO profile if the gauge has lost it) — and ignores the ADC pin/divider. Config comes from `BoardConfig::ACTIVE.batteryGauge`, and gauge-vs-ADC is chosen at *runtime* (gauge address non-zero), so X3 (gauge) and X4 (ADC) work from one C3 binary.
 
 The **M5PM1** backend is **auto-detected** on the M5 [PaperColor](https://freeink.org/docs/devices) (no flag) — the same PMIC that owns the board's rails also reports battery state over the internal I²C bus. It reads `VBAT` for voltage and percentage, and watches both the DC input rail (`VIN`) and the bidirectional USB-C rail (`5VINOUT`) for external power. The PM1 is a PY32 MCU emulating an I²C slave, so reads are bursts with a 500 µs settle between the pointer write and the data phase (skip it and the slave serves stale samples — e.g. VBAT at 150 mV). It exposes no separate charge-phase bit, so `charging` stays unknown there.
 
@@ -1458,7 +1461,7 @@ Pins (PDM clock out, data in, and an active-polarity power-enable) come from the
 
 Group: Libraries · URL: https://freeink.org/docs/lib-rtc
 
-Wall-clock time from a real-time clock over I²C, described by `BoardConfig::ACTIVE.sensors`. Two chips are supported, selected per board by `RtcType`: the **PCF8563** (Sticky) and the **DS3231** (Xteink X3). Gated by `FREEINK_CAP_RTC`, which defaults on for the [X3](https://freeink.org/docs/devices) and Sticky, and off elsewhere; inert on boards with no RTC.
+Wall-clock time from a real-time clock over I²C, described by `BoardConfig::ACTIVE.sensors`. Two chips are supported, selected per board by `RtcType`: the **PCF8563** (Sticky, and the BM8563-compatible part on the X4 Pro) and the **DS3231** (Xteink X3). Gated by `FREEINK_CAP_RTC`, which defaults on for the [X3](https://freeink.org/docs/devices), Sticky and X4 Pro, and off elsewhere; inert on boards with no RTC.
 
 `begin()` brings up the I²C bus and quiets the chip's clock output; `now()` and `set()` read and write a `DateTime`. The driver handles each chip's register encoding and its oscillator-stopped flag, so a `now()` that returns false means the clock was never set (or browned out) rather than a silent bad time.
 
@@ -1586,6 +1589,61 @@ esp_deep_sleep_start();
 ```
 
 It compiles on both targets — the `gpio` branch links in the C3 build, the `ext1` branch in the S3 build. For the why and a consumer porting checklist, see [MCU portability](https://freeink.org/docs/mcu-portability).
+
+---
+
+# MemoryManager
+
+> On-demand RAM reclaim via priority-ordered cache sinks.
+
+Group: Libraries · URL: https://freeink.org/docs/lib-memory
+
+An on-demand RAM-reclaim helper: a small, priority-ordered registry of evictable **cache sinks** plus heap reporting, over the ESP-IDF heap-capabilities allocator. It lets a consumer free memory on demand — a control-center "clear caches" / "boost" action — or under pressure, without the SDK needing to know what any given app caches.
+
+Any component that holds a rebuildable RAM cache — rendered pages, decoded images, glyph atlases, parsed-document buffers, PSRAM pools — registers a `CacheSink` once. A sink is a name, a **priority** (lower is evicted first, so cheap-to-rebuild caches go low), and an `evict(bytesRequested)` callback that frees memory and returns the bytes it released (`bytesRequested == 0` means "free everything"). `MemoryManager` is a singleton, so sinks can register from anywhere and any code can trigger a reclaim.
+
+```cpp
+#include <MemoryManager.h>
+using freeink::MemoryManager;
+
+// Register once (e.g. in each cache owner's begin()):
+MemoryManager::instance().registerSink({"font.glyphs",  20, [&](size_t n){ return glyphs.evict(n); }});
+MemoryManager::instance().registerSink({"render.pages", 40, [&](size_t n){ return pages.evict(n); }});
+MemoryManager::instance().registerSink({"image.decode", 30, [&](size_t n){ return imgPool.evict(n); }});
+```
+
+## Reclaim
+
+| Member | Description |
+| --- | --- |
+| `registerSink(CacheSink) ` | Register a rebuildable cache by name, priority (lower = evicted first) and an evict(n) callback. Re-registering a name replaces the existing sink. Up to kMaxSinks (12) sinks. |
+| `clearCaches(size_t bytes) → size_t` | Walk the sinks lowest-priority first, passing each the remaining shortfall and stopping once bytes are freed (bytes = 0 purges all). Returns the total freed. |
+| `boost(&before, &after) → size_t` | Purge everything and return the honest, heap-measured free delta — the number you show the user ("Freed 1.8 MB"). Momentary, touches no NVS. |
+
+## Reporting
+
+For a "memory" read-out, or to gate work on available RAM. `MemPool` is `Internal` / `Psram` / `Default`.
+
+| Member | Description |
+| --- | --- |
+| `freeBytes(MemPool) → size_t` | Free bytes in the pool (Psram returns 0 without PSRAM). |
+| `largestFreeBlock(MemPool) → size_t` | Biggest contiguous free block — what a single allocation can actually claim. |
+| `minEverFree(MemPool) → size_t` | The min-ever-free low-water mark since boot. |
+
+```cpp
+// "Boost": purge everything and get the heap-measured free delta:
+size_t before = 0, after = 0;
+size_t freed = MemoryManager::instance().boost(&before, &after);
+
+// Or free just enough to satisfy a target, lowest-priority caches first:
+MemoryManager::instance().clearCaches(256 * 1024);   // free ~256 KB; 0 = purge all
+```
+
+> **It measures, it doesn't estimate**
+>
+> `boost()` wraps `clearCaches()` with a before/after heap measurement, so the number you display is what the allocator actually reclaimed, not what the sinks estimated. It is a purely momentary RAM operation and touches no NVS. Logs under `[MEM]` with `-DENABLE_SERIAL_LOG`.
+
+The pattern mirrors the cache-sink manager e-reader firmware typically hand-rolls: a set of rebuildable caches asked to shrink, measured against free heap. Pair it with [FreeInkBook](https://freeink.org/docs/lib-book)'s page cache and image pools as the registered sinks.
 
 ---
 
@@ -1770,7 +1828,7 @@ Adding a board means adding a profile here, not editing generic code — see [Ad
 
 # XteinkDetect
 
-> Runtime X3/X4 detection via I²C fingerprinting.
+> Runtime X3/X4 and display-controller detection via bus fingerprinting.
 
 Group: Libraries · URL: https://freeink.org/docs/lib-detect
 
@@ -1778,12 +1836,24 @@ Runtime Xteink X3/X4 detection. The X3 and X4 are two board profiles compiled in
 
 X3 and X4 share a pinout but differ in panel controller (X3 = UC8253 792×528, X4 = SSD1677 800×480) and battery backend, so the running firmware must select a profile at boot. The SDK leaves detection to the consumer by design — but rather than have every dual app reinvent the fingerprint, `XteinkDetect` ships the known-good one. See [Build composition](https://freeink.org/docs/build-composition) for how one binary carries both profiles.
 
-## API
+## Board fingerprint (X3 vs X4)
 
 | Member | Description |
 | --- | --- |
 | `detectXteinkIsX3() → bool` | Run the X3 I²C fingerprint and return true for an X3. Leaves the bus released and the probe pins back in INPUT mode; safe to call before any other bring-up. |
-| `selectXteinkDevice() → bool` | Convenience: run the fingerprint, point BoardConfig::ACTIVE at the matching profile via selectDevice(), and return whether an X3 was detected (so the caller can put the display in X3 mode). |
+| `detectXteinkVerdict(&score1, &score2) → XteinkVerdict` | The same probe with a three-way verdict — X3Confirmed / X4Confirmed / Inconclusive — plus the per-pass chip-hit scores (0–3) for diagnostics. Inconclusive means the passes disagreed or saw a stray ACK: treat it as an X4, but don’t persist a flaky first boot. |
+| `selectXteinkDevice() → bool` | Convenience: run the fingerprint, point BoardConfig::ACTIVE at the matching profile via selectDevice(), and return whether an X3 was detected. On a confirmed X3 it also runs the display-controller probe, selecting the UC8279 sibling profile when that silicon is fingerprinted. |
+
+## Display-controller sibling probe
+
+Newer production runs swap the default controller for an UltraChip sibling that shares the UC81xx KW-mode command set: the X3's `UC8253` → `UC8279d`, and the **X4 Pro's** `SSD1677` → `UC8179`. Same board, glass and pinout — only the silicon differs, so the running firmware fingerprints the live display bus and selects the matching driver before [FreeInkDisplay::begin()](https://freeink.org/docs/lib-display).
+
+| Member | Description |
+| --- | --- |
+| `detectXteinkDisplayController(verBytes[5], &flg) → DisplayControllerVerdict` | Board-agnostic probe: reads VER (0x70) / FLG (0x71) over a bit-banged half-duplex 4-wire SPI on BoardConfig::ACTIVE’s display pins, after a reset pulse. A matching UC81xx signature across two passes → Uc81xxConfirmed, else PrimaryAssumed. Works on any Xteink profile, including the S3 X4 Pro where the X3 I²C probe would be unsafe. |
+| `detectX3DisplayController(verBytes[5], &flg) → X3DisplayVerdict` | The X3-specific variant (hard-coded X3 C3 pinout): Uc8253Assumed / Uc8279Confirmed / Inconclusive. |
+| `applyXteinkDisplayController() → bool` | Resolve the panel controller from the live bus probe and, on a confirmed sibling, promote BoardConfig::ACTIVE.displayController (SSD1677 → UC8179, UC8253 → UC8279) so begin() picks the matching driver. Returns true iff promoted. The OEM NVS screenType is read only for diagnostics — the live probe is the ground truth, since a cross-unit flash can name the wrong panel. |
+| `getXteinkDisplayProbeDiag() → const XteinkDisplayProbeDiag&` | Snapshot of the most recent probe (VER/FLG bytes, verdict, whether it promoted, and up to 48 bytes of controller MTP) for firmware to persist somewhere retrievable without serial access — e.g. a file on the SD card of a locked unit. |
 
 ```cpp
 #include <XteinkDetect.h>
@@ -1793,6 +1863,7 @@ X3 and X4 share a pinout but differ in panel controller (X3 = UC8253 792×528, X
 if (freeink::selectXteinkDevice()) {
   display.setDisplayX3();   // detected an X3
 }
+freeink::applyXteinkDisplayController();   // promote to the UC81xx sibling if present
 display.begin();
 ```
 
@@ -1893,7 +1964,7 @@ It also ships the chrome and helpers multi-screen apps otherwise hand-roll: `scr
 
 > **Text entry — don't cast key ids to char**
 >
-> The SDK owns keyboard editing in `ui::KeyboardEntry`: `attach()` a caller buffer, route the keyboard's key/shift/mode/delete actions to its methods, and it handles the shift/symbol layers, layout-correct UTF-8 append and multi-byte backspace. Key actions report a stable **id** in `ActionEvent::value` — ASCII keys their code point, localized keys (é, ñ, ß) ids above 1000 — so casting the value straight to `char` corrupts non-ASCII layouts. Insert through `KeyboardEntry` (or `keyboardKeyText()`) instead.
+> The SDK owns keyboard editing in `ui::KeyboardEntry`: `attach()` a caller buffer, route the keyboard's key/shift/mode/delete actions to its methods, and it handles the shift/symbol layers, layout-correct UTF-8 append and multi-byte backspace. Key actions report a stable **id** in `ActionEvent::value` — ASCII keys their code point, localized keys (é, ñ, ß, and every Cyrillic / Hebrew glyph) ids above 1000 — so casting the value straight to `char` corrupts non-ASCII layouts. Insert through `KeyboardEntry` (or `keyboardKeyText()`) instead — it appends layout-correct UTF-8 and, with a script-switch key, tracks the active `KeyboardLayoutId`. Right-to-left is the renderer's job; the Hebrew layout inserts code points in logical order.
 
 ## Visual builder
 
@@ -1937,7 +2008,7 @@ A set of immediate-mode components, deliberately not tied to any application's s
 | `statusBar` | Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay. |
 | `tabBar` | Pill or underline-style tabs with an optional divider, per-tab icons and a disabled state. |
 | `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers; an optional per-row subtitle beneath the label; vertically-centered row content. |
-| `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, and an optional prepended number row; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting. |
+| `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, four ЙЦУКЕН Cyrillic layouts — Russian, Ukrainian, Belarusian, Kazakh — and a Hebrew RTL layout, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, an optional script-switch key for apps that reach more than one script, and an optional prepended number row; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting. |
 | `textArea` | A multi-line scrollable writing canvas (the editor body). The app owns the text buffer and caret offset; it word-wraps, draws the window of lines from topLine, and an optional caret. textAreaMeasure() / textAreaTopLineFor() keep the caret on screen, mirroring lists. |
 | `readerChrome / tapZones` | Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing. |
 | `bookCard / coverGrid` | Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection (a fixed array, or a CoverGridItemProvider callback that supplies items lazily by index). |
@@ -2026,7 +2097,7 @@ For teams mapping from LVGL, the equivalent FreeInkUI surface in e-paper-specifi
 | Label | Primitive: DrawTarget::text; used by header, statusBar, rows, dialogs |
 | Image / canvas / line | Primitive: bitmap, fill, stroke, line, triangle; DisplayTarget renders into the 1-bit framebuffer |
 | Button | button, gestureBar, FooterAction / FooterProps |
-| Button matrix / keyboard | keyGrid, keyboard, qwertyKeyboard — built-in QWERTY (English), AZERTY (French), QWERTZ (German), Spanish layouts |
+| Button matrix / keyboard | keyGrid, keyboard, qwertyKeyboard — built-in Latin (QWERTY, AZERTY, QWERTZ, Spanish), Cyrillic (Russian, Ukrainian, Belarusian, Kazakh) and Hebrew (RTL) layouts, with a script-switch key |
 | Checkbox | checkbox |
 | Switch | toggleRow |
 | Slider | slider; discrete setting changes use stepperRow |
