@@ -6,7 +6,8 @@ export default function LedManager() {
       <Lead>
         Color, brightness and non-blocking flashes for a board's addressable RGB LEDs, described by{' '}
         <Code>BoardConfig::ACTIVE.leds</Code>. Gated by <Code>FREEINK_CAP_LED</Code>, which defaults on
-        for the M5 PaperColor (two GRB LEDs on GPIO21) and off elsewhere; inert on boards with no LEDs.
+        for the M5 PaperColor (two GRB LEDs on GPIO21) and the M5 Paper Mono, and off elsewhere; inert on
+        boards with no LEDs.
       </Lead>
 
       <P>
@@ -74,6 +75,13 @@ void loop() {
         the same chain — the classic stuck-green LED — and survives a USB reflash) and forces the rail
         down. See <A href="/docs/lib-board">BoardConfig</A> for the <Code>LedConfig</Code> fields and{' '}
         <A href="/docs/build-composition">Build composition</A> for the capability flag.
+      </P>
+      <P>
+        The M5 Paper Mono takes a different path (<Code>paperMonoDiscrete</Code>): a single{' '}
+        <strong>discrete RGB LED</strong> whose channels are split across the M5PM1's LED output (red)
+        and the M5IOE1 I²C expander's IO8 / IO9 (green / blue) rather than a WS2812-style data chain, so{' '}
+        <Code>colorOrder</Code> is unused and the color is set by driving those pins through the
+        board-support library.
       </P>
     </>
   )

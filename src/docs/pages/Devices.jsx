@@ -37,6 +37,7 @@ export default function Devices() {
           ['LilyGo T5 S3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '960×540 16-gray, GT911 touch, backlight, I²C gauge', <Status key="s" full>full · via LovyanGFX</Status>],
           ['M5Paper v1.1', 'ESP32 (classic)', 'IT8951E', '540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery', <Status key="s" full>full · hand-rolled IT8951</Status>],
           ['Sticky', 'ESP32-S3', 'SSD1677', '3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer', <Status key="s" full>full</Status>],
+          ['M5 Paper Mono', 'ESP32-S3', 'SSD1677', '800×480 B/W + 3-gray, FT6336 touch, frontlight, PDM mic, buzzer, RGB LED, RX8130 RTC, SDMMC SD', <Status key="s" full>full</Status>],
         ]}
       />
       <P>
@@ -45,8 +46,8 @@ export default function Devices() {
         via <Code>setDisplayX3()</Code>, which swaps the active profile and driver. Distinct-MCU boards
         build their own binary, selected with a board macro. A build targets exactly one of{' '}
         <strong>three MCU families</strong> — ESP32-C3 (X3/X4), ESP32-S3 (X4 Pro, de-link, PaperColor,
-        Murphy, LilyGo, Sticky) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects
-        mixing families at compile time.
+        Murphy, LilyGo, Sticky, Paper Mono) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code>{' '}
+        rejects mixing families at compile time.
       </P>
       <P>
         The <strong>Xteink X4 Pro</strong> is a distinct ESP32-S3 device, not the C3 X4 — its own{' '}
@@ -58,6 +59,19 @@ export default function Devices() {
         same glass and pinout) — so the firmware fingerprints the live display bus at boot and promotes
         to the matching driver via <A href="/docs/lib-detect">XteinkDetect</A>'s{' '}
         <Code>applyXteinkDisplayController()</Code> before <Code>begin()</Code>.
+      </P>
+      <P>
+        The <strong>M5Stack Paper Mono</strong> (PaperS3) is an ESP32-S3 board on the same 800×480
+        SSD1677 glass, built with <Code>-DFREEINK_DEVICE_PAPERMONO=1</Code>. Its own{' '}
+        <Code>PaperMonoDriver</Code> runs <strong>host-authored 111-byte LUTs</strong> instead of the
+        stock OTP set: binary UI and Fast reader paints use the panel's non-flashing internal waveform,
+        while balanced book pages get a single target-coded W/G/B <strong>3-gray</strong> activation with
+        a white-biased per-page top-up that erases a little residue on every turn rather than letting
+        ghosts accumulate. On-board an <Code>M5IOE1</Code> I²C IO expander and an <Code>M5PM1</Code> PMIC
+        switch the EPD, frontlight (AW9967 boost driver) and microSD rails, so those GPIO fields stay
+        unassigned and a consumer board-support library (<Code>PaperMonoBoard.h</Code> /{' '}
+        <Code>M5Ioe1.h</Code>) supplies the power hooks. FT6336 capacitive touch, a PDM mic, a passive
+        buzzer, a discrete RGB LED, an RX8130 RTC and native SDMMC storage round out the profile.
       </P>
       <P>
         de-link reuses the X4's SSD1677 panel on an ESP32-S3, adding a warm/cool frontlight and{' '}
@@ -209,7 +223,7 @@ export default function Devices() {
 
       <H2>Capacitive touch</H2>
       <P>
-        Touch is implemented for two controllers (gated by <Code>FREEINK_CAP_TOUCH</Code>):
+        Touch is implemented for three controllers (gated by <Code>FREEINK_CAP_TOUCH</Code>):
       </P>
       <Ul>
         <Li>
@@ -219,6 +233,11 @@ export default function Devices() {
           <strong>GT911</strong> (X4 Pro, LilyGo T5 S3, M5Paper v1.1 and Sticky) — raw register reads plus the
           reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive home key is
           surfaced via <Code>wasHomeKeyPressed()</Code>.
+        </Li>
+        <Li>
+          <strong>FT6336</strong> (M5 Paper Mono) — register-compatible with the FT5x06 family, with
+          init retry for a slow power-up. It reports a portrait 480×800 frame, so the profile swaps it
+          into the panel-native 800×480 and flips Y to follow the 180°-rotated display.
         </Li>
       </Ul>
       <P>

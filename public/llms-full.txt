@@ -965,10 +965,13 @@ FreeInk ships drivers and board profiles for the following devices. Related boar
 | LilyGo T5 S3 | ESP32-S3 | ED047TC1 (raw parallel) | 960×540 16-gray, GT911 touch, backlight, I²C gauge | full · via LovyanGFX |
 | M5Paper v1.1 | ESP32 (classic) | IT8951E | 540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery | full · hand-rolled IT8951 |
 | Sticky | ESP32-S3 | SSD1677 | 3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer | full |
+| M5 Paper Mono | ESP32-S3 | SSD1677 | 800×480 B/W + 3-gray, FT6336 touch, frontlight, PDM mic, buzzer, RGB LED, RX8130 RTC, SDMMC SD | full |
 
-X3 and X4 share the ESP32-C3 and a pinout, so a single firmware binary drives both — it carries both board profiles (`XTEINK_X4` and `XTEINK_X3`) and picks one at runtime via `setDisplayX3()`, which swaps the active profile and driver. Distinct-MCU boards build their own binary, selected with a board macro. A build targets exactly one of **three MCU families** — ESP32-C3 (X3/X4), ESP32-S3 (X4 Pro, de-link, PaperColor, Murphy, LilyGo, Sticky) or classic ESP32 (M5Paper v1.1) — and `BoardConfig` rejects mixing families at compile time.
+X3 and X4 share the ESP32-C3 and a pinout, so a single firmware binary drives both — it carries both board profiles (`XTEINK_X4` and `XTEINK_X3`) and picks one at runtime via `setDisplayX3()`, which swaps the active profile and driver. Distinct-MCU boards build their own binary, selected with a board macro. A build targets exactly one of **three MCU families** — ESP32-C3 (X3/X4), ESP32-S3 (X4 Pro, de-link, PaperColor, Murphy, LilyGo, Sticky, Paper Mono) or classic ESP32 (M5Paper v1.1) — and `BoardConfig` rejects mixing families at compile time.
 
 The **Xteink X4 Pro** is a distinct ESP32-S3 device, not the C3 X4 — its own `XTEINK_X4_PRO` profile (16 MB flash, 8 MB PSRAM), built with `-DFREEINK_DEVICE_X4PRO=1`. It reuses the X4's 800×480 SSD1677 panel and OTP waveform, and adds GT911 touch, a dual warm/cool frontlight, a PCF8563-compatible RTC, a CW2017 fuel gauge, native 1-bit SDMMC storage and USB mass storage. The panel controller **varies by production batch** — original units carry the SSD1677, newer ones a UC8179 (an UltraChip part on the same glass and pinout) — so the firmware fingerprints the live display bus at boot and promotes to the matching driver via [XteinkDetect](https://freeink.org/docs/lib-detect)'s `applyXteinkDisplayController()` before `begin()`.
+
+The **M5Stack Paper Mono** (PaperS3) is an ESP32-S3 board on the same 800×480 SSD1677 glass, built with `-DFREEINK_DEVICE_PAPERMONO=1`. Its own `PaperMonoDriver` runs **host-authored 111-byte LUTs** instead of the stock OTP set: binary UI and Fast reader paints use the panel's non-flashing internal waveform, while balanced book pages get a single target-coded W/G/B **3-gray** activation with a white-biased per-page top-up that erases a little residue on every turn rather than letting ghosts accumulate. On-board an `M5IOE1` I²C IO expander and an `M5PM1` PMIC switch the EPD, frontlight (AW9967 boost driver) and microSD rails, so those GPIO fields stay unassigned and a consumer board-support library (`PaperMonoBoard.h` / `M5Ioe1.h`) supplies the power hooks. FT6336 capacitive touch, a PDM mic, a passive buzzer, a discrete RGB LED, an RX8130 RTC and native SDMMC storage round out the profile.
 
 de-link reuses the X4's SSD1677 panel on an ESP32-S3, adding a warm/cool frontlight and **native 4-bit SDMMC storage**. SdFat can't drive SDIO, so FreeInk mounts a volume on an esp-idf SDMMC block device (auto-enabled via `FREEINK_SD_SDMMC`) — see [Build composition](https://freeink.org/docs/build-composition). Its panel orientation is set in the board profile rather than at compile time, so an upside-down PCB just sets `ROTATE_180` and the driver mirrors in hardware.
 
@@ -1007,10 +1010,11 @@ The same PMIC also reports power telemetry, which [BatteryMonitor](https://freei
 
 ## Capacitive touch
 
-Touch is implemented for two controllers (gated by `FREEINK_CAP_TOUCH`):
+Touch is implemented for three controllers (gated by `FREEINK_CAP_TOUCH`):
 
 - **CHSC6x** (Murphy M3) — IRQ-driven, ported from the upstream driver.
 - **GT911** (X4 Pro, LilyGo T5 S3, M5Paper v1.1 and Sticky) — raw register reads plus the reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive home key is surfaced via `wasHomeKeyPressed()`.
+- **FT6336** (M5 Paper Mono) — register-compatible with the FT5x06 family, with init retry for a slow power-up. It reports a portrait 480×800 frame, so the profile swaps it into the panel-native 800×480 and flips Y to follow the 180°-rotated display.
 
 The InputManager exposes `hasTouch` / `isTouchPressed` / `wasTouchPressed` / `wasTouchReleased` / `getTouchPoint`, plus tap, swipe and activity edges (see the [InputManager reference](https://freeink.org/docs/lib-input)). GT911 boards set their `TouchConfig` in the board profile (e.g. `BoardConfig::LILYGO_T5_PRO_GT911`).
 
@@ -1341,7 +1345,7 @@ See [BoardConfig](https://freeink.org/docs/lib-board) for the `AudioConfig` fiel
 
 Group: Libraries · URL: https://freeink.org/docs/lib-led
 
-Color, brightness and non-blocking flashes for a board's addressable RGB LEDs, described by `BoardConfig::ACTIVE.leds`. Gated by `FREEINK_CAP_LED`, which defaults on for the M5 PaperColor (two GRB LEDs on GPIO21) and off elsewhere; inert on boards with no LEDs.
+Color, brightness and non-blocking flashes for a board's addressable RGB LEDs, described by `BoardConfig::ACTIVE.leds`. Gated by `FREEINK_CAP_LED`, which defaults on for the M5 PaperColor (two GRB LEDs on GPIO21) and the M5 Paper Mono, and off elsewhere; inert on boards with no LEDs.
 
 The API is deliberately small and independent of M5Unified. The driver **bit-bangs a WS2812 / SK6812-compatible 800 kHz signal** directly on the data GPIO with cycle-accurate timing (`T0H` ≈ 350 ns, `T1H` ≈ 700 ns, 1.25 µs bit cell), so interrupts are masked for only ~60 µs per `show()` with two LEDs. The timing-critical path runs from `IRAM` over a byte stream computed before interrupts are masked, so cache contention can't corrupt a frame. Colors are stored unscaled; `setBrightness()` applies a global scale at write time.
 
@@ -1386,6 +1390,8 @@ void loop() {
 
 The board profile carries the data pin, LED count, color order and a `pmicRgbPower` flag. On the PaperColor the two LEDs sit behind the **M5PM1 PMIC's 3.3 V RGB LDO rail**, which `LedManager` powers **lazily**: the rail stays off until the first lit frame and drops again once every LED is black, so dark LEDs draw nothing. `begin()` lights nothing — it **evicts the PM1's own NeoPixel engine** (which otherwise drives a status pixel onto the same chain — the classic stuck-green LED — and survives a USB reflash) and forces the rail down. See [BoardConfig](https://freeink.org/docs/lib-board) for the `LedConfig` fields and [Build composition](https://freeink.org/docs/build-composition) for the capability flag.
 
+The M5 Paper Mono takes a different path (`paperMonoDiscrete`): a single **discrete RGB LED** whose channels are split across the M5PM1's LED output (red) and the M5IOE1 I²C expander's IO8 / IO9 (green / blue) rather than a WS2812-style data chain, so `colorOrder` is unused and the color is set by driving those pins through the board-support library.
+
 ---
 
 # Buzzer
@@ -1394,7 +1400,7 @@ The board profile carries the data pin, LED count, color order and a `pmicRgbPow
 
 Group: Libraries · URL: https://freeink.org/docs/lib-buzzer
 
-Square-wave tones on a passive buzzer via the ESP32 LEDC PWM, on the `audio.buzzer` pin in the board profile. Gated by `FREEINK_CAP_BUZZER`, which defaults on for the [Sticky](https://freeink.org/docs/devices) and Murphy M3, and off elsewhere.
+Square-wave tones on a passive buzzer via the ESP32 LEDC PWM, on the `audio.buzzer` pin in the board profile. Gated by `FREEINK_CAP_BUZZER`, which defaults on for the [Sticky](https://freeink.org/docs/devices), Murphy M3 and M5 Paper Mono, and off elsewhere.
 
 This is a **tone device**, not a PCM codec — it's independent of [AudioManager](https://freeink.org/docs/lib-audio), and a board can carry both (the Murphy M3 has an ES8388 codec *and* a buzzer). `tone()` with a duration blocks and self-stops; with no duration it runs until `noTone()`.
 
@@ -1427,7 +1433,7 @@ See [BoardConfig](https://freeink.org/docs/lib-board) for the `audio.buzzer` pin
 
 Group: Libraries · URL: https://freeink.org/docs/lib-mic
 
-PDM microphone capture to 16-bit PCM, described by `BoardConfig::ACTIVE.mic`. Gated by `FREEINK_CAP_MIC`, which defaults on for the [Sticky](https://freeink.org/docs/devices) and off elsewhere; inert on boards with no microphone.
+PDM microphone capture to 16-bit PCM, described by `BoardConfig::ACTIVE.mic`. Gated by `FREEINK_CAP_MIC`, which defaults on for the [Sticky](https://freeink.org/docs/devices) and M5 Paper Mono, and off elsewhere; inert on boards with no microphone.
 
 It wraps the ESP-IDF `i2s_pdm` RX driver: `begin()` raises the mic power rail, settles, and starts the PDM clock; `read()` pulls mono 16-bit samples out of the I2S FIFO. The SDK stays storage-agnostic — the caller owns whatever it does with the samples (ring buffer, WAV file, on-device wake-word).
 
@@ -1461,7 +1467,7 @@ Pins (PDM clock out, data in, and an active-polarity power-enable) come from the
 
 Group: Libraries · URL: https://freeink.org/docs/lib-rtc
 
-Wall-clock time from a real-time clock over I²C, described by `BoardConfig::ACTIVE.sensors`. Two chips are supported, selected per board by `RtcType`: the **PCF8563** (Sticky, and the BM8563-compatible part on the X4 Pro) and the **DS3231** (Xteink X3). Gated by `FREEINK_CAP_RTC`, which defaults on for the [X3](https://freeink.org/docs/devices), Sticky and X4 Pro, and off elsewhere; inert on boards with no RTC.
+Wall-clock time from a real-time clock over I²C, described by `BoardConfig::ACTIVE.sensors`. Three chips are supported, selected per board by `RtcType`: the **PCF8563** (Sticky, and the BM8563-compatible part on the X4 Pro), the **DS3231** (Xteink X3) and the **RX8130** (M5 Paper Mono). Gated by `FREEINK_CAP_RTC`, which defaults on for the [X3](https://freeink.org/docs/devices), Sticky, X4 Pro and Paper Mono, and off elsewhere; inert on boards with no RTC.
 
 `begin()` brings up the I²C bus and quiets the chip's clock output; `now()` and `set()` read and write a `DateTime`. The driver handles each chip's register encoding and its oscillator-stopped flag, so a `now()` that returns false means the clock was never set (or browned out) rather than a silent bad time.
 
@@ -1645,6 +1651,27 @@ MemoryManager::instance().clearCaches(256 * 1024);   // free ~256 KB; 0 = purge 
 
 The pattern mirrors the cache-sink manager e-reader firmware typically hand-rolls: a set of rebuildable caches asked to shrink, measured against free heap. Pair it with [FreeInkBook](https://freeink.org/docs/lib-book)'s page cache and image pools as the registered sinks.
 
+## Pressure watermarks
+
+Instead of reclaiming only on an explicit user action, a build can arm soft/hard watermarks and let the manager relieve pressure automatically — evicting lowest-priority sinks first, and purging outright at the hard line.
+
+| Member | Description |
+| --- | --- |
+| `setWatermarks(uint8_t softPct = 60, uint8_t hardPct = 75)` | Arm soft/hard used-bytes watermarks as a percentage of the internal pool, recording what was already in use. Call once at the end of app init. Defaults mirror common e-reader firmware. |
+| `pressure() → MemPressure` | Current internal-pool pressure against the watermarks — None / Soft / Hard. Always None before setWatermarks(). |
+| `relievePressure() → size_t` | At Soft, evict sinks until used drops back under the soft line; at Hard, additionally purge every sink. Cheap no-op at None — safe to call periodically or before a large allocation. Returns bytes freed. |
+| `ensureFree(size_t bytes, MemPool) → bool` | Evict sinks until at least bytes are free in the pool (or all sinks are spent). Returns whether the target was met. |
+
+## Static task stacks and arenas
+
+Two allocation helpers keep short-lived, large allocations from fragmenting the internal heap. **Task-stack slots** lend a named, preallocated stack (+ TCB) to `xTaskCreateStatic()`, so bring-up tasks (Wi-Fi / radio, OTA, sync) don't repeatedly carve 4–8 KB holes; the buffer is kept across release for reuse. **Bump arenas** back phase-scoped scratch (layout, image decode) that is freed all at once.
+
+| Member | Description |
+| --- | --- |
+| `acquireTaskStack(slot, owner, stackBytes) → TaskStack` | Borrow a named internal-RAM stack + TCB. Allocated on first acquire, reused after release (a larger later acquire reallocates, only while released). Returns {nullptr,…} if the slot is owned, the table is full, or allocation fails; owner is for logging. |
+| `releaseTaskStack(slot)` | Return a slot once the borrowing task is deleted. The buffer stays allocated for the next acquire. |
+| `arenaCreate(bytes, MemPool) → int / arenaAlloc(id, bytes, align) / arenaReset(id)` | A bump arena for allocations freed all at once: create returns an id (−1 on failure), alloc bump-allocates (nullptr when exhausted, no per-allocation free), reset empties it. |
+
 ---
 
 # RecoveryBoot
@@ -1799,10 +1826,11 @@ The compile-time board descriptions and the runtime-active profile. Drivers read
 | --- | --- |
 | `ACTIVE` | The runtime-active BoardProfile (defaults to DEFAULT_DEVICE). |
 | `selectDevice(Board which) → bool` | Set ACTIVE to a compiled-in device; false if not included. |
-| `XTEINK_X4, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, LILYGO_T5S3, M5PAPER_V11, STICKY` | Built-in board profiles. |
+| `XTEINK_X4, XTEINK_X4_PRO, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, LILYGO_T5S3, M5PAPER_V11, STICKY, PAPER_MONO` | Built-in board profiles. |
 | `BoardProfile.orientation` | Panel mount transform — NO_FLIP / MIRROR_X / MIRROR_Y / ROTATE_180 (applied in hardware by SSD1677). |
 | `BoardProfile.sdmmc` | SdmmcPins for 4-bit SDMMC boards; busWidth 0 = use SPI/SdFat. |
 | `BoardProfile.uiScale` | Per-device UI scale multiplier (1.0 default; touch boards like Sticky bump it for finger-sized chrome). Read by the app/theme layer. |
+| `BoardProfile.viewableInsets` | ViewableInsets — panel rows/columns the bezel physically overlaps (top/right/bottom/left, native portrait frame), so firmware keeps content out of them. Defaulted to the historical X4-tuned value; a measured board overrides it. |
 | `holdPowerRails()` | Assert the profile’s power-latch pins (PWR_HOLD / PWR_LOCK). Battery-latched boards (e.g. Sticky) must call this first thing in setup() or they power off when the user releases the button. No-op on boards without a latch. |
 | `releaseSdRail()` | Rescue an SD power rail a previous firmware’s sleep left gpio-held off — required before first display use where SD shares the display SPI bus (an unpowered card clamps the lines). SDCardManager::begin() does it too. |
 | `hasTouch() / hasPwmFrontlight() / hasAudio()` | Capability queries for the active board. |
@@ -1960,7 +1988,7 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
 }
 ```
 
-It also ships the chrome and helpers multi-screen apps otherwise hand-roll: `screen.navHeader(title, backAction, backIcon)` draws a sub-screen's back button + centered title + rule — with an optional right-aligned `rightLabel` (a live clock or count), a trailing action **button** (`trailingLabel` / `trailingAction`, e.g. a "Save") in its place, and a `borderEdges` flag to drop the divider. `screen.centeredText("Scanning…")` centers a one-line message for empty/loading states, `takeRow(anchor, height)` reserves a row band whose inter-row gap scales with the height, and a `button(props, rect)` overload places a themed button at an explicit rect for layouts the row cadence can't express. Because frames **don't clear the target** on their own, call `app.setClearColor(ui::Color::White)` once so each paint starts from a white canvas. For snappy navigation, `app.invalidateTransition()` requests a fast partial refresh on a screen change and promotes to a full one every Nth transition (`setTransitionFullEvery(n)`) to clear ghosting; FreeInkApp also sizes its default theme metrics to the target's real font line height, so larger fonts don't clip rows.
+It also ships the chrome and helpers multi-screen apps otherwise hand-roll: `screen.navHeader(title, backAction, backIcon)` draws a sub-screen's back button + centered title + rule — with an optional right-aligned `rightLabel` (a live clock or count), a trailing action **button** (`trailingLabel` / `trailingAction`, e.g. a "Save") in its place, and a `borderEdges` flag to drop the divider. `screen.centeredText("Scanning…")` centers a one-line message for empty/loading states, `takeRow(anchor, height)` reserves a row band whose inter-row gap scales with the height, and a `button(props, rect)` overload places a themed button at an explicit rect for layouts the row cadence can't express. Because frames **don't clear the target** on their own, call `app.setClearColor(ui::Color::White)` once so each paint starts from a white canvas. For snappy navigation, `app.invalidateTransition()` requests a fast partial refresh on a screen change and promotes to a full one every Nth transition (`setTransitionFullEvery(n)`) to clear ghosting; FreeInkApp also sizes its default theme metrics to the target's real font line height, so larger fonts don't clip rows. By default `setTheme()` keeps a per-app copy of the tokens; when every screen shares one theme, `setThemeRef(&tokens)` points at caller-owned tokens instead, saving the ~1.5 KB per-app copy — the cost that matters on small heaps with several live screens.
 
 > **Text entry — don't cast key ids to char**
 >
@@ -1993,7 +2021,9 @@ button(ui, rect, {
 
 Touch hit areas are declarative and decoupled from the visual rect, composed in one place (`ensureMinTouchRect`): `minTouchSize` center-expands a small target to a comfortable minimum, `ButtonProps.hitPadding` extends a button's tap band per edge so adjacent controls (a stepper's `−` / `+`) get contiguous, non-overlapping bands instead of overlapping centered expansion, and any hit rect within ~12 px of a screen edge snaps to the bezel — eliminating the dead zone between an edge control and the physical border (Fitts's law). The visual rect is unchanged by all three.
 
-**Swipes route the same way.** The app detects a flick with [InputManager](https://freeink.org/docs/lib-input)'s `wasSwipe()`, picks the dominant axis, sets `InputSnapshot.swipeLeft` / `swipeRight`, and components that opt in with the `InputSwipeLeft` / `InputSwipeRight` mask bits fire their action — so a list can be paged by swipe and by GPIO with one declaration.
+**Swipes route the same way.** The app detects a flick with [InputManager](https://freeink.org/docs/lib-input)'s `wasSwipe()`, picks the dominant axis (`swipeDirection()` classifies a start/end pair into a `SwipeDir`), sets `InputSnapshot.swipeLeft` / `swipeRight`, and components that opt in with the `InputSwipeLeft` / `InputSwipeRight` mask bits fire their action — so a list can be paged by swipe and by GPIO with one declaration. Tap and swipe use **separate slop thresholds**, so a slightly-dragged tap still registers while a real flick is classified as a swipe.
+
+**Long-press** is a first-class input: build the frame's snapshot with `snapshotFrom(input, device, withLongPress)`, and a component that opts in with the `InputLongPress` mask fires on the hold rather than the tap (the keyboard uses this for per-key alternates). For scrolled menus, the `ListNav` helper owns the selection/viewport state a list otherwise makes every screen hand-roll — `selected` / `top` / measured `visibleRows`, with `scrollBy()`, `follow()` (pull the viewport the minimum to keep the selection visible) and `syncToProps()` (measure rows, clamp, write into `ListProps` right before `list()`). `drawListScrollIndicator()` paints the matching dithered scrollbar.
 
 ## Built-in components
 

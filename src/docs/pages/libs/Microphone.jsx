@@ -6,7 +6,7 @@ export default function Microphone() {
       <Lead>
         PDM microphone capture to 16-bit PCM, described by <Code>BoardConfig::ACTIVE.mic</Code>. Gated
         by <Code>FREEINK_CAP_MIC</Code>, which defaults on for the <A href="/docs/devices">Sticky</A> and
-        off elsewhere; inert on boards with no microphone.
+        M5 Paper Mono, and off elsewhere; inert on boards with no microphone.
       </Lead>
 
       <P>

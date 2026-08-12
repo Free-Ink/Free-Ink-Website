@@ -160,7 +160,10 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
         white canvas. For snappy navigation, <Code>app.invalidateTransition()</Code> requests a fast
         partial refresh on a screen change and promotes to a full one every Nth transition
         (<Code>setTransitionFullEvery(n)</Code>) to clear ghosting; FreeInkApp also sizes its default
-        theme metrics to the target's real font line height, so larger fonts don't clip rows.
+        theme metrics to the target's real font line height, so larger fonts don't clip rows. By default{' '}
+        <Code>setTheme()</Code> keeps a per-app copy of the tokens; when every screen shares one theme,{' '}
+        <Code>setThemeRef(&tokens)</Code> points at caller-owned tokens instead, saving the ~1.5&nbsp;KB
+        per-app copy — the cost that matters on small heaps with several live screens.
       </P>
       <Callout title="Text entry — don't cast key ids to char">
         <p>
@@ -219,10 +222,25 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
       </P>
       <P>
         <strong>Swipes route the same way.</strong> The app detects a flick with{' '}
-        <A href="/docs/lib-input">InputManager</A>'s <Code>wasSwipe()</Code>, picks the dominant axis,
-        sets <Code>InputSnapshot.swipeLeft</Code> / <Code>swipeRight</Code>, and components that opt in
-        with the <Code>InputSwipeLeft</Code> / <Code>InputSwipeRight</Code> mask bits fire their action
-        — so a list can be paged by swipe and by GPIO with one declaration.
+        <A href="/docs/lib-input">InputManager</A>'s <Code>wasSwipe()</Code>, picks the dominant axis
+        (<Code>swipeDirection()</Code> classifies a start/end pair into a <Code>SwipeDir</Code>), sets{' '}
+        <Code>InputSnapshot.swipeLeft</Code> / <Code>swipeRight</Code>, and components that opt in with
+        the <Code>InputSwipeLeft</Code> / <Code>InputSwipeRight</Code> mask bits fire their action — so a
+        list can be paged by swipe and by GPIO with one declaration. Tap and swipe use{' '}
+        <strong>separate slop thresholds</strong>, so a slightly-dragged tap still registers while a real
+        flick is classified as a swipe.
+      </P>
+      <P>
+        <strong>Long-press</strong> is a first-class input: build the frame's snapshot with{' '}
+        <Code>snapshotFrom(input, device, withLongPress)</Code>, and a component that opts in with the{' '}
+        <Code>InputLongPress</Code> mask fires on the hold rather than the tap (the keyboard uses this for
+        per-key alternates). For scrolled menus, the <Code>ListNav</Code> helper owns the{' '}
+        selection/viewport state a list otherwise makes every screen hand-roll —{' '}
+        <Code>selected</Code> / <Code>top</Code> / measured <Code>visibleRows</Code>, with{' '}
+        <Code>scrollBy()</Code>, <Code>follow()</Code> (pull the viewport the minimum to keep the
+        selection visible) and <Code>syncToProps()</Code> (measure rows, clamp, write into{' '}
+        <Code>ListProps</Code> right before <Code>list()</Code>). <Code>drawListScrollIndicator()</Code>{' '}
+        paints the matching dithered scrollbar.
       </P>
 
       <H2>Built-in components</H2>

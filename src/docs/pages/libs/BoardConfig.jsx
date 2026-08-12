@@ -14,10 +14,11 @@ export default function BoardConfig() {
         rows={[
           ['ACTIVE', 'The runtime-active BoardProfile (defaults to DEFAULT_DEVICE).'],
           ['selectDevice(Board which) → bool', 'Set ACTIVE to a compiled-in device; false if not included.'],
-          ['XTEINK_X4, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, LILYGO_T5S3, M5PAPER_V11, STICKY', 'Built-in board profiles.'],
+          ['XTEINK_X4, XTEINK_X4_PRO, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, LILYGO_T5S3, M5PAPER_V11, STICKY, PAPER_MONO', 'Built-in board profiles.'],
           ['BoardProfile.orientation', 'Panel mount transform — NO_FLIP / MIRROR_X / MIRROR_Y / ROTATE_180 (applied in hardware by SSD1677).'],
           ['BoardProfile.sdmmc', 'SdmmcPins for 4-bit SDMMC boards; busWidth 0 = use SPI/SdFat.'],
           ['BoardProfile.uiScale', 'Per-device UI scale multiplier (1.0 default; touch boards like Sticky bump it for finger-sized chrome). Read by the app/theme layer.'],
+          ['BoardProfile.viewableInsets', 'ViewableInsets — panel rows/columns the bezel physically overlaps (top/right/bottom/left, native portrait frame), so firmware keeps content out of them. Defaulted to the historical X4-tuned value; a measured board overrides it.'],
           ['holdPowerRails()', 'Assert the profile’s power-latch pins (PWR_HOLD / PWR_LOCK). Battery-latched boards (e.g. Sticky) must call this first thing in setup() or they power off when the user releases the button. No-op on boards without a latch.'],
           ['releaseSdRail()', 'Rescue an SD power rail a previous firmware’s sleep left gpio-held off — required before first display use where SD shares the display SPI bus (an unpowered card clamps the lines). SDCardManager::begin() does it too.'],
           ['hasTouch() / hasPwmFrontlight() / hasAudio()', 'Capability queries for the active board.'],

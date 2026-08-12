@@ -70,6 +70,38 @@ MemoryManager::instance().clearCaches(256 * 1024);   // free ~256 KB; 0 = purge 
         rebuildable caches asked to shrink, measured against free heap. Pair it with{' '}
         <A href="/docs/lib-book">FreeInkBook</A>'s page cache and image pools as the registered sinks.
       </P>
+
+      <H2>Pressure watermarks</H2>
+      <P>
+        Instead of reclaiming only on an explicit user action, a build can arm soft/hard watermarks and
+        let the manager relieve pressure automatically — evicting lowest-priority sinks first, and
+        purging outright at the hard line.
+      </P>
+      <ApiTable
+        rows={[
+          ['setWatermarks(uint8_t softPct = 60, uint8_t hardPct = 75)', 'Arm soft/hard used-bytes watermarks as a percentage of the internal pool, recording what was already in use. Call once at the end of app init. Defaults mirror common e-reader firmware.'],
+          ['pressure() → MemPressure', 'Current internal-pool pressure against the watermarks — None / Soft / Hard. Always None before setWatermarks().'],
+          ['relievePressure() → size_t', 'At Soft, evict sinks until used drops back under the soft line; at Hard, additionally purge every sink. Cheap no-op at None — safe to call periodically or before a large allocation. Returns bytes freed.'],
+          ['ensureFree(size_t bytes, MemPool) → bool', 'Evict sinks until at least bytes are free in the pool (or all sinks are spent). Returns whether the target was met.'],
+        ]}
+      />
+
+      <H2>Static task stacks and arenas</H2>
+      <P>
+        Two allocation helpers keep short-lived, large allocations from fragmenting the internal heap.{' '}
+        <strong>Task-stack slots</strong> lend a named, preallocated stack (+ TCB) to{' '}
+        <Code>xTaskCreateStatic()</Code>, so bring-up tasks (Wi-Fi / radio, OTA, sync) don't repeatedly
+        carve 4–8&nbsp;KB holes; the buffer is kept across release for reuse.{' '}
+        <strong>Bump arenas</strong> back phase-scoped scratch (layout, image decode) that is freed all
+        at once.
+      </P>
+      <ApiTable
+        rows={[
+          ['acquireTaskStack(slot, owner, stackBytes) → TaskStack', 'Borrow a named internal-RAM stack + TCB. Allocated on first acquire, reused after release (a larger later acquire reallocates, only while released). Returns {nullptr,…} if the slot is owned, the table is full, or allocation fails; owner is for logging.'],
+          ['releaseTaskStack(slot)', 'Return a slot once the borrowing task is deleted. The buffer stays allocated for the next acquire.'],
+          ['arenaCreate(bytes, MemPool) → int / arenaAlloc(id, bytes, align) / arenaReset(id)', 'A bump arena for allocations freed all at once: create returns an id (−1 on failure), alloc bump-allocates (nullptr when exhausted, no per-allocation free), reset empties it.'],
+        ]}
+      />
     </>
   )
 }
