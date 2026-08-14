@@ -1,20 +1,5 @@
 import { Lead, P, H2, A, Ul, Li, Code, Table, Callout } from '../prose.jsx'
 
-function Status({ full, children }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-x-1.5 rounded-full px-2 py-0.5 font-mono text-[0.6875rem] whitespace-nowrap ${
-        full
-          ? 'bg-flame-500/10 text-flame-700 dark:text-flame-400'
-          : 'bg-stone-500/10 text-stone-500 dark:text-stone-400'
-      }`}
-    >
-      <span aria-hidden="true" className={`size-1.5 rounded-full ${full ? 'bg-flame-500' : 'bg-stone-400'}`} />
-      {children}
-    </span>
-  )
-}
-
 export default function Devices() {
   return (
     <>
@@ -26,20 +11,20 @@ export default function Devices() {
 
       <H2>Device matrix</H2>
       <Table
-        head={['Device', 'MCU', 'Controller', 'Panel', 'Status']}
+        head={['Device', 'MCU', 'Controller', 'Panel']}
         rows={[
-          ['Xteink X4', 'ESP32-C3', 'SSD1677', '800×480 B/W + 4-level gray', <Status key="s" full>full</Status>],
-          ['Xteink X4 Pro', 'ESP32-S3', 'SSD1677 / UC8179', '800×480 B/W, GT911 touch, warm/cool frontlight, PCF8563 RTC, CW2017 gauge, SDMMC SD, USB MSC', <Status key="s" full>full · controller runtime-probed</Status>],
-          ['Xteink X3', 'ESP32-C3', 'UC8253', '792×528 B/W + 4-level gray, BQ27220 I²C gauge, DS3231 RTC, QMI8658 IMU', <Status key="s" full>full · runtime-selected</Status>],
-          ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD', <Status key="s" full>full</Status>],
-          ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs', <Status key="s" full>full · native + M5GFX backend</Status>],
-          ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s" full>full</Status>],
-          ['Murphy M4', 'ESP32-S3', 'SSD1677', '800×480 B/W, FT6336U touch, 5-key nav, warm/cool frontlight, SDMMC SD, ADC battery', <Status key="s" full>full</Status>],
-          ['LilyGo T5 S3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '960×540 16-gray, GT911 touch, backlight, I²C gauge', <Status key="s" full>full · via LovyanGFX</Status>],
-          ['M5Paper v1.1', 'ESP32 (classic)', 'IT8951E', '540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery', <Status key="s" full>full · hand-rolled IT8951</Status>],
-          ['Sticky', 'ESP32-S3', 'SSD1677', '3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer', <Status key="s" full>full</Status>],
-          ['M5 Paper Mono', 'ESP32-S3', 'SSD1677', '800×480 B/W + 3-gray, FT6336 touch, frontlight, PDM mic, buzzer, RGB LED, RX8130 RTC, SDMMC SD', <Status key="s" full>full</Status>],
-          ['M5 PaperS3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '4.7" 960×540 16-gray, GT911 touch-only, buzzer, BM8563 RTC, SPI SD', <Status key="s" full>full · via LovyanGFX</Status>],
+          ['Xteink X4', 'ESP32-C3', 'SSD1677', '800×480 B/W + 4-level gray'],
+          ['Xteink X4 Pro', 'ESP32-S3', 'SSD1677 / UC8179', '800×480 B/W, GT911 touch, warm/cool frontlight, PCF8563 RTC, CW2017 gauge, SDMMC SD, USB MSC'],
+          ['Xteink X3', 'ESP32-C3', 'UC8253 / UC8279', '792×528 B/W + 4-level gray, BQ27220 I²C gauge, DS3231 RTC, QMI8658 IMU'],
+          ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD'],
+          ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs'],
+          ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight'],
+          ['Murphy M4', 'ESP32-S3', 'SSD1677', '800×480 B/W, FT6336U touch, 5-key nav, warm/cool frontlight, SDMMC SD, ADC battery'],
+          ['LilyGo T5 S3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '960×540 16-gray, GT911 touch, backlight, I²C gauge'],
+          ['M5Paper v1.1', 'ESP32 (classic)', 'IT8951E', '540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery'],
+          ['Sticky', 'ESP32-S3', 'SSD1677', '3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer'],
+          ['M5 Paper Mono', 'ESP32-S3', 'SSD1677', '800×480 B/W + 3-gray, FT6336 touch, frontlight, PDM mic, buzzer, RGB LED, RX8130 RTC, SDMMC SD'],
+          ['M5 PaperS3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '4.7" 960×540 16-gray, GT911 touch-only, buzzer, BM8563 RTC, SPI SD'],
         ]}
       />
       <P>

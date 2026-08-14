@@ -45,35 +45,19 @@ const FEATURES = [
 
 // Supported devices, pulled from the SDK README's device matrix.
 const DEVICES = [
-  { name: 'Xteink X4', mcu: 'ESP32-C3', controller: 'SSD1677', panel: '800×480 B/W + 4-level gray', status: 'full' },
-  { name: 'Xteink X4 Pro', mcu: 'ESP32-S3', controller: 'SSD1677 / UC8179', panel: '800×480 B/W, GT911 touch, warm/cool frontlight', status: 'full' },
-  { name: 'Xteink X3', mcu: 'ESP32-C3', controller: 'UC8253', panel: '792×528 B/W + 4-level gray', status: 'full' },
-  { name: 'de-link', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + gray, frontlight', status: 'full' },
-  { name: 'M5Stack PaperColor', mcu: 'ESP32-S3', controller: 'ED2208', panel: '400×600 Spectra-6 color', status: 'full' },
-  { name: 'Murphy M3', mcu: 'ESP32-S3', controller: 'UC8253', panel: '240×416 B/W, touch + frontlight', status: 'full' },
-  { name: 'Murphy M4', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W, FT6336U touch, 5-key, warm/cool frontlight', status: 'full' },
-  { name: 'LilyGo T5 S3', mcu: 'ESP32-S3', controller: 'ED047TC1', panel: '960×540 16-gray, touch, I²C gauge', status: 'full' },
-  { name: 'Sticky', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '3.97″ 800×480 B/W, GT911 touch, sensor suite', status: 'full' },
-  { name: 'M5Paper v1.1', mcu: 'ESP32 (classic)', controller: 'IT8951E', panel: '540×960 16-gray, GT911 touch', status: 'full' },
-  { name: 'M5 Paper Mono', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + 3-gray, FT6336 touch, frontlight, mic', status: 'full' },
-  { name: 'M5 PaperS3', mcu: 'ESP32-S3', controller: 'ED047TC1', panel: '4.7″ 960×540 16-gray, GT911 touch (raw parallel)', status: 'full' },
+  { name: 'Xteink X4', mcu: 'ESP32-C3', controller: 'SSD1677', panel: '800×480 B/W + 4-level gray' },
+  { name: 'Xteink X4 Pro', mcu: 'ESP32-S3', controller: 'SSD1677 / UC8179', panel: '800×480 B/W, GT911 touch, warm/cool frontlight' },
+  { name: 'Xteink X3', mcu: 'ESP32-C3', controller: 'UC8253 / UC8279', panel: '792×528 B/W + 4-level gray' },
+  { name: 'de-link', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + gray, frontlight' },
+  { name: 'M5Stack PaperColor', mcu: 'ESP32-S3', controller: 'ED2208', panel: '400×600 Spectra-6 color' },
+  { name: 'Murphy M3', mcu: 'ESP32-S3', controller: 'UC8253', panel: '240×416 B/W, touch + frontlight' },
+  { name: 'Murphy M4', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W, FT6336U touch, 5-key, warm/cool frontlight' },
+  { name: 'LilyGo T5 S3', mcu: 'ESP32-S3', controller: 'ED047TC1', panel: '960×540 16-gray, touch, I²C gauge' },
+  { name: 'Sticky', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '3.97″ 800×480 B/W, GT911 touch, sensor suite' },
+  { name: 'M5Paper v1.1', mcu: 'ESP32 (classic)', controller: 'IT8951E', panel: '540×960 16-gray, GT911 touch' },
+  { name: 'M5 Paper Mono', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + 3-gray, FT6336 touch, frontlight, mic' },
+  { name: 'M5 PaperS3', mcu: 'ESP32-S3', controller: 'ED047TC1', panel: '4.7″ 960×540 16-gray, GT911 touch (raw parallel)' },
 ]
-
-function StatusBadge({ status }) {
-  const full = status === 'full'
-  return (
-    <span
-      className={`inline-flex items-center gap-x-1.5 rounded-full px-2 py-0.5 font-mono text-[0.6875rem] tracking-wide whitespace-nowrap ${
-        full
-          ? 'bg-flame-500/10 text-flame-700 dark:text-flame-400'
-          : 'bg-stone-500/10 text-stone-500 dark:text-stone-400'
-      }`}
-    >
-      <span aria-hidden="true" className={`size-1.5 rounded-full ${full ? 'bg-flame-500' : 'bg-stone-400'}`} />
-      {full ? 'Full' : 'Partial'}
-    </span>
-  )
-}
 
 export default function SDK() {
   return (
@@ -111,7 +95,7 @@ export default function SDK() {
           <table className="w-full min-w-[40rem] border-collapse text-left">
             <thead>
               <tr className="border-b border-stone-200 bg-stone-100/50 dark:border-white/10 dark:bg-white/[0.02]">
-                {['Device', 'MCU', 'Controller', 'Panel', 'Status'].map((h) => (
+                {['Device', 'MCU', 'Controller', 'Panel'].map((h) => (
                   <th
                     key={h}
                     className="px-5 py-3 font-mono text-xs tracking-wide text-stone-400 uppercase dark:text-stone-500"
@@ -133,9 +117,6 @@ export default function SDK() {
                   <td className="px-5 py-4 font-mono text-xs text-stone-600 dark:text-stone-400">{d.mcu}</td>
                   <td className="px-5 py-4 font-mono text-xs text-stone-600 dark:text-stone-400">{d.controller}</td>
                   <td className="px-5 py-4 text-sm text-stone-700 dark:text-stone-300">{d.panel}</td>
-                  <td className="px-5 py-4">
-                    <StatusBadge status={d.status} />
-                  </td>
                 </tr>
               ))}
             </tbody>
