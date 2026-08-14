@@ -34,10 +34,12 @@ export default function Devices() {
           ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD', <Status key="s" full>full</Status>],
           ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs', <Status key="s" full>full · native + M5GFX backend</Status>],
           ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight', <Status key="s" full>full</Status>],
+          ['Murphy M4', 'ESP32-S3', 'SSD1677', '800×480 B/W, FT6336U touch, 5-key nav, warm/cool frontlight, SDMMC SD, ADC battery', <Status key="s" full>full</Status>],
           ['LilyGo T5 S3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '960×540 16-gray, GT911 touch, backlight, I²C gauge', <Status key="s" full>full · via LovyanGFX</Status>],
           ['M5Paper v1.1', 'ESP32 (classic)', 'IT8951E', '540×960 16-gray ED047TC1, GT911 touch, GPIO35 ADC battery', <Status key="s" full>full · hand-rolled IT8951</Status>],
           ['Sticky', 'ESP32-S3', 'SSD1677', '3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer', <Status key="s" full>full</Status>],
           ['M5 Paper Mono', 'ESP32-S3', 'SSD1677', '800×480 B/W + 3-gray, FT6336 touch, frontlight, PDM mic, buzzer, RGB LED, RX8130 RTC, SDMMC SD', <Status key="s" full>full</Status>],
+          ['M5 PaperS3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '4.7" 960×540 16-gray, GT911 touch-only, buzzer, BM8563 RTC, SPI SD', <Status key="s" full>full · via LovyanGFX</Status>],
         ]}
       />
       <P>
@@ -46,15 +48,15 @@ export default function Devices() {
         via <Code>setDisplayX3()</Code>, which swaps the active profile and driver. Distinct-MCU boards
         build their own binary, selected with a board macro. A build targets exactly one of{' '}
         <strong>three MCU families</strong> — ESP32-C3 (X3/X4), ESP32-S3 (X4 Pro, de-link, PaperColor,
-        Murphy, LilyGo, Sticky, Paper Mono) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code>{' '}
-        rejects mixing families at compile time.
+        Murphy M3/M4, LilyGo, Sticky, Paper Mono, PaperS3) or classic ESP32 (M5Paper v1.1) — and{' '}
+        <Code>BoardConfig</Code> rejects mixing families at compile time.
       </P>
       <P>
         The <strong>Xteink X4 Pro</strong> is a distinct ESP32-S3 device, not the C3 X4 — its own{' '}
         <Code>XTEINK_X4_PRO</Code> profile (16&nbsp;MB flash, 8&nbsp;MB PSRAM), built with{' '}
         <Code>-DFREEINK_DEVICE_X4PRO=1</Code>. It reuses the X4's 800×480 SSD1677 panel and OTP waveform,
         and adds GT911 touch, a dual warm/cool frontlight, a PCF8563-compatible RTC, a CW2017 fuel gauge,
-        native 1-bit SDMMC storage and USB mass storage. The panel controller <strong>varies by production
+        native 1-bit SDMMC storage, and host transfer over USB — as mass storage or a serial transport. The panel controller <strong>varies by production
         batch</strong> — original units carry the SSD1677, newer ones a UC8179 (an UltraChip part on the
         same glass and pinout) — so the firmware fingerprints the live display bus at boot and promotes
         to the matching driver via <A href="/docs/lib-detect">XteinkDetect</A>'s{' '}
@@ -105,6 +107,14 @@ export default function Devices() {
         through <A href="/docs/lib-battery">BatteryMonitor</A>) round out the board.
       </P>
       <P>
+        The <strong>Murphy M4</strong> is a larger ESP32-S3 sibling of the M3: it drops the small UC8253
+        for the X4-class <strong>SSD1677</strong> on a 800×480 GDEQ0426T82 panel (landscape glass mounted
+        in a portrait housing; a software rotation is pending). It swaps the M3's CHSC6x for{' '}
+        <strong>FT6336U</strong> capacitive touch, keeps a five-key nav cluster, and adds a{' '}
+        <strong>dual warm/cool frontlight</strong> plus native 4-bit SDMMC storage, with battery read off
+        an ADC divider. There's no audio codec on this one — the buzzer/codec fields stay unassigned.
+      </P>
+      <P>
         The <strong>M5Paper v1.1</strong> is FreeInk's first <strong>classic ESP32</strong> target — a
         third MCU family alongside the C3 and S3 boards. Its 540×960 16-gray ED047TC1 sits behind an
         on-glass <strong>IT8951E</strong> controller, so FreeInk drives it with a <strong>hand-rolled
@@ -121,6 +131,20 @@ export default function Devices() {
         to <Code>BTN_UP</Code> / <Code>BTN_DOWN</Code> for page navigation and the push is{' '}
         <Code>BTN_CONFIRM</Code>, which doubles as the power/wake button (it sits on an RTC GPIO, so it
         drives the <Code>ext1</Code> deep-sleep wakeup). Back/Left/Right come from the touch panel.
+      </P>
+      <P>
+        The <strong>M5Stack PaperS3</strong> is the S3 successor to the M5Paper v1.1: the same 960×540
+        16-gray ED047TC1 glass but with <strong>no IT8951</strong> — the S3 drives the panel directly
+        over the 8-bit parallel bus, the same display class as the LilyGo T5 S3, so it shares the{' '}
+        <Code>LgfxEpd</Code> driver (<A href="/docs/adding-a-device">LovyanGFX</A>{' '}
+        <Code>Panel_EPD</Code> via <Code>m5stack/M5GFX</Code>). Unlike the LilyGo there's no PMIC or IO
+        expander — the EPD rails are plain GPIOs that <Code>Bus_EPD</Code>'s stock power sequence drives
+        itself, so the <Code>BoardPaperS3</Code> support library carries real pins and no power hooks.
+        There are <strong>no firmware-readable buttons</strong>: the single side button feeds a PMS150G
+        power-latch chip, so all navigation is <strong>GT911 touch</strong> (tap zones and gestures are
+        firmware policy), and power-off pulses a GPIO rather than releasing a latch. A BM8563 RTC (whose
+        alarm line wakes the latch), an ADC battery read and a LEDC buzzer round it out; the on-board
+        BMI270 IMU isn't a supported <Code>ImuType</Code> yet, so it's left out of the profile.
       </P>
       <P>
         The <strong>Sticky</strong> (Seeed) reuses the X4-class <strong>SSD1677</strong> driver for
@@ -230,14 +254,15 @@ export default function Devices() {
           <strong>CHSC6x</strong> (Murphy M3) — IRQ-driven, ported from the upstream driver.
         </Li>
         <Li>
-          <strong>GT911</strong> (X4 Pro, LilyGo T5 S3, M5Paper v1.1 and Sticky) — raw register reads plus the
-          reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive home key is
-          surfaced via <Code>wasHomeKeyPressed()</Code>.
+          <strong>GT911</strong> (X4 Pro, LilyGo T5 S3, M5Paper v1.1, PaperS3 and Sticky) — raw register
+          reads plus the reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive
+          home key is surfaced via <Code>wasHomeKeyPressed()</Code>. On the button-less PaperS3 it's the{' '}
+          <em>only</em> input, so paging and navigation come entirely from tap zones and gestures.
         </Li>
         <Li>
-          <strong>FT6336</strong> (M5 Paper Mono) — register-compatible with the FT5x06 family, with
-          init retry for a slow power-up. It reports a portrait 480×800 frame, so the profile swaps it
-          into the panel-native 800×480 and flips Y to follow the 180°-rotated display.
+          <strong>FT6336 / FT6336U</strong> (M5 Paper Mono, Murphy M4) — register-compatible with the
+          FT5x06 family, with init retry for a slow power-up. It reports a portrait frame, so the profile
+          swaps it into the panel-native landscape frame and flips to follow the mounted display.
         </Li>
       </Ul>
       <P>

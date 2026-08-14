@@ -13,10 +13,13 @@ export default function RepositoryLayout() {
   display/FreeInkDisplay/      facade + EInkDisplay shim + per-controller drivers + LUTs
   hardware/BoardConfig/        board profiles & capability descriptors
   hardware/BoardT5S3/          LilyGo T5 S3 board support (PCA9535 expander, TPS65185 PMIC)
-  hardware/XteinkDetect/       runtime X3/X4 detection (I²C fingerprint)
+  hardware/BoardPaperS3/       M5 PaperS3 board support (plain-GPIO EPD rails, PMS150G latch)
+  hardware/XteinkDetect/       runtime X3/X4 + display-controller detection (bus fingerprint)
   hardware/InputManager/       buttons + capacitive touch (CHSC6x, GT911)
   hardware/BatteryMonitor/     ADC / I²C gauge / M5PM1 battery telemetry
   hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)
+  hardware/UsbMassStorage/     expose the SD card over USB (mass storage or serial)
+  hardware/MemoryManager/      on-demand RAM reclaim (cache sinks, pressure watermarks)
   hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
   hardware/RecoveryBoot/       boot-time OTA recovery hatch (Back+Up combo)
   hardware/FrontlightManager/  PWM frontlight (de-link)

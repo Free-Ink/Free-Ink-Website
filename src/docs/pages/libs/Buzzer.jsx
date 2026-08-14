@@ -6,7 +6,7 @@ export default function Buzzer() {
       <Lead>
         Square-wave tones on a passive buzzer via the ESP32 LEDC PWM, on the <Code>audio.buzzer</Code>{' '}
         pin in the board profile. Gated by <Code>FREEINK_CAP_BUZZER</Code>, which defaults on for the{' '}
-        <A href="/docs/devices">Sticky</A>, Murphy M3 and M5 Paper Mono, and off elsewhere.
+        <A href="/docs/devices">Sticky</A>, Murphy M3, M5 Paper Mono and M5 PaperS3, and off elsewhere.
       </Lead>
 
       <P>

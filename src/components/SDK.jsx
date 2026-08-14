@@ -51,10 +51,12 @@ const DEVICES = [
   { name: 'de-link', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + gray, frontlight', status: 'full' },
   { name: 'M5Stack PaperColor', mcu: 'ESP32-S3', controller: 'ED2208', panel: '400×600 Spectra-6 color', status: 'full' },
   { name: 'Murphy M3', mcu: 'ESP32-S3', controller: 'UC8253', panel: '240×416 B/W, touch + frontlight', status: 'full' },
+  { name: 'Murphy M4', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W, FT6336U touch, 5-key, warm/cool frontlight', status: 'full' },
   { name: 'LilyGo T5 S3', mcu: 'ESP32-S3', controller: 'ED047TC1', panel: '960×540 16-gray, touch, I²C gauge', status: 'full' },
   { name: 'Sticky', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '3.97″ 800×480 B/W, GT911 touch, sensor suite', status: 'full' },
   { name: 'M5Paper v1.1', mcu: 'ESP32 (classic)', controller: 'IT8951E', panel: '540×960 16-gray, GT911 touch', status: 'full' },
   { name: 'M5 Paper Mono', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + 3-gray, FT6336 touch, frontlight, mic', status: 'full' },
+  { name: 'M5 PaperS3', mcu: 'ESP32-S3', controller: 'ED047TC1', panel: '4.7″ 960×540 16-gray, GT911 touch (raw parallel)', status: 'full' },
 ]
 
 function StatusBadge({ status }) {

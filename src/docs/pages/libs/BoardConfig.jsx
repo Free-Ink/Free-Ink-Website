@@ -14,7 +14,7 @@ export default function BoardConfig() {
         rows={[
           ['ACTIVE', 'The runtime-active BoardProfile (defaults to DEFAULT_DEVICE).'],
           ['selectDevice(Board which) → bool', 'Set ACTIVE to a compiled-in device; false if not included.'],
-          ['XTEINK_X4, XTEINK_X4_PRO, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, LILYGO_T5S3, M5PAPER_V11, STICKY, PAPER_MONO', 'Built-in board profiles.'],
+          ['XTEINK_X4, XTEINK_X4_PRO, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, MURPHY_M4, LILYGO_T5S3, M5PAPER_V11, STICKY, PAPER_MONO, M5PAPER_S3', 'Built-in board profiles.'],
           ['BoardProfile.orientation', 'Panel mount transform — NO_FLIP / MIRROR_X / MIRROR_Y / ROTATE_180 (applied in hardware by SSD1677).'],
           ['BoardProfile.sdmmc', 'SdmmcPins for 4-bit SDMMC boards; busWidth 0 = use SPI/SdFat.'],
           ['BoardProfile.uiScale', 'Per-device UI scale multiplier (1.0 default; touch boards like Sticky bump it for finger-sized chrome). Read by the app/theme layer.'],
