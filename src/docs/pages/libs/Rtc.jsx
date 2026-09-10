@@ -6,11 +6,12 @@ export default function Rtc() {
       <Lead>
         Wall-clock time from a real-time clock over I²C, described by{' '}
         <Code>BoardConfig::ACTIVE.sensors</Code>. Three chips are supported, selected per board by{' '}
-        <Code>RtcType</Code>: the <strong>PCF8563</strong> (Sticky, plus the BM8563-compatible part on
-        the X4 Pro and M5 PaperS3), the <strong>DS3231</strong> (Xteink X3) and the{' '}
-        <strong>RX8130</strong> (M5 Paper Mono). Gated by <Code>FREEINK_CAP_RTC</Code>, which defaults on
-        for the <A href="/docs/devices">X3</A>, Sticky, X4 Pro, Paper Mono and PaperS3, and off elsewhere;
-        inert on boards with no RTC.
+        <Code>RtcType</Code>: the <strong>PCF8563</strong> family — including the register-compatible
+        BM8563 (X4 Pro, X4 Classic, M5 PaperS3) and PCF85063 (Waveshare 3.97″), plus the plain part on
+        Sticky and the EEGO A4 — the <strong>DS3231</strong> (Xteink X3) and the <strong>RX8130</strong>{' '}
+        (M5 Paper Mono). Gated by <Code>FREEINK_CAP_RTC</Code>, which defaults on for the{' '}
+        <A href="/docs/devices">X3</A>, Sticky, X4 Pro, X4 Classic, Paper Mono, PaperS3, EEGO A4 and
+        Waveshare 3.97″, and off elsewhere; inert on boards with no RTC.
       </Lead>
 
       <P>

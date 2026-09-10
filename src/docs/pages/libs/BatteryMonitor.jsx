@@ -17,11 +17,20 @@ export default function BatteryMonitor() {
         charge-status pin (MCP73832 <Code>/STAT</Code>, active-LOW) drives <Code>isCharging()</Code>.
         The <strong>I²C fuel-gauge</strong> backend (<Code>-DFREEINK_BATTERY_I2C_GAUGE=1</Code>) reads
         SoC / voltage / charge from the gauge selected by <Code>GaugeType</Code> — a{' '}
-        <strong>BQ27220</strong> (+ optional BQ25896 charger) on X3 and the LilyGo T5 S3, or a{' '}
-        <strong>CW2017</strong> on the X4 Pro (which re-uploads its 80-byte BATINFO profile if the gauge
-        has lost it) — and ignores the ADC pin/divider. Config comes from{' '}
-        <Code>BoardConfig::ACTIVE.batteryGauge</Code>, and gauge-vs-ADC is chosen at <em>runtime</em>{' '}
-        (gauge address non-zero), so X3 (gauge) and X4 (ADC) work from one C3 binary.
+        <strong>BQ27220</strong> (+ optional BQ25896 charger) on X3 and the LilyGo T5 S3, a{' '}
+        <strong>CW2017</strong> on the X4 Pro and X4 Classic (which re-uploads its 80-byte BATINFO profile
+        if the gauge has lost it), or an <strong>AXP2101</strong> PMIC on the Waveshare 3.97″ (whose
+        fuel-gauge block reports SoC directly, and which also owns the board's EPD rail) — and ignores the
+        ADC pin/divider. Config comes from <Code>BoardConfig::ACTIVE.batteryGauge</Code>, and gauge-vs-ADC
+        is chosen at <em>runtime</em> (gauge address non-zero), so X3 (gauge) and X4 (ADC) work from one
+        C3 binary.
+      </P>
+      <P>
+        The charge-status pin's polarity is configurable per board
+        (<Code>batteryChargeStatusActiveHigh</Code>) — active-LOW open-drain by default, active-HIGH for
+        boards that push-pull it (X4 Pro). A board can also name a <strong>charger-enable</strong> pin
+        (<Code>PowerConfig.chargeEnable</Code> + polarity), which the SDK latches through deep sleep; the
+        Sticky uses it to hold its BQ25616 charger enabled.
       </P>
       <P>
         The <strong>M5PM1</strong> backend is <strong>auto-detected</strong> on the M5{' '}

@@ -14,7 +14,7 @@ export default function BoardConfig() {
         rows={[
           ['ACTIVE', 'The runtime-active BoardProfile (defaults to DEFAULT_DEVICE).'],
           ['selectDevice(Board which) → bool', 'Set ACTIVE to a compiled-in device; false if not included.'],
-          ['XTEINK_X4, XTEINK_X4_PRO, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, MURPHY_M4, LILYGO_T5S3, M5PAPER_V11, STICKY, PAPER_MONO, M5PAPER_S3', 'Built-in board profiles.'],
+          ['XTEINK_X4, XTEINK_X4_PRO, XTEINK_X4_CLASSIC, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, MURPHY_M4, LILYGO_T5S3, M5PAPER_V11, STICKY, PAPER_MONO, M5PAPER_S3, EEGO_A4, WS_EPAPER_397, ONEPAGE', 'Built-in board profiles.'],
           ['BoardProfile.orientation', 'Panel mount transform — NO_FLIP / MIRROR_X / MIRROR_Y / ROTATE_180 (applied in hardware by SSD1677).'],
           ['BoardProfile.sdmmc', 'SdmmcPins for 4-bit SDMMC boards; busWidth 0 = use SPI/SdFat.'],
           ['BoardProfile.uiScale', 'Per-device UI scale multiplier (1.0 default; touch boards like Sticky bump it for finger-sized chrome). Read by the app/theme layer.'],
@@ -36,6 +36,8 @@ export default function BoardConfig() {
         rows={[
           ['TouchConfig', 'Controller, pins, raw axis ranges, swapXY / flipX / flipY digitizer correction, and an optional powerEnable rail. See InputManager.'],
           ['MicConfig', 'PDM mic: input type, clock/data pins, and an active-polarity enable pin. See Microphone.'],
+          ['FrontlightConfig.i2cController', 'I2cFrontlightController (None / Lm3630a) — drives the frontlight over I²C instead of LEDC PWM (EEGO A4). See Frontlight.'],
+          ['batteryChargeStatusActiveHigh / PowerConfig.chargeEnable', 'Charge-status pin polarity (active-LOW default), and an optional charger-enable pin (+ polarity) the SDK latches through deep sleep. See BatteryMonitor.'],
           ['SensorsConfig', 'Shared I²C sensor bus (SDA/SCL/Hz) + the RTC / temp-humidity / IMU addresses (0 = absent), driving Rtc / EnvironmentSensor / Imu.'],
           ['AudioConfig.buzzer', 'LEDC PWM pin for a passive buzzer (Buzzer), separate from the I2S codec fields.'],
           ['DisplayPins.powerEnable / SdPins.powerEnable', 'Active-high rails for the panel and SD card, raised at begin() with a settle delay (PIN_UNASSIGNED = always powered).'],

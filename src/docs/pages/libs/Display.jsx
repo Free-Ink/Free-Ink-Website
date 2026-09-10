@@ -76,11 +76,27 @@ export default function Display() {
           ['supportsStripGrayscale()', 'Whether the active driver supports strip streaming.'],
           ['displayGrayBuffer(turnOffScreen = false, lut = nullptr, factoryMode = false)', 'Push the gray planes.'],
           ['displayGrayscaleBase(fallback = HALF_REFRESH, turnOffScreen = false)', 'Display the framebuffer as the base frame under a grayscale overlay. On X3 this fires the OEM differential base pass; other panels fall back to a normal refresh in the fallback mode.'],
+          ['displayGrayscaleBase(GrayscaleMode mode, fallback = HALF_REFRESH, turnOffScreen = false) → bool', 'Mode-bound base: pick Overlay or Absolute encoding. Returns false (and paints nothing) when the mode isn’t available on the active controller — check before staging planes.'],
+          ['grayscaleCapabilities(GrayscaleMode mode = Overlay) → GrayscaleCapabilities', 'Query per-mode support: the host encoding (OverlayMasks / AbsolutePlanes / Unsupported) and whether an async base is available.'],
+          ['combinesGrayscaleBase() → bool / supportsAsyncGrayscaleBase() → bool', 'combinesGrayscaleBase() is true where the base is deferred into the gray waveform (Paper Mono) rather than run as a separate refresh; supportsAsyncGrayscaleBase() is true where a deferred B/W refresh can serve as the base so its waveform overlaps plane staging.'],
           ['preconditionGrayscale() / preconditionGrayscale(x, y, w, h)', 'X3: fire the settle pass (full or windowed) that leaves pixels receptive to a weak grayscale nudge before an anti-aliased refresh.'],
           ['cleanupGrayscaleBuffers(bwBuffer) / grayscaleRevert()', 'Clean up after an anti-aliased refresh.'],
           ['setCustomLUT(bool enabled, lutData = nullptr)', 'Install / restore a custom waveform LUT (VCOM-safe). A board injects its own grayscale LUT through its driver config — custom LUT is the supported path now that the OTP gray4 mode has been removed.'],
+          ['setHoldPeriodicFullRefresh(bool hold)', 'Hold the periodic anti-ghost full refresh through a live interaction (e.g. a slider drag) so fast refreshes never promote to full mid-gesture; clear it when the interaction ends.'],
         ]}
       />
+      <H3>Absolute vs overlay grayscale</H3>
+      <P>
+        Anti-aliased grayscale ships in two encodings, selected through the mode-bound{' '}
+        <Code>displayGrayscaleBase(mode, …)</Code>. <strong>Overlay</strong> (the default) diffs the gray
+        planes against a B/W base frame — cheap, and how in-page glyph AA works. <strong>Absolute</strong>{' '}
+        supplies a complete four-tone image where every pixel is present in both planes, independent of
+        what was on screen — the right choice for a full-screen render like a sleep/cover overlay, where
+        there's no reliable base to diff against. Absolute planes are accepted on the SSD1677 and the
+        UltraChip X4 controllers (UC8179 / UC8279); the X3 (UC8253) and the PaperColor are overlay-only.
+        Query <Code>grayscaleCapabilities(mode).encoding</Code> before staging, and let the driver force
+        the next B/W refresh clean after an absolute pass.
+      </P>
 
       <H3>Orientation</H3>
       <P>
@@ -89,6 +105,23 @@ export default function Display() {
         <Code>MIRROR_Y</Code> / <Code>ROTATE_180</Code>) and the SSD1677 driver applies it in hardware.
         See <A href="/docs/lib-board">BoardConfig</A> and <A href="/docs/adding-a-device">Adding a device</A>.
       </P>
+
+      <H2>Accent color planes (Spectra-6)</H2>
+      <P>
+        The M5 PaperColor's ED2208 Spectra-6 panel can tint black pixels with spot color through 1-bit{' '}
+        <strong>accent planes</strong>. Set a plane into one of four slots; a set bit recolors the
+        matching black pixel to that slot's Spectra color, and where slots overlap the lowest-numbered
+        one wins. Because the pigments only settle on a full, uninterrupted waveform, accents appear on{' '}
+        <strong>complete-waveform refreshes</strong> only — standing images (clocks, dashboards), not
+        page turns.
+      </P>
+      <ApiTable
+        rows={[
+          ['setAccentPlaneSlot(uint8_t slot, const uint8_t* plane, uint8_t colorCode)', 'Attach a 1-bit accent plane to slot 0–3 (plane = nullptr clears it). colorCode is a Spectra-6 constant: SPECTRA_BLACK / WHITE / YELLOW / RED / BLUE / GREEN. No-op on non-Spectra panels.'],
+          ['setFullRefreshCompletesWaveform(bool enabled)', 'When enabled, every FULL_REFRESH runs the panel’s complete color waveform (slower, DC-balanced, accents settle); disabled (default) keeps Full an interrupted pass for speed. Standing-image apps enable it; readers leave it off.'],
+          ['requestCompleteWaveformNextRefresh()', 'One-shot: run the complete waveform on just the next FULL_REFRESH, for a transient color render without changing the mode.'],
+        ]}
+      />
 
       <H2>Framebuffer memory</H2>
       <P>

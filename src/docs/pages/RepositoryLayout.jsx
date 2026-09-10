@@ -16,13 +16,13 @@ export default function RepositoryLayout() {
   hardware/BoardPaperS3/       M5 PaperS3 board support (plain-GPIO EPD rails, PMS150G latch)
   hardware/XteinkDetect/       runtime X3/X4 + display-controller detection (bus fingerprint)
   hardware/InputManager/       buttons + capacitive touch (CHSC6x, GT911)
-  hardware/BatteryMonitor/     ADC / I²C gauge / M5PM1 battery telemetry
+  hardware/BatteryMonitor/     ADC / I²C gauge (BQ27220, CW2017) / AXP2101 + M5PM1 PMIC telemetry
   hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)
   hardware/UsbMassStorage/     expose the SD card over USB (mass storage or serial)
   hardware/MemoryManager/      on-demand RAM reclaim (cache sinks, pressure watermarks)
   hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
   hardware/RecoveryBoot/       boot-time OTA recovery hatch (Back+Up combo)
-  hardware/FrontlightManager/  PWM frontlight (de-link)
+  hardware/FrontlightManager/  frontlight — LEDC PWM (de-link) or LM3630A I²C (EEGO A4)
   hardware/AudioManager/       WAV-over-I2S audio (Murphy M3 ES8388, M5 ES8311)
   hardware/LedManager/         addressable RGB LEDs (M5 PaperColor, WS2812-compatible)
   hardware/Buzzer/             LEDC PWM tone buzzer (Sticky, Murphy)

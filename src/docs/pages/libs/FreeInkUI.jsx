@@ -163,7 +163,13 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
         theme metrics to the target's real font line height, so larger fonts don't clip rows. By default{' '}
         <Code>setTheme()</Code> keeps a per-app copy of the tokens; when every screen shares one theme,{' '}
         <Code>setThemeRef(&tokens)</Code> points at caller-owned tokens instead, saving the ~1.5&nbsp;KB
-        per-app copy — the cost that matters on small heaps with several live screens.
+        per-app copy — the cost that matters on small heaps with several live screens. Corner radii inherit
+        from the theme: a control left at <Code>RADIUS_INHERIT</Code> picks up the theme's{' '}
+        <Code>controlRadius</Code> / <Code>capsuleRadius</Code> / <Code>sheetRadius</Code> so one token set
+        styles the whole app. And <Code>setContentMarginFromScreen(Insets)</Code> reserves chrome measured
+        from the physical panel edge, without double-insetting the part already covered by the safe area —
+        for boards whose bezel eats into the glass. Disabled and dithered text now paints as a gray
+        dither rather than solid black, so inactive rows read as dimmed on 1-bit panels.
       </P>
       <Callout title="Text entry — don't cast key ids to char">
         <p>
@@ -174,9 +180,9 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
           localized keys (é, ñ, ß, and every Cyrillic / Hebrew glyph) ids above 1000 — so casting the
           value straight to <Code>char</Code> corrupts non-ASCII layouts. Insert through{' '}
           <Code>KeyboardEntry</Code> (or <Code>keyboardKeyText()</Code>) instead — it appends
-          layout-correct UTF-8 and, with a script-switch key, tracks the active{' '}
+          layout-correct UTF-8 and, with a script-switch key (drawn as a globe glyph), tracks the active{' '}
           <Code>KeyboardLayoutId</Code>. Right-to-left is the renderer's job; the Hebrew layout inserts
-          code points in logical order.
+          code points in logical order (and gives the final-form ף its own key).
         </p>
       </Callout>
 
@@ -260,9 +266,10 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
           [<Code key="form">checkbox / slider / dropdown</Code>, 'A label + checkable box, a continuous value slider (dithered track + knob; stepperRow covers discrete steps), and a dropdown that opens an app-owned selection (optionally a two-line settingRow layout with the current selection as a subtitle).'],
           [<Code key="tbl">table</Code>, 'A rows × columns cell grid with grid lines, an optional header row and per-cell styles.'],
           [<Code key="b">statusBar</Code>, 'Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay.'],
-          [<Code key="c">tabBar</Code>, 'Pill or underline-style tabs with an optional divider, per-tab icons and a disabled state.'],
-          [<Code key="d">list</Code>, 'Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers; an optional per-row subtitle beneath the label (which wraps to its own line count); vertically-centered row content; and dynamic per-row height so a wrapped multi-line label or subtitle grows its row instead of clipping.'],
-          [<Code key="e">keyGrid / keyboard / textField</Code>, 'A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, four ЙЦУКЕН Cyrillic layouts — Russian, Ukrainian, Belarusian, Kazakh — and a Hebrew RTL layout, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, an optional script-switch key for apps that reach more than one script, and an optional prepended number row; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting.'],
+          [<Code key="c">tabBar</Code>, 'Pill or underline-style tabs with an optional divider, per-tab icons (stacked above the label), up/down indicator arrows and a disabled state.'],
+          [<Code key="d">list</Code>, 'Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; inline section-heading rows; an optional per-row subtitle beneath the label (which wraps to its own line count); vertically-centered row content; dynamic per-row height so a wrapped multi-line label or subtitle grows its row instead of clipping; a windowed-items mode so the app can supply only the visible slice of a huge list; and opt-in RTL row mirroring.'],
+          [<Code key="cp">capsuleSlider / sliderRow / tileGrid / sheet</Code>, 'Control-center building blocks: a stadium-capsule brightness-style slider, a labeled −/capsule/+ slider row, a grid of quick-setting tiles, and a pull-down/bottom sheet chrome (sheetContentRect() gives the body).'],
+          [<Code key="e">keyGrid / keyboard / textField</Code>, 'A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, four ЙЦУКЕН Cyrillic layouts — Russian, Ukrainian, Belarusian, Kazakh — and a Hebrew RTL layout, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, an optional script-switch key drawn as a globe glyph for apps that reach more than one script, and an optional prepended number row; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting.'],
           [<Code key="ta">textArea</Code>, 'A multi-line scrollable writing canvas (the editor body). The app owns the text buffer and caret offset; it word-wraps, draws the window of lines from topLine, and an optional caret. textAreaMeasure() / textAreaTopLineFor() keep the caret on screen, mirroring lists.'],
           [<Code key="rd">readerChrome / tapZones</Code>, 'Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing.'],
           [<Code key="lib">bookCard / coverGrid</Code>, 'Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection (a fixed array, or a CoverGridItemProvider callback that supplies items lazily by index).'],
@@ -278,7 +285,12 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
       <P>
         <Code>list</Code> never creates a node per item. The app owns the full item array plus scroll
         state; the component lays out, draws and registers interactions only for the rows that fully
-        fit, and draws a right-edge scroll indicator when the list overflows.
+        fit, and draws a right-edge scroll indicator when the list overflows. For lists too large to keep
+        in RAM, a <strong>windowed-items</strong> mode (<Code>itemsWindowFirst</Code> /{' '}
+        <Code>itemsWindowCount</Code>) lets the app pass only the currently-visible slice. Rows can be
+        variable height, so <Code>ListNav</Code> reads back the measured layout to page correctly;{' '}
+        <strong>inline section-heading</strong> rows and opt-in <strong>RTL row mirroring</strong> (icon
+        and label move to the trailing edge, values to the leading edge) round out the model.
       </P>
       <CodeBlock lang="cpp">{`const uint16_t visible = freeink::ui::listVisibleRows(rect, theme.rowHeight);
 topIndex = freeink::ui::listTopIndexFor(selectedIndex, topIndex, visible, count);

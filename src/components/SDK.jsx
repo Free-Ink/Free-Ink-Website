@@ -47,6 +47,7 @@ const FEATURES = [
 const DEVICES = [
   { name: 'Xteink X4', mcu: 'ESP32-C3', controller: 'SSD1677', panel: '800×480 B/W + 4-level gray' },
   { name: 'Xteink X4 Pro', mcu: 'ESP32-S3', controller: 'SSD1677 / UC8179', panel: '800×480 B/W, GT911 touch, warm/cool frontlight' },
+  { name: 'Xteink X4 Classic', mcu: 'ESP32-S3', controller: 'SSD1677 / UC8179', panel: '800×480 B/W, 7-key nav, CW2017 gauge, SDMMC' },
   { name: 'Xteink X3', mcu: 'ESP32-C3', controller: 'UC8253 / UC8279', panel: '792×528 B/W + 4-level gray' },
   { name: 'de-link', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + gray, frontlight' },
   { name: 'M5Stack PaperColor', mcu: 'ESP32-S3', controller: 'ED2208', panel: '400×600 Spectra-6 color' },
@@ -57,6 +58,9 @@ const DEVICES = [
   { name: 'M5Paper v1.1', mcu: 'ESP32 (classic)', controller: 'IT8951E', panel: '540×960 16-gray, GT911 touch' },
   { name: 'M5 Paper Mono', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + 3-gray, FT6336 touch, frontlight, mic' },
   { name: 'M5 PaperS3', mcu: 'ESP32-S3', controller: 'ED047TC1', panel: '4.7″ 960×540 16-gray, GT911 touch (raw parallel)' },
+  { name: 'EEGO A4', mcu: 'ESP32-S3', controller: 'UC8279C', panel: '768×552 4-gray, GSLX680 touch, warm/cool frontlight' },
+  { name: 'Waveshare 3.97″', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W, AXP2101 PMIC, RTC + IMU' },
+  { name: 'OnePage', mcu: 'ESP32-C61', controller: 'SSD1677', panel: '800×480 B/W, key nav' },
 ]
 
 export default function SDK() {

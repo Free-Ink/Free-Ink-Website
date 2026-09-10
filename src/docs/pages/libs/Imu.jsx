@@ -7,8 +7,9 @@ export default function Imu() {
         6-axis motion (accelerometer + gyroscope) over I²C, described by{' '}
         <Code>BoardConfig::ACTIVE.sensors</Code>. Two chips are supported, selected per board by{' '}
         <Code>ImuType</Code>: the ST <strong>LSM6DS3TR-C</strong> (Sticky) and the{' '}
-        <strong>QMI8658</strong> (Xteink X3). Gated by <Code>FREEINK_CAP_IMU</Code>, which defaults on
-        for the <A href="/docs/devices">X3</A> and Sticky, and off elsewhere; inert on boards with no IMU.
+        <strong>QMI8658</strong> (Xteink X3, X4 Classic and Waveshare 3.97″). Gated by{' '}
+        <Code>FREEINK_CAP_IMU</Code>, which defaults on for the <A href="/docs/devices">X3</A>, Sticky, X4
+        Classic and Waveshare 3.97″, and off elsewhere; inert on boards with no IMU.
       </Lead>
 
       <P>

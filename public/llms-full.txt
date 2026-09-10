@@ -958,6 +958,7 @@ FreeInk ships drivers and board profiles for the following devices. Related boar
 | --- | --- | --- | --- |
 | Xteink X4 | ESP32-C3 | SSD1677 | 800×480 B/W + 4-level gray |
 | Xteink X4 Pro | ESP32-S3 | SSD1677 / UC8179 | 800×480 B/W, GT911 touch, warm/cool frontlight, PCF8563 RTC, CW2017 gauge, SDMMC SD, USB MSC |
+| Xteink X4 Classic | ESP32-S3 | SSD1677 / UC8179 | 800×480 B/W, 7 discrete keys (no touch), CW2017 gauge, BM8563 RTC, QMI8658 IMU, SDMMC SD |
 | Xteink X3 | ESP32-C3 | UC8253 / UC8279 | 792×528 B/W + 4-level gray, BQ27220 I²C gauge, DS3231 RTC, QMI8658 IMU |
 | de-link | ESP32-S3 | SSD1677 | 800×480 B/W + gray, frontlight, SDMMC SD |
 | M5Stack PaperColor | ESP32-S3 | ED2208 | 400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs |
@@ -968,10 +969,15 @@ FreeInk ships drivers and board profiles for the following devices. Related boar
 | Sticky | ESP32-S3 | SSD1677 | 3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer |
 | M5 Paper Mono | ESP32-S3 | SSD1677 | 800×480 B/W + 3-gray, FT6336 touch, frontlight, PDM mic, buzzer, RGB LED, RX8130 RTC, SDMMC SD |
 | M5 PaperS3 | ESP32-S3 | ED047TC1 (raw parallel) | 4.7" 960×540 16-gray, GT911 touch-only, buzzer, BM8563 RTC, SPI SD |
+| EEGO A4 | ESP32-S3 | UC8279C | 768×552 4-gray, GSLX680 touch, LM3630A warm/cool frontlight, PCF8563 RTC, ADC battery, SPI SD |
+| Waveshare 3.97" | ESP32-S3 | SSD1677 | 800×480 B/W, AXP2101 PMIC (battery + power), PCF85063 RTC, QMI8658 IMU, SDMMC SD |
+| OnePage | ESP32-C61 | SSD1677 | 800×480 B/W, ADC-ladder + side keys (no touch), ADC battery, SPI SD |
 
-X3 and X4 share the ESP32-C3 and a pinout, so a single firmware binary drives both — it carries both board profiles (`XTEINK_X4` and `XTEINK_X3`) and picks one at runtime via `setDisplayX3()`, which swaps the active profile and driver. Distinct-MCU boards build their own binary, selected with a board macro. A build targets exactly one of **three MCU families** — ESP32-C3 (X3/X4), ESP32-S3 (X4 Pro, de-link, PaperColor, Murphy M3/M4, LilyGo, Sticky, Paper Mono, PaperS3) or classic ESP32 (M5Paper v1.1) — and `BoardConfig` rejects mixing families at compile time.
+X3 and X4 share the ESP32-C3 and a pinout, so a single firmware binary drives both — it carries both board profiles (`XTEINK_X4` and `XTEINK_X3`) and picks one at runtime via `setDisplayX3()`, which swaps the active profile and driver. Distinct-MCU boards build their own binary, selected with a board macro. A build targets exactly one of **four MCU families** — ESP32-C3 (X3/X4), ESP32-C61 (OnePage), ESP32-S3 (X4 Pro, X4 Classic, de-link, PaperColor, Murphy M3/M4, LilyGo, Sticky, Paper Mono, PaperS3, EEGO A4, Waveshare 3.97″) or classic ESP32 (M5Paper v1.1) — and `BoardConfig` rejects mixing families at compile time.
 
 The **Xteink X4 Pro** is a distinct ESP32-S3 device, not the C3 X4 — its own `XTEINK_X4_PRO` profile (16 MB flash, 8 MB PSRAM), built with `-DFREEINK_DEVICE_X4PRO=1`. It reuses the X4's 800×480 SSD1677 panel and OTP waveform, and adds GT911 touch, a dual warm/cool frontlight, a PCF8563-compatible RTC, a CW2017 fuel gauge, native 1-bit SDMMC storage, and host transfer over USB — as mass storage or a serial transport. The panel controller **varies by production batch** — original units carry the SSD1677, newer ones a UC8179 (an UltraChip part on the same glass and pinout) — so the firmware fingerprints the live display bus at boot and promotes to the matching driver via [XteinkDetect](https://freeink.org/docs/lib-detect)'s `applyXteinkDisplayController()` before `begin()`.
+
+The **Xteink X4 Classic** (X4C, `-DFREEINK_DEVICE_X4CLASSIC`) shares the X4 Pro's ESP32-S3 board and 800×480 SSD1677 glass — with the same runtime UC8179/UC8279 controller probe — but **drops the GT911 touch and the warm/cool frontlight**, repurposing those GPIOs as four extra discrete keys. It's an all-button reader: two side page keys plus a four-key bottom cluster and a power button, so the UI renders side-bezel button hints exactly like the C3 X4/X3. CW2017 gauge, BM8563 RTC, QMI8658 IMU and 1-bit SDMMC storage carry over from the Pro. The profile was recovered from a stock flash dump; a couple of pins are still pending bench confirmation.
 
 The **M5Stack Paper Mono** (PaperS3) is an ESP32-S3 board on the same 800×480 SSD1677 glass, built with `-DFREEINK_DEVICE_PAPERMONO=1`. Its own `PaperMonoDriver` runs **host-authored 111-byte LUTs** instead of the stock OTP set: binary UI and Fast reader paints use the panel's non-flashing internal waveform, while balanced book pages get a single target-coded W/G/B **3-gray** activation with a white-biased per-page top-up that erases a little residue on every turn rather than letting ghosts accumulate. On-board an `M5IOE1` I²C IO expander and an `M5PM1` PMIC switch the EPD, frontlight (AW9967 boost driver) and microSD rails, so those GPIO fields stay unassigned and a consumer board-support library (`PaperMonoBoard.h` / `M5Ioe1.h`) supplies the power hooks. FT6336 capacitive touch, a PDM mic, a passive buzzer, a discrete RGB LED, an RX8130 RTC and native SDMMC storage round out the profile.
 
@@ -988,6 +994,12 @@ The **M5Paper v1.1** is FreeInk's first **classic ESP32** target — a third MCU
 The **M5Stack PaperS3** is the S3 successor to the M5Paper v1.1: the same 960×540 16-gray ED047TC1 glass but with **no IT8951** — the S3 drives the panel directly over the 8-bit parallel bus, the same display class as the LilyGo T5 S3, so it shares the `LgfxEpd` driver ([LovyanGFX](https://freeink.org/docs/adding-a-device) `Panel_EPD` via `m5stack/M5GFX`). Unlike the LilyGo there's no PMIC or IO expander — the EPD rails are plain GPIOs that `Bus_EPD`'s stock power sequence drives itself, so the `BoardPaperS3` support library carries real pins and no power hooks. There are **no firmware-readable buttons**: the single side button feeds a PMS150G power-latch chip, so all navigation is **GT911 touch** (tap zones and gestures are firmware policy), and power-off pulses a GPIO rather than releasing a latch. A BM8563 RTC (whose alarm line wakes the latch), an ADC battery read and a LEDC buzzer round it out; the on-board BMI270 IMU isn't a supported `ImuType` yet, so it's left out of the profile.
 
 The **Sticky** (Seeed) reuses the X4-class **SSD1677** driver for its 3.97″ 800×480 B/W panel (its 24-pin FPC needs vendor full/fast update sequences and border tracking, supplied as driver config), with GT911 touch. Beyond the display it carries a whole peripheral suite, each behind its own opt-in library: a **PDM microphone** ([Microphone](https://freeink.org/docs/lib-mic)), a **PCF8563 RTC** ([Rtc](https://freeink.org/docs/lib-rtc)), an **SHT40** temperature/humidity sensor ([EnvironmentSensor](https://freeink.org/docs/lib-env)), an **LSM6DS3TR-C** 6-axis IMU ([Imu](https://freeink.org/docs/lib-imu)), a **BQ27220** I²C fuel gauge ([BatteryMonitor](https://freeink.org/docs/lib-battery)), a LEDC **buzzer** ([Buzzer](https://freeink.org/docs/lib-buzzer)), and an SPI MicroSD that shares the display bus. It is the SDK's first **multi-bus I²C** board: the GT911 touch controller sits on `Wire`, while the gauge and the whole sensor cluster share `Wire1`, kept apart so neither stalls the other. Power-enable GPIOs gate the panel, touch controller, SD rail and mic rail independently (the board profile names each pin; the SDK raises them at `begin()`). Its GT911 is mounted rotated, corrected SDK-side by the touch profile's `swapXY` / `flipX` / `flipY` flags.
+
+The **EEGO Reader A4** (`-DFREEINK_DEVICE_EEGO_A4`) is an ESP32-S3 reader on a 768×552 4-level-gray **UC8279C** panel — a KW-family sibling of the UC8279 X4 driver — with a **GSLX680** capacitive digitizer (its calibration firmware is uploaded at boot). Its standout is the frontlight: rather than PWM, it drives an **LM3630A over I²C** for warm/cool control, and the backlight is optional per unit, so [FrontlightManager](https://freeink.org/docs/lib-frontlight) probes for it at runtime. A PCF8563 RTC, an ADC battery read and a dedicated SPI SD bus complete it; the profile is reverse-engineered from stock firmware and still pending hardware validation.
+
+The **Waveshare ESP32-S3-ePaper-3.97** (`-DFREEINK_DEVICE_WS397`) runs the same 800×480 SSD1677 panel and vendor waveforms as the Sticky, but hangs its power and battery off an **AXP2101 PMIC** — a new [BatteryMonitor](https://freeink.org/docs/lib-battery) gauge backend that reports state of charge straight from the PMIC and also owns the EPD rail (the panel stays dark until the PMIC's ALDO3 output is enabled). A PCF85063 RTC and a QMI8658 IMU share the PMIC's I²C bus, storage is 4-bit SDMMC, and it's been confirmed reading an EPUB end-to-end on real hardware.
+
+The **OnePage** (`-DFREEINK_DEVICE_ONEPAGE`) is FreeInk's first **ESP32-C61** board — a fourth MCU family alongside the C3, S3 and classic ESP32. It's a lean button reader: the familiar 800×480 SSD1677 panel with no touch and no frontlight, navigated by a four-key ADC ladder plus three side GPIO buttons, with an ADC battery read and an SPI SD card sharing the display bus.
 
 ## M5Stack PaperColor refresh behavior
 
@@ -1016,11 +1028,12 @@ The same PMIC also reports power telemetry, which [BatteryMonitor](https://freei
 
 ## Capacitive touch
 
-Touch is implemented for three controllers (gated by `FREEINK_CAP_TOUCH`):
+Touch is implemented for four controllers (gated by `FREEINK_CAP_TOUCH`):
 
 - **CHSC6x** (Murphy M3) — IRQ-driven, ported from the upstream driver.
-- **GT911** (X4 Pro, LilyGo T5 S3, M5Paper v1.1, PaperS3 and Sticky) — raw register reads plus the reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive home key is surfaced via `wasHomeKeyPressed()`. On the button-less PaperS3 it's the *only* input, so paging and navigation come entirely from tap zones and gestures.
+- **GT911** (X4 Pro, LilyGo T5 S3, M5Paper v1.1, PaperS3 and Sticky) — raw register reads plus the reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive home key is surfaced via `wasHomeKeyPressed()`. On the button-less PaperS3 it's the *only* input, so paging and navigation come entirely from tap zones and gestures. GT911 also reports up to four simultaneous contacts, so it backs the [multi-touch pinch / spread / rotation gestures](https://freeink.org/docs/lib-input).
 - **FT6336 / FT6336U** (M5 Paper Mono, Murphy M4) — register-compatible with the FT5x06 family, with init retry for a slow power-up. It reports a portrait frame, so the profile swaps it into the panel-native landscape frame and flips to follow the mounted display.
+- **GSLX680** (EEGO A4) — a Silead digitizer whose calibration firmware the SDK uploads at boot; it reports panel-native coordinates and carries a capacitive home key.
 
 The InputManager exposes `hasTouch` / `isTouchPressed` / `wasTouchPressed` / `wasTouchReleased` / `getTouchPoint`, plus tap, swipe and activity edges (see the [InputManager reference](https://freeink.org/docs/lib-input)). GT911 boards set their `TouchConfig` in the board profile (e.g. `BoardConfig::LILYGO_T5_PRO_GT911`).
 
@@ -1115,13 +1128,31 @@ Refresh modes: `FULL_REFRESH` / `HALF_REFRESH` / `FAST_REFRESH`.
 | `supportsStripGrayscale()` | Whether the active driver supports strip streaming. |
 | `displayGrayBuffer(turnOffScreen = false, lut = nullptr, factoryMode = false)` | Push the gray planes. |
 | `displayGrayscaleBase(fallback = HALF_REFRESH, turnOffScreen = false)` | Display the framebuffer as the base frame under a grayscale overlay. On X3 this fires the OEM differential base pass; other panels fall back to a normal refresh in the fallback mode. |
+| `displayGrayscaleBase(GrayscaleMode mode, fallback = HALF_REFRESH, turnOffScreen = false) → bool` | Mode-bound base: pick Overlay or Absolute encoding. Returns false (and paints nothing) when the mode isn’t available on the active controller — check before staging planes. |
+| `grayscaleCapabilities(GrayscaleMode mode = Overlay) → GrayscaleCapabilities` | Query per-mode support: the host encoding (OverlayMasks / AbsolutePlanes / Unsupported) and whether an async base is available. |
+| `combinesGrayscaleBase() → bool / supportsAsyncGrayscaleBase() → bool` | combinesGrayscaleBase() is true where the base is deferred into the gray waveform (Paper Mono) rather than run as a separate refresh; supportsAsyncGrayscaleBase() is true where a deferred B/W refresh can serve as the base so its waveform overlaps plane staging. |
 | `preconditionGrayscale() / preconditionGrayscale(x, y, w, h)` | X3: fire the settle pass (full or windowed) that leaves pixels receptive to a weak grayscale nudge before an anti-aliased refresh. |
 | `cleanupGrayscaleBuffers(bwBuffer) / grayscaleRevert()` | Clean up after an anti-aliased refresh. |
 | `setCustomLUT(bool enabled, lutData = nullptr)` | Install / restore a custom waveform LUT (VCOM-safe). A board injects its own grayscale LUT through its driver config — custom LUT is the supported path now that the OTP gray4 mode has been removed. |
+| `setHoldPeriodicFullRefresh(bool hold)` | Hold the periodic anti-ghost full refresh through a live interaction (e.g. a slider drag) so fast refreshes never promote to full mid-gesture; clear it when the interaction ends. |
+
+### Absolute vs overlay grayscale
+
+Anti-aliased grayscale ships in two encodings, selected through the mode-bound `displayGrayscaleBase(mode, …)`. **Overlay** (the default) diffs the gray planes against a B/W base frame — cheap, and how in-page glyph AA works. **Absolute** supplies a complete four-tone image where every pixel is present in both planes, independent of what was on screen — the right choice for a full-screen render like a sleep/cover overlay, where there's no reliable base to diff against. Absolute planes are accepted on the SSD1677 and the UltraChip X4 controllers (UC8179 / UC8279); the X3 (UC8253) and the PaperColor are overlay-only. Query `grayscaleCapabilities(mode).encoding` before staging, and let the driver force the next B/W refresh clean after an absolute pass.
 
 ### Orientation
 
 Panel mount orientation is not a display call — it comes from `BoardProfile.orientation` (`NO_FLIP` / `MIRROR_X` / `MIRROR_Y` / `ROTATE_180`) and the SSD1677 driver applies it in hardware. See [BoardConfig](https://freeink.org/docs/lib-board) and [Adding a device](https://freeink.org/docs/adding-a-device).
+
+## Accent color planes (Spectra-6)
+
+The M5 PaperColor's ED2208 Spectra-6 panel can tint black pixels with spot color through 1-bit **accent planes**. Set a plane into one of four slots; a set bit recolors the matching black pixel to that slot's Spectra color, and where slots overlap the lowest-numbered one wins. Because the pigments only settle on a full, uninterrupted waveform, accents appear on **complete-waveform refreshes** only — standing images (clocks, dashboards), not page turns.
+
+| Member | Description |
+| --- | --- |
+| `setAccentPlaneSlot(uint8_t slot, const uint8_t* plane, uint8_t colorCode)` | Attach a 1-bit accent plane to slot 0–3 (plane = nullptr clears it). colorCode is a Spectra-6 constant: SPECTRA_BLACK / WHITE / YELLOW / RED / BLUE / GREEN. No-op on non-Spectra panels. |
+| `setFullRefreshCompletesWaveform(bool enabled)` | When enabled, every FULL_REFRESH runs the panel’s complete color waveform (slower, DC-balanced, accents settle); disabled (default) keeps Full an interrupted pass for speed. Standing-image apps enable it; readers leave it off. |
+| `requestCompleteWaveformNextRefresh()` | One-shot: run the complete waveform on just the next FULL_REFRESH, for a transient color render without changing the mode. |
 
 ## Framebuffer memory
 
@@ -1164,6 +1195,7 @@ Buttons plus optional capacitive touch behind one object. Call `update()` each l
 | `wasAnyPressed() / wasAnyReleased()` | Any-button edge. |
 | `getState() / getButtonName(i)` | Raw button bitmask; human name for a button. |
 | `isDebouncePending() → bool` | True while a raw state change is still inside the debounce window (a change commits after two matching samples). Slow-polling hosts (a sleep-sliced idle loop) should re-poll quickly while this is set, or a press shorter than the poll period is dropped. |
+| `isPowerButtonPhysicallyPressed() → bool` | Raw power-GPIO level, read before any click/hold classification — for a shutdown confirm screen or a wake check. False when the board has no power button. |
 | `BTN_BACK, BTN_CONFIRM, BTN_LEFT, BTN_RIGHT, BTN_UP, BTN_DOWN, BTN_POWER` | Button index constants. |
 
 ## Touch
@@ -1182,7 +1214,18 @@ Gated by `FREEINK_CAP_TOUCH`; inert on boards without a touch controller. Two co
 | `wasTouchPressedAt(float& nx, float& ny) → bool` | Press-edge analogue of wasTouchTap: true on the frame a touch begins, returning the normalized touch-down position — so a control can highlight under the finger on press, then activate on release. |
 | `wasSwipe(float& nxStart, float& nyStart, float& nxEnd, float& nyEnd) → bool` | Edge: a flick released this frame (contact moved ≥60 px within 700 ms), returning normalized start (touch-down) and end (release) positions. A swipe also raises wasTouchTap(); check wasSwipe() first to disambiguate. The app maps both points and takes the dominant axis for direction. |
 | `lastTouchHeldMs() → unsigned long` | Duration of the last touch contact, latched on release — a raw primitive for an app-side tap-vs-long-press policy. 0 with no touch HW. |
-| `wasHomeKeyPressed()` | Edge: GT911 capacitive home key pressed (status bit 0x10). Always false on controllers without one. |
+| `wasHomeKeyPressed() / wasHomeKeyTapped() / wasHomeKeyLongPressed()` | Edges for the GT911 capacitive home key: raw press, short-press release (the primary “home” action), and a held press past ~700 ms. A home-key press now also counts toward wasTouchActivity(). Always false on controllers without one. |
+
+## Multi-touch gestures
+
+GT911 boards report up to **four** simultaneous contacts, so InputManager derives two-finger gestures on top of the single-contact API. `supportsMultiTouch()` is true only on those controllers, and `getTouchSnapshot()` hands back the raw contact set (`TouchSnapshot`: a count plus `MultiTouchPoint`s carrying stable GT911 track ids). The derived gestures come as edge queries (or matching `pop…` drains for the background queue):
+
+| Member | Description |
+| --- | --- |
+| `supportsMultiTouch() → bool / getTouchSnapshot() → TouchSnapshot` | Whether the controller reports multiple contacts, and the latest set (up to 4) with stable track ids. |
+| `wasMultiTouchSwipe(uint8_t& contacts, float& nxStart, float& nyStart, float& nxEnd, float& nyEnd, unsigned long& ms) → bool` | A 2–4 finger translation released this frame (normalized start/end, contact count, duration). |
+| `wasMultiTouchPinch(float& scale, float& nxCenter, float& nyCenter, unsigned long& ms) → bool` | A two-finger pinch/spread: scale < 1 pinches in (zoom out), > 1 spreads (zoom in), about the given center. |
+| `wasMultiTouchRotation(float& degrees, float& nxCenter, float& nyCenter, unsigned long& ms) → bool` | A two-finger rotation in degrees about the center. |
 
 ## Background polling
 
@@ -1219,7 +1262,9 @@ BatteryMonitor(uint8_t adcPin, float dividerMultiplier = 2.0f,
                int8_t chargeStatusPin = PIN_NONE);
 ```
 
-The **ADC** backend reads a divided LiPo voltage off an ADC pin; an optional charge-status pin (MCP73832 `/STAT`, active-LOW) drives `isCharging()`. The **I²C fuel-gauge** backend (`-DFREEINK_BATTERY_I2C_GAUGE=1`) reads SoC / voltage / charge from the gauge selected by `GaugeType` — a **BQ27220** (+ optional BQ25896 charger) on X3 and the LilyGo T5 S3, or a **CW2017** on the X4 Pro (which re-uploads its 80-byte BATINFO profile if the gauge has lost it) — and ignores the ADC pin/divider. Config comes from `BoardConfig::ACTIVE.batteryGauge`, and gauge-vs-ADC is chosen at *runtime* (gauge address non-zero), so X3 (gauge) and X4 (ADC) work from one C3 binary.
+The **ADC** backend reads a divided LiPo voltage off an ADC pin; an optional charge-status pin (MCP73832 `/STAT`, active-LOW) drives `isCharging()`. The **I²C fuel-gauge** backend (`-DFREEINK_BATTERY_I2C_GAUGE=1`) reads SoC / voltage / charge from the gauge selected by `GaugeType` — a **BQ27220** (+ optional BQ25896 charger) on X3 and the LilyGo T5 S3, a **CW2017** on the X4 Pro and X4 Classic (which re-uploads its 80-byte BATINFO profile if the gauge has lost it), or an **AXP2101** PMIC on the Waveshare 3.97″ (whose fuel-gauge block reports SoC directly, and which also owns the board's EPD rail) — and ignores the ADC pin/divider. Config comes from `BoardConfig::ACTIVE.batteryGauge`, and gauge-vs-ADC is chosen at *runtime* (gauge address non-zero), so X3 (gauge) and X4 (ADC) work from one C3 binary.
+
+The charge-status pin's polarity is configurable per board (`batteryChargeStatusActiveHigh`) — active-LOW open-drain by default, active-HIGH for boards that push-pull it (X4 Pro). A board can also name a **charger-enable** pin (`PowerConfig.chargeEnable` + polarity), which the SDK latches through deep sleep; the Sticky uses it to hold its BQ25616 charger enabled.
 
 The **M5PM1** backend is **auto-detected** on the M5 [PaperColor](https://freeink.org/docs/devices) (no flag) — the same PMIC that owns the board's rails also reports battery state over the internal I²C bus. It reads `VBAT` for voltage and percentage, and watches both the DC input rail (`VIN`) and the bidirectional USB-C rail (`5VINOUT`) for external power. The PM1 is a PY32 MCU emulating an I²C slave, so reads are bursts with a 500 µs settle between the pointer write and the data phase (skip it and the slave serves stale samples — e.g. VBAT at 150 mV). It exposes no separate charge-phase bit, so `charging` stays unknown there.
 
@@ -1262,6 +1307,7 @@ SD storage with an app-friendly wrapper plus the raw `FsFile` API. Two interchan
 | Member | Description |
 | --- | --- |
 | `begin() / ready()` | Mount the card; report mount state. |
+| `shutdown()` | SDMMC boards: stop the card, unmount, and float the bus pads to cut deep-sleep leakage. Call after every file user has stopped; wake remounts via begin(). No-op on SPI/SdFat boards. |
 | `listFiles(path = "/", maxFiles = 200) → vector<String>` | Directory listing. |
 | `readFile(path) → String` | Read a whole file (empty on failure). |
 | `readFileToStream(path, out, chunkSize = 256)` | Stream a file to any Print. |
@@ -1284,15 +1330,24 @@ SdFat can't drive SDIO, so boards wired for 4-bit SDMMC (de-link) mount a plain 
 
 Group: Libraries · URL: https://freeink.org/docs/lib-frontlight
 
-PWM frontlight with warm/cool control (e.g. de-link). Gated by `FREEINK_CAP_FRONTLIGHT`; inert on boards without a frontlight.
+Frontlight with warm/cool control (e.g. de-link). Gated by `FREEINK_CAP_FRONTLIGHT`; inert on boards without a frontlight. Most boards drive the LEDs with LEDC PWM; the [EEGO A4](https://freeink.org/docs/devices) instead drives an **LM3630A over I²C**, selected from the board profile (`I2cFrontlightController`), so the same API works either way.
 
 | Member | Description |
 | --- | --- |
-| `begin()` | Set up the PWM channel. |
+| `begin()` | Set up the PWM channel (or bring up the I²C controller). |
 | `on() / off()` | Toggle the light. |
-| `setBrightness(uint8_t percent)` | Brightness 0–100. |
+| `setBrightness(uint8_t percent)` | Brightness 0–100, mapped through a perceptual gamma curve (≈1.66) so equal steps look evenly spaced rather than crowding at the top. |
 | `setColorTemperature(uint8_t warmPercent)` | Warm/cool mix 0–100. |
-| `present() / brightness()` | Whether a frontlight exists; current brightness. |
+| `present() / brightness()` | Whether a frontlight exists; current brightness. On the EEGO A4 the backlight is optional per unit, so present() reflects a runtime I²C probe. |
+
+## Light sleep
+
+Under `-DFREEINK_FRONTLIGHT_LS` the LEDC channel runs off the always-on `RC_FAST` clock so the light can stay lit through a light-sleep tick. For deep sleep, `park()` drives the LED pads low and holds them there across the sleep (cutting leakage through the driver), and `releaseOnWake()` releases that hold unconditionally at boot.
+
+| Member | Description |
+| --- | --- |
+| `park()` | Drive the frontlight pads low and gpio-hold them through deep sleep. Requires FREEINK_FRONTLIGHT_LS. |
+| `releaseOnWake()` | Release the sleep hold at boot before normal use. Requires FREEINK_FRONTLIGHT_LS. |
 
 ---
 
@@ -1473,7 +1528,7 @@ Pins (PDM clock out, data in, and an active-polarity power-enable) come from the
 
 Group: Libraries · URL: https://freeink.org/docs/lib-rtc
 
-Wall-clock time from a real-time clock over I²C, described by `BoardConfig::ACTIVE.sensors`. Three chips are supported, selected per board by `RtcType`: the **PCF8563** (Sticky, plus the BM8563-compatible part on the X4 Pro and M5 PaperS3), the **DS3231** (Xteink X3) and the **RX8130** (M5 Paper Mono). Gated by `FREEINK_CAP_RTC`, which defaults on for the [X3](https://freeink.org/docs/devices), Sticky, X4 Pro, Paper Mono and PaperS3, and off elsewhere; inert on boards with no RTC.
+Wall-clock time from a real-time clock over I²C, described by `BoardConfig::ACTIVE.sensors`. Three chips are supported, selected per board by `RtcType`: the **PCF8563** family — including the register-compatible BM8563 (X4 Pro, X4 Classic, M5 PaperS3) and PCF85063 (Waveshare 3.97″), plus the plain part on Sticky and the EEGO A4 — the **DS3231** (Xteink X3) and the **RX8130** (M5 Paper Mono). Gated by `FREEINK_CAP_RTC`, which defaults on for the [X3](https://freeink.org/docs/devices), Sticky, X4 Pro, X4 Classic, Paper Mono, PaperS3, EEGO A4 and Waveshare 3.97″, and off elsewhere; inert on boards with no RTC.
 
 `begin()` brings up the I²C bus and quiets the chip's clock output; `now()` and `set()` read and write a `DateTime`. The driver handles each chip's register encoding and its oscillator-stopped flag, so a `now()` that returns false means the clock was never set (or browned out) rather than a silent bad time.
 
@@ -1540,7 +1595,7 @@ The SHT40 shares the sensor I²C bus with the [RTC](https://freeink.org/docs/lib
 
 Group: Libraries · URL: https://freeink.org/docs/lib-imu
 
-6-axis motion (accelerometer + gyroscope) over I²C, described by `BoardConfig::ACTIVE.sensors`. Two chips are supported, selected per board by `ImuType`: the ST **LSM6DS3TR-C** (Sticky) and the **QMI8658** (Xteink X3). Gated by `FREEINK_CAP_IMU`, which defaults on for the [X3](https://freeink.org/docs/devices) and Sticky, and off elsewhere; inert on boards with no IMU.
+6-axis motion (accelerometer + gyroscope) over I²C, described by `BoardConfig::ACTIVE.sensors`. Two chips are supported, selected per board by `ImuType`: the ST **LSM6DS3TR-C** (Sticky) and the **QMI8658** (Xteink X3, X4 Classic and Waveshare 3.97″). Gated by `FREEINK_CAP_IMU`, which defaults on for the [X3](https://freeink.org/docs/devices), Sticky, X4 Classic and Waveshare 3.97″, and off elsewhere; inert on boards with no IMU.
 
 `begin()` checks the `WHO_AM_I` id and configures accel + gyro for the board's chip (LSM6DS3TR-C at 104 Hz, ±2 g / ±245 dps; QMI8658 at 28 Hz, ±2 g / ±512 dps). `read()` returns one `Sample` already scaled to physical units — acceleration in g and angular rate in degrees/second — so the app gets usable values regardless of which part is fitted.
 
@@ -1832,7 +1887,7 @@ The compile-time board descriptions and the runtime-active profile. Drivers read
 | --- | --- |
 | `ACTIVE` | The runtime-active BoardProfile (defaults to DEFAULT_DEVICE). |
 | `selectDevice(Board which) → bool` | Set ACTIVE to a compiled-in device; false if not included. |
-| `XTEINK_X4, XTEINK_X4_PRO, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, MURPHY_M4, LILYGO_T5S3, M5PAPER_V11, STICKY, PAPER_MONO, M5PAPER_S3` | Built-in board profiles. |
+| `XTEINK_X4, XTEINK_X4_PRO, XTEINK_X4_CLASSIC, XTEINK_X3, DE_LINK, M5STACK_PAPER_COLOR, MURPHY_M3, MURPHY_M4, LILYGO_T5S3, M5PAPER_V11, STICKY, PAPER_MONO, M5PAPER_S3, EEGO_A4, WS_EPAPER_397, ONEPAGE` | Built-in board profiles. |
 | `BoardProfile.orientation` | Panel mount transform — NO_FLIP / MIRROR_X / MIRROR_Y / ROTATE_180 (applied in hardware by SSD1677). |
 | `BoardProfile.sdmmc` | SdmmcPins for 4-bit SDMMC boards; busWidth 0 = use SPI/SdFat. |
 | `BoardProfile.uiScale` | Per-device UI scale multiplier (1.0 default; touch boards like Sticky bump it for finger-sized chrome). Read by the app/theme layer. |
@@ -1851,6 +1906,8 @@ Each peripheral library reads a small config struct off `ACTIVE`, so nothing per
 | --- | --- |
 | `TouchConfig` | Controller, pins, raw axis ranges, swapXY / flipX / flipY digitizer correction, and an optional powerEnable rail. See InputManager. |
 | `MicConfig` | PDM mic: input type, clock/data pins, and an active-polarity enable pin. See Microphone. |
+| `FrontlightConfig.i2cController` | I2cFrontlightController (None / Lm3630a) — drives the frontlight over I²C instead of LEDC PWM (EEGO A4). See Frontlight. |
+| `batteryChargeStatusActiveHigh / PowerConfig.chargeEnable` | Charge-status pin polarity (active-LOW default), and an optional charger-enable pin (+ polarity) the SDK latches through deep sleep. See BatteryMonitor. |
 | `SensorsConfig` | Shared I²C sensor bus (SDA/SCL/Hz) + the RTC / temp-humidity / IMU addresses (0 = absent), driving Rtc / EnvironmentSensor / Imu. |
 | `AudioConfig.buzzer` | LEDC PWM pin for a passive buzzer (Buzzer), separate from the I2S codec fields. |
 | `DisplayPins.powerEnable / SdPins.powerEnable` | Active-high rails for the panel and SD card, raised at begin() with a settle delay (PIN_UNASSIGNED = always powered). |
@@ -1994,11 +2051,11 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
 }
 ```
 
-It also ships the chrome and helpers multi-screen apps otherwise hand-roll: `screen.navHeader(title, backAction, backIcon)` draws a sub-screen's back button + centered title + rule — with an optional right-aligned `rightLabel` (a live clock or count), a trailing action **button** (`trailingLabel` / `trailingAction`, e.g. a "Save") in its place, and a `borderEdges` flag to drop the divider. `screen.centeredText("Scanning…")` centers a one-line message for empty/loading states, `takeRow(anchor, height)` reserves a row band whose inter-row gap scales with the height, and a `button(props, rect)` overload places a themed button at an explicit rect for layouts the row cadence can't express. Because frames **don't clear the target** on their own, call `app.setClearColor(ui::Color::White)` once so each paint starts from a white canvas. For snappy navigation, `app.invalidateTransition()` requests a fast partial refresh on a screen change and promotes to a full one every Nth transition (`setTransitionFullEvery(n)`) to clear ghosting; FreeInkApp also sizes its default theme metrics to the target's real font line height, so larger fonts don't clip rows. By default `setTheme()` keeps a per-app copy of the tokens; when every screen shares one theme, `setThemeRef(&tokens)` points at caller-owned tokens instead, saving the ~1.5 KB per-app copy — the cost that matters on small heaps with several live screens.
+It also ships the chrome and helpers multi-screen apps otherwise hand-roll: `screen.navHeader(title, backAction, backIcon)` draws a sub-screen's back button + centered title + rule — with an optional right-aligned `rightLabel` (a live clock or count), a trailing action **button** (`trailingLabel` / `trailingAction`, e.g. a "Save") in its place, and a `borderEdges` flag to drop the divider. `screen.centeredText("Scanning…")` centers a one-line message for empty/loading states, `takeRow(anchor, height)` reserves a row band whose inter-row gap scales with the height, and a `button(props, rect)` overload places a themed button at an explicit rect for layouts the row cadence can't express. Because frames **don't clear the target** on their own, call `app.setClearColor(ui::Color::White)` once so each paint starts from a white canvas. For snappy navigation, `app.invalidateTransition()` requests a fast partial refresh on a screen change and promotes to a full one every Nth transition (`setTransitionFullEvery(n)`) to clear ghosting; FreeInkApp also sizes its default theme metrics to the target's real font line height, so larger fonts don't clip rows. By default `setTheme()` keeps a per-app copy of the tokens; when every screen shares one theme, `setThemeRef(&tokens)` points at caller-owned tokens instead, saving the ~1.5 KB per-app copy — the cost that matters on small heaps with several live screens. Corner radii inherit from the theme: a control left at `RADIUS_INHERIT` picks up the theme's `controlRadius` / `capsuleRadius` / `sheetRadius` so one token set styles the whole app. And `setContentMarginFromScreen(Insets)` reserves chrome measured from the physical panel edge, without double-insetting the part already covered by the safe area — for boards whose bezel eats into the glass. Disabled and dithered text now paints as a gray dither rather than solid black, so inactive rows read as dimmed on 1-bit panels.
 
 > **Text entry — don't cast key ids to char**
 >
-> The SDK owns keyboard editing in `ui::KeyboardEntry`: `attach()` a caller buffer, route the keyboard's key/shift/mode/delete actions to its methods, and it handles the shift/symbol layers, layout-correct UTF-8 append and multi-byte backspace. Key actions report a stable **id** in `ActionEvent::value` — ASCII keys their code point, localized keys (é, ñ, ß, and every Cyrillic / Hebrew glyph) ids above 1000 — so casting the value straight to `char` corrupts non-ASCII layouts. Insert through `KeyboardEntry` (or `keyboardKeyText()`) instead — it appends layout-correct UTF-8 and, with a script-switch key, tracks the active `KeyboardLayoutId`. Right-to-left is the renderer's job; the Hebrew layout inserts code points in logical order.
+> The SDK owns keyboard editing in `ui::KeyboardEntry`: `attach()` a caller buffer, route the keyboard's key/shift/mode/delete actions to its methods, and it handles the shift/symbol layers, layout-correct UTF-8 append and multi-byte backspace. Key actions report a stable **id** in `ActionEvent::value` — ASCII keys their code point, localized keys (é, ñ, ß, and every Cyrillic / Hebrew glyph) ids above 1000 — so casting the value straight to `char` corrupts non-ASCII layouts. Insert through `KeyboardEntry` (or `keyboardKeyText()`) instead — it appends layout-correct UTF-8 and, with a script-switch key (drawn as a globe glyph), tracks the active `KeyboardLayoutId`. Right-to-left is the renderer's job; the Hebrew layout inserts code points in logical order (and gives the final-form ף its own key).
 
 ## Visual builder
 
@@ -2042,9 +2099,10 @@ A set of immediate-mode components, deliberately not tied to any application's s
 | `checkbox / slider / dropdown` | A label + checkable box, a continuous value slider (dithered track + knob; stepperRow covers discrete steps), and a dropdown that opens an app-owned selection (optionally a two-line settingRow layout with the current selection as a subtitle). |
 | `table` | A rows × columns cell grid with grid lines, an optional header row and per-cell styles. |
 | `statusBar` | Measured leading/trailing clusters + centered title with cluster-aware fallback; built-in progress bar; doubles as a top/bottom page overlay. |
-| `tabBar` | Pill or underline-style tabs with an optional divider, per-tab icons and a disabled state. |
-| `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; section headers; an optional per-row subtitle beneath the label (which wraps to its own line count); vertically-centered row content; and dynamic per-row height so a wrapped multi-line label or subtitle grows its row instead of clipping. |
-| `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, four ЙЦУКЕН Cyrillic layouts — Russian, Ukrainian, Belarusian, Kazakh — and a Hebrew RTL layout, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, an optional script-switch key for apps that reach more than one script, and an optional prepended number row; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting. |
+| `tabBar` | Pill or underline-style tabs with an optional divider, per-tab icons (stacked above the label), up/down indicator arrows and a disabled state. |
+| `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; inline section-heading rows; an optional per-row subtitle beneath the label (which wraps to its own line count); vertically-centered row content; dynamic per-row height so a wrapped multi-line label or subtitle grows its row instead of clipping; a windowed-items mode so the app can supply only the visible slice of a huge list; and opt-in RTL row mirroring. |
+| `capsuleSlider / sliderRow / tileGrid / sheet` | Control-center building blocks: a stadium-capsule brightness-style slider, a labeled −/capsule/+ slider row, a grid of quick-setting tiles, and a pull-down/bottom sheet chrome (sheetContentRect() gives the body). |
+| `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, four ЙЦУКЕН Cyrillic layouts — Russian, Ukrainian, Belarusian, Kazakh — and a Hebrew RTL layout, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, an optional script-switch key drawn as a globe glyph for apps that reach more than one script, and an optional prepended number row; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting. |
 | `textArea` | A multi-line scrollable writing canvas (the editor body). The app owns the text buffer and caret offset; it word-wraps, draws the window of lines from topLine, and an optional caret. textAreaMeasure() / textAreaTopLineFor() keep the caret on screen, mirroring lists. |
 | `readerChrome / tapZones` | Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing. |
 | `bookCard / coverGrid` | Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection (a fixed array, or a CoverGridItemProvider callback that supplies items lazily by index). |
@@ -2056,7 +2114,7 @@ A set of immediate-mode components, deliberately not tied to any application's s
 
 ## Virtualized lists
 
-`list` never creates a node per item. The app owns the full item array plus scroll state; the component lays out, draws and registers interactions only for the rows that fully fit, and draws a right-edge scroll indicator when the list overflows.
+`list` never creates a node per item. The app owns the full item array plus scroll state; the component lays out, draws and registers interactions only for the rows that fully fit, and draws a right-edge scroll indicator when the list overflows. For lists too large to keep in RAM, a **windowed-items** mode (`itemsWindowFirst` / `itemsWindowCount`) lets the app pass only the currently-visible slice. Rows can be variable height, so `ListNav` reads back the measured layout to page correctly; **inline section-heading** rows and opt-in **RTL row mirroring** (icon and label move to the trailing edge, values to the leading edge) round out the model.
 
 ```cpp
 const uint16_t visible = freeink::ui::listVisibleRows(rect, theme.rowHeight);
@@ -2458,13 +2516,13 @@ libs/
   hardware/BoardPaperS3/       M5 PaperS3 board support (plain-GPIO EPD rails, PMS150G latch)
   hardware/XteinkDetect/       runtime X3/X4 + display-controller detection (bus fingerprint)
   hardware/InputManager/       buttons + capacitive touch (CHSC6x, GT911)
-  hardware/BatteryMonitor/     ADC / I²C gauge / M5PM1 battery telemetry
+  hardware/BatteryMonitor/     ADC / I²C gauge (BQ27220, CW2017) / AXP2101 + M5PM1 PMIC telemetry
   hardware/SDCardManager/      SD storage (SdFat-over-SPI or native SDMMC)
   hardware/UsbMassStorage/     expose the SD card over USB (mass storage or serial)
   hardware/MemoryManager/      on-demand RAM reclaim (cache sinks, pressure watermarks)
   hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
   hardware/RecoveryBoot/       boot-time OTA recovery hatch (Back+Up combo)
-  hardware/FrontlightManager/  PWM frontlight (de-link)
+  hardware/FrontlightManager/  frontlight — LEDC PWM (de-link) or LM3630A I²C (EEGO A4)
   hardware/AudioManager/       WAV-over-I2S audio (Murphy M3 ES8388, M5 ES8311)
   hardware/LedManager/         addressable RGB LEDs (M5 PaperColor, WS2812-compatible)
   hardware/Buzzer/             LEDC PWM tone buzzer (Sticky, Murphy)

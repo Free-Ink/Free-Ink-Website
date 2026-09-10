@@ -17,6 +17,7 @@ export default function InputManager() {
           ['wasAnyPressed() / wasAnyReleased()', 'Any-button edge.'],
           ['getState() / getButtonName(i)', 'Raw button bitmask; human name for a button.'],
           ['isDebouncePending() → bool', 'True while a raw state change is still inside the debounce window (a change commits after two matching samples). Slow-polling hosts (a sleep-sliced idle loop) should re-poll quickly while this is set, or a press shorter than the poll period is dropped.'],
+          ['isPowerButtonPhysicallyPressed() → bool', 'Raw power-GPIO level, read before any click/hold classification — for a shutdown confirm screen or a wake check. False when the board has no power button.'],
           ['BTN_BACK, BTN_CONFIRM, BTN_LEFT, BTN_RIGHT, BTN_UP, BTN_DOWN, BTN_POWER', 'Button index constants.'],
         ]}
       />
@@ -42,7 +43,25 @@ export default function InputManager() {
           ['wasTouchPressedAt(float& nx, float& ny) → bool', 'Press-edge analogue of wasTouchTap: true on the frame a touch begins, returning the normalized touch-down position — so a control can highlight under the finger on press, then activate on release.'],
           ['wasSwipe(float& nxStart, float& nyStart, float& nxEnd, float& nyEnd) → bool', 'Edge: a flick released this frame (contact moved ≥60 px within 700 ms), returning normalized start (touch-down) and end (release) positions. A swipe also raises wasTouchTap(); check wasSwipe() first to disambiguate. The app maps both points and takes the dominant axis for direction.'],
           ['lastTouchHeldMs() → unsigned long', 'Duration of the last touch contact, latched on release — a raw primitive for an app-side tap-vs-long-press policy. 0 with no touch HW.'],
-          ['wasHomeKeyPressed()', 'Edge: GT911 capacitive home key pressed (status bit 0x10). Always false on controllers without one.'],
+          ['wasHomeKeyPressed() / wasHomeKeyTapped() / wasHomeKeyLongPressed()', 'Edges for the GT911 capacitive home key: raw press, short-press release (the primary “home” action), and a held press past ~700 ms. A home-key press now also counts toward wasTouchActivity(). Always false on controllers without one.'],
+        ]}
+      />
+
+      <H2>Multi-touch gestures</H2>
+      <P>
+        GT911 boards report up to <strong>four</strong> simultaneous contacts, so InputManager derives
+        two-finger gestures on top of the single-contact API. <Code>supportsMultiTouch()</Code> is true
+        only on those controllers, and <Code>getTouchSnapshot()</Code> hands back the raw contact set
+        (<Code>TouchSnapshot</Code>: a count plus <Code>MultiTouchPoint</Code>s carrying stable GT911
+        track ids). The derived gestures come as edge queries (or matching <Code>pop…</Code> drains for
+        the background queue):
+      </P>
+      <ApiTable
+        rows={[
+          ['supportsMultiTouch() → bool / getTouchSnapshot() → TouchSnapshot', 'Whether the controller reports multiple contacts, and the latest set (up to 4) with stable track ids.'],
+          ['wasMultiTouchSwipe(uint8_t& contacts, float& nxStart, float& nyStart, float& nxEnd, float& nyEnd, unsigned long& ms) → bool', 'A 2–4 finger translation released this frame (normalized start/end, contact count, duration).'],
+          ['wasMultiTouchPinch(float& scale, float& nxCenter, float& nyCenter, unsigned long& ms) → bool', 'A two-finger pinch/spread: scale < 1 pinches in (zoom out), > 1 spreads (zoom in), about the given center.'],
+          ['wasMultiTouchRotation(float& degrees, float& nxCenter, float& nyCenter, unsigned long& ms) → bool', 'A two-finger rotation in degrees about the center.'],
         ]}
       />
 

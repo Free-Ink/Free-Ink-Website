@@ -15,6 +15,7 @@ export default function Devices() {
         rows={[
           ['Xteink X4', 'ESP32-C3', 'SSD1677', '800×480 B/W + 4-level gray'],
           ['Xteink X4 Pro', 'ESP32-S3', 'SSD1677 / UC8179', '800×480 B/W, GT911 touch, warm/cool frontlight, PCF8563 RTC, CW2017 gauge, SDMMC SD, USB MSC'],
+          ['Xteink X4 Classic', 'ESP32-S3', 'SSD1677 / UC8179', '800×480 B/W, 7 discrete keys (no touch), CW2017 gauge, BM8563 RTC, QMI8658 IMU, SDMMC SD'],
           ['Xteink X3', 'ESP32-C3', 'UC8253 / UC8279', '792×528 B/W + 4-level gray, BQ27220 I²C gauge, DS3231 RTC, QMI8658 IMU'],
           ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD'],
           ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs'],
@@ -25,6 +26,9 @@ export default function Devices() {
           ['Sticky', 'ESP32-S3', 'SSD1677', '3.97" 800×480 B/W, GT911 touch, PDM mic, RTC + temp/humidity + IMU, BQ27220 gauge, buzzer'],
           ['M5 Paper Mono', 'ESP32-S3', 'SSD1677', '800×480 B/W + 3-gray, FT6336 touch, frontlight, PDM mic, buzzer, RGB LED, RX8130 RTC, SDMMC SD'],
           ['M5 PaperS3', 'ESP32-S3', 'ED047TC1 (raw parallel)', '4.7" 960×540 16-gray, GT911 touch-only, buzzer, BM8563 RTC, SPI SD'],
+          ['EEGO A4', 'ESP32-S3', 'UC8279C', '768×552 4-gray, GSLX680 touch, LM3630A warm/cool frontlight, PCF8563 RTC, ADC battery, SPI SD'],
+          ['Waveshare 3.97"', 'ESP32-S3', 'SSD1677', '800×480 B/W, AXP2101 PMIC (battery + power), PCF85063 RTC, QMI8658 IMU, SDMMC SD'],
+          ['OnePage', 'ESP32-C61', 'SSD1677', '800×480 B/W, ADC-ladder + side keys (no touch), ADC battery, SPI SD'],
         ]}
       />
       <P>
@@ -32,9 +36,10 @@ export default function Devices() {
         both board profiles (<Code>XTEINK_X4</Code> and <Code>XTEINK_X3</Code>) and picks one at runtime
         via <Code>setDisplayX3()</Code>, which swaps the active profile and driver. Distinct-MCU boards
         build their own binary, selected with a board macro. A build targets exactly one of{' '}
-        <strong>three MCU families</strong> — ESP32-C3 (X3/X4), ESP32-S3 (X4 Pro, de-link, PaperColor,
-        Murphy M3/M4, LilyGo, Sticky, Paper Mono, PaperS3) or classic ESP32 (M5Paper v1.1) — and{' '}
-        <Code>BoardConfig</Code> rejects mixing families at compile time.
+        <strong>four MCU families</strong> — ESP32-C3 (X3/X4), ESP32-C61 (OnePage), ESP32-S3 (X4 Pro, X4
+        Classic, de-link, PaperColor, Murphy M3/M4, LilyGo, Sticky, Paper Mono, PaperS3, EEGO A4,
+        Waveshare 3.97″) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects mixing
+        families at compile time.
       </P>
       <P>
         The <strong>Xteink X4 Pro</strong> is a distinct ESP32-S3 device, not the C3 X4 — its own{' '}
@@ -46,6 +51,16 @@ export default function Devices() {
         same glass and pinout) — so the firmware fingerprints the live display bus at boot and promotes
         to the matching driver via <A href="/docs/lib-detect">XteinkDetect</A>'s{' '}
         <Code>applyXteinkDisplayController()</Code> before <Code>begin()</Code>.
+      </P>
+      <P>
+        The <strong>Xteink X4 Classic</strong> (X4C, <Code>-DFREEINK_DEVICE_X4CLASSIC</Code>) shares the
+        X4 Pro's ESP32-S3 board and 800×480 SSD1677 glass — with the same runtime UC8179/UC8279 controller
+        probe — but <strong>drops the GT911 touch and the warm/cool frontlight</strong>, repurposing those
+        GPIOs as four extra discrete keys. It's an all-button reader: two side page keys plus a
+        four-key bottom cluster and a power button, so the UI renders side-bezel button hints exactly like
+        the C3 X4/X3. CW2017 gauge, BM8563 RTC, QMI8658 IMU and 1-bit SDMMC storage carry over from the
+        Pro. The profile was recovered from a stock flash dump; a couple of pins are still pending bench
+        confirmation.
       </P>
       <P>
         The <strong>M5Stack Paper Mono</strong> (PaperS3) is an ESP32-S3 board on the same 800×480
@@ -149,6 +164,32 @@ export default function Devices() {
         <Code>begin()</Code>). Its GT911 is mounted rotated, corrected SDK-side by the touch profile's{' '}
         <Code>swapXY</Code> / <Code>flipX</Code> / <Code>flipY</Code> flags.
       </P>
+      <P>
+        The <strong>EEGO Reader A4</strong> (<Code>-DFREEINK_DEVICE_EEGO_A4</Code>) is an ESP32-S3 reader
+        on a 768×552 4-level-gray <strong>UC8279C</strong> panel — a KW-family sibling of the UC8279 X4
+        driver — with a <strong>GSLX680</strong> capacitive digitizer (its calibration firmware is
+        uploaded at boot). Its standout is the frontlight: rather than PWM, it drives an{' '}
+        <strong>LM3630A over I²C</strong> for warm/cool control, and the backlight is optional per unit,
+        so <A href="/docs/lib-frontlight">FrontlightManager</A> probes for it at runtime. A PCF8563 RTC,
+        an ADC battery read and a dedicated SPI SD bus complete it; the profile is reverse-engineered from
+        stock firmware and still pending hardware validation.
+      </P>
+      <P>
+        The <strong>Waveshare ESP32-S3-ePaper-3.97</strong> (<Code>-DFREEINK_DEVICE_WS397</Code>) runs the
+        same 800×480 SSD1677 panel and vendor waveforms as the Sticky, but hangs its power and battery off
+        an <strong>AXP2101 PMIC</strong> — a new <A href="/docs/lib-battery">BatteryMonitor</A> gauge
+        backend that reports state of charge straight from the PMIC and also owns the EPD rail (the panel
+        stays dark until the PMIC's ALDO3 output is enabled). A PCF85063 RTC and a QMI8658 IMU share the
+        PMIC's I²C bus, storage is 4-bit SDMMC, and it's been confirmed reading an EPUB end-to-end on real
+        hardware.
+      </P>
+      <P>
+        The <strong>OnePage</strong> (<Code>-DFREEINK_DEVICE_ONEPAGE</Code>) is FreeInk's first{' '}
+        <strong>ESP32-C61</strong> board — a fourth MCU family alongside the C3, S3 and classic ESP32.
+        It's a lean button reader: the familiar 800×480 SSD1677 panel with no touch and no frontlight,
+        navigated by a four-key ADC ladder plus three side GPIO buttons, with an ADC battery read and an
+        SPI SD card sharing the display bus.
+      </P>
 
       <H2>M5Stack PaperColor refresh behavior</H2>
       <P>
@@ -232,7 +273,7 @@ export default function Devices() {
 
       <H2>Capacitive touch</H2>
       <P>
-        Touch is implemented for three controllers (gated by <Code>FREEINK_CAP_TOUCH</Code>):
+        Touch is implemented for four controllers (gated by <Code>FREEINK_CAP_TOUCH</Code>):
       </P>
       <Ul>
         <Li>
@@ -242,12 +283,18 @@ export default function Devices() {
           <strong>GT911</strong> (X4 Pro, LilyGo T5 S3, M5Paper v1.1, PaperS3 and Sticky) — raw register
           reads plus the reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive
           home key is surfaced via <Code>wasHomeKeyPressed()</Code>. On the button-less PaperS3 it's the{' '}
-          <em>only</em> input, so paging and navigation come entirely from tap zones and gestures.
+          <em>only</em> input, so paging and navigation come entirely from tap zones and gestures. GT911
+          also reports up to four simultaneous contacts, so it backs the{' '}
+          <A href="/docs/lib-input">multi-touch pinch / spread / rotation gestures</A>.
         </Li>
         <Li>
           <strong>FT6336 / FT6336U</strong> (M5 Paper Mono, Murphy M4) — register-compatible with the
           FT5x06 family, with init retry for a slow power-up. It reports a portrait frame, so the profile
           swaps it into the panel-native landscape frame and flips to follow the mounted display.
+        </Li>
+        <Li>
+          <strong>GSLX680</strong> (EEGO A4) — a Silead digitizer whose calibration firmware the SDK
+          uploads at boot; it reports panel-native coordinates and carries a capacitive home key.
         </Li>
       </Ul>
       <P>

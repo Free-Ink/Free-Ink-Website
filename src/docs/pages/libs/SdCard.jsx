@@ -14,6 +14,7 @@ export default function SdCard() {
       <ApiTable
         rows={[
           ['begin() / ready()', 'Mount the card; report mount state.'],
+          ['shutdown()', 'SDMMC boards: stop the card, unmount, and float the bus pads to cut deep-sleep leakage. Call after every file user has stopped; wake remounts via begin(). No-op on SPI/SdFat boards.'],
           ['listFiles(path = "/", maxFiles = 200) → vector<String>', 'Directory listing.'],
           ['readFile(path) → String', 'Read a whole file (empty on failure).'],
           ['readFileToStream(path, out, chunkSize = 256)', 'Stream a file to any Print.'],
