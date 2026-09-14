@@ -975,7 +975,7 @@ FreeInk ships drivers and board profiles for the following devices. Related boar
 
 X3 and X4 share the ESP32-C3 and a pinout, so a single firmware binary drives both — it carries both board profiles (`XTEINK_X4` and `XTEINK_X3`) and picks one at runtime via `setDisplayX3()`, which swaps the active profile and driver. Distinct-MCU boards build their own binary, selected with a board macro. A build targets exactly one of **four MCU families** — ESP32-C3 (X3/X4), ESP32-C61 (OnePage), ESP32-S3 (X4 Pro, X4 Classic, de-link, PaperColor, Murphy M3/M4, LilyGo, Sticky, Paper Mono, PaperS3, EEGO A4, Waveshare 3.97″) or classic ESP32 (M5Paper v1.1) — and `BoardConfig` rejects mixing families at compile time.
 
-The **Xteink X4 Pro** is a distinct ESP32-S3 device, not the C3 X4 — its own `XTEINK_X4_PRO` profile (16 MB flash, 8 MB PSRAM), built with `-DFREEINK_DEVICE_X4PRO=1`. It reuses the X4's 800×480 SSD1677 panel and OTP waveform, and adds GT911 touch, a dual warm/cool frontlight, a PCF8563-compatible RTC, a CW2017 fuel gauge, native 1-bit SDMMC storage, and host transfer over USB — as mass storage or a serial transport. The panel controller **varies by production batch** — original units carry the SSD1677, newer ones a UC8179 (an UltraChip part on the same glass and pinout) — so the firmware fingerprints the live display bus at boot and promotes to the matching driver via [XteinkDetect](https://freeink.org/docs/lib-detect)'s `applyXteinkDisplayController()` before `begin()`.
+The **Xteink X4 Pro** is a distinct ESP32-S3 device, not the C3 X4 — its own `XTEINK_X4_PRO` profile (16 MB flash, 8 MB PSRAM), built with `-DFREEINK_DEVICE_X4PRO=1`. It reuses the X4's 800×480 SSD1677 panel and OTP waveform, and adds GT911 touch, a dual warm/cool frontlight, a PCF8563-compatible RTC, a CW2017 fuel gauge, native 1-bit SDMMC storage, and host transfer over USB — as mass storage (with `hostSuspended()` so the app can end a session on host sleep or cable pull) or a serial transport. The panel controller **varies by production batch** — original units carry the SSD1677, newer ones a UC8179 (an UltraChip part on the same glass and pinout) — so the firmware fingerprints the live display bus at boot and promotes to the matching driver via [XteinkDetect](https://freeink.org/docs/lib-detect)'s `applyXteinkDisplayController()` before `begin()`.
 
 The **Xteink X4 Classic** (X4C, `-DFREEINK_DEVICE_X4CLASSIC`) shares the X4 Pro's ESP32-S3 board and 800×480 SSD1677 glass — with the same runtime UC8179/UC8279 controller probe — but **drops the GT911 touch and the warm/cool frontlight**, repurposing those GPIOs as four extra discrete keys. It's an all-button reader: two side page keys plus a four-key bottom cluster and a power button, so the UI renders side-bezel button hints exactly like the C3 X4/X3. CW2017 gauge, BM8563 RTC, QMI8658 IMU and 1-bit SDMMC storage carry over from the Pro. The profile was recovered from a stock flash dump; a couple of pins are still pending bench confirmation.
 
@@ -1138,7 +1138,7 @@ Refresh modes: `FULL_REFRESH` / `HALF_REFRESH` / `FAST_REFRESH`.
 
 ### Absolute vs overlay grayscale
 
-Anti-aliased grayscale ships in two encodings, selected through the mode-bound `displayGrayscaleBase(mode, …)`. **Overlay** (the default) diffs the gray planes against a B/W base frame — cheap, and how in-page glyph AA works. **Absolute** supplies a complete four-tone image where every pixel is present in both planes, independent of what was on screen — the right choice for a full-screen render like a sleep/cover overlay, where there's no reliable base to diff against. Absolute planes are accepted on the SSD1677 and the UltraChip X4 controllers (UC8179 / UC8279); the X3 (UC8253) and the PaperColor are overlay-only. Query `grayscaleCapabilities(mode).encoding` before staging, and let the driver force the next B/W refresh clean after an absolute pass.
+Anti-aliased grayscale ships in two encodings, selected through the mode-bound `displayGrayscaleBase(mode, …)`. **Overlay** (the default) diffs the gray planes against a B/W base frame — cheap, and how in-page glyph AA works. **Absolute** supplies a complete four-tone image where every pixel is present in both planes, independent of what was on screen — the right choice for a full-screen render like a sleep/cover overlay, where there's no reliable base to diff against. **Direct** takes those same complete planes but paints them in a single combined activation with the full-quality image waveform — the best-looking one-pass mode for a photo or cover, at the cost of a longer refresh. Absolute and Direct planes are accepted on the SSD1677 and the UltraChip X4 controllers (UC8179 / UC8279); the X3 (UC8253) and the PaperColor are overlay-only. Query `grayscaleCapabilities(mode).encoding` before staging, and let the driver force the next B/W refresh clean after an absolute pass.
 
 ### Orientation
 
@@ -1597,7 +1597,7 @@ Group: Libraries · URL: https://freeink.org/docs/lib-imu
 
 6-axis motion (accelerometer + gyroscope) over I²C, described by `BoardConfig::ACTIVE.sensors`. Two chips are supported, selected per board by `ImuType`: the ST **LSM6DS3TR-C** (Sticky) and the **QMI8658** (Xteink X3, X4 Classic and Waveshare 3.97″). Gated by `FREEINK_CAP_IMU`, which defaults on for the [X3](https://freeink.org/docs/devices), Sticky, X4 Classic and Waveshare 3.97″, and off elsewhere; inert on boards with no IMU.
 
-`begin()` checks the `WHO_AM_I` id and configures accel + gyro for the board's chip (LSM6DS3TR-C at 104 Hz, ±2 g / ±245 dps; QMI8658 at 28 Hz, ±2 g / ±512 dps). `read()` returns one `Sample` already scaled to physical units — acceleration in g and angular rate in degrees/second — so the app gets usable values regardless of which part is fitted.
+`begin()` checks the `WHO_AM_I` id and configures accel + gyro for the board's chip (LSM6DS3TR-C at 104 Hz, ±2 g / ±245 dps; QMI8658 at 117 Hz, ±2 g / ±512 dps). `read()` returns one `Sample` already scaled to physical units — acceleration in g and angular rate in degrees/second — so the app gets usable values regardless of which part is fitted.
 
 ## API
 
@@ -1750,6 +1750,8 @@ The stock Xteink (and most ESP32) second-stage bootloader can't read buttons —
 | Member | Description |
 | --- | --- |
 | `checkBootCombo()` | Read the recovery combo and, if held, switch otadata to OTA slot 0 and reboot. Returns immediately (no reboot) in every other case. |
+| `checkBootCombo(const SdUpdateOptions& options)` | Combo-latched SD update: when the combo is held, flash options.path (default /update.bin) into the next OTA slot and reboot into it; with no file present — or on flash failure — falls back to the plain slot-0 hatch. Latches the board’s power rails itself so a released power button can’t cut power mid-flash. |
+| `switchBootPartition(const esp_partition_t* dest) → bool` | Point the bootloader at dest by writing a fresh otadata entry (bypasses esp_image_verify, which rejects patched vendor images). Does not reboot. |
 
 ```cpp
 #include <RecoveryBoot.h>
@@ -1765,6 +1767,21 @@ It is always safe to call unconditionally and early — it does nothing unless *
 > **What it can't do**
 >
 > It can't escape a firmware that crashes in ROM or early SDK init *before* this call is reached. A corrupt app *image* is still caught for free — the bootloader falls back to the other OTA slot on its own. Truly unconditional GPIO recovery would need a custom second-stage bootloader, which the recovery firmware deliberately never reflashes.
+
+## SD-card firmware flasher
+
+The same library ships a standalone **SD-card firmware flasher** (`freeink::firmware`, `FirmwareFlasher.h`) — the engine behind the `SdUpdateOptions` combo, also callable directly for an in-app "update from SD" flow. It streams an ESP32 app image from an SD path into the next OTA partition with interleaved 64 KiB erase + writes, then repoints `otadata`; the caller restarts. It deliberately avoids the Arduino `Update` class and `esp_image_verify` (which reject patched vendor images) and runs its own full integrity pass instead.
+
+| Member | Description |
+| --- | --- |
+| `validateImageFile(const char* sdPath, size_t partitionSize) → Result` | Bootloader-equivalent integrity check before flashing: header magic, chip_id vs the running MCU, segment-table walk, XOR checksum, and SHA256 trailer. Streams in small chunks (C3-safe). Pass partitionSize 0 to skip the fits-partition check. |
+| `flashFromSdPath(const char* sdPath, ProgressCb onProgress = nullptr, void* ctx = nullptr, bool alreadyValidated = false) → Result` | Validate (unless already done), then stream the image into the next OTA slot and switch otadata. The card must be mounted first; the caller reboots on OK. |
+| `runningPartitionChipId() → uint16_t` | chip_id of the currently-running image (0xFFFF if unreadable) — the authoritative CPU match a candidate image must satisfy. |
+| `resultName(Result) → const char*` | Human name for a Result (OK, BAD_MAGIC, BAD_SHA, BAD_CHIP, NO_PARTITION, WRITE_FAIL, …). |
+
+> **Requires the SD card mounted**
+>
+> Call `SDCardManager::begin()` before any flasher call. The image is validated against the running MCU family, so a truncated, corrupted, or wrong-chip `.bin` never reaches `otadata`.
 
 ---
 
@@ -2055,7 +2072,7 @@ It also ships the chrome and helpers multi-screen apps otherwise hand-roll: `scr
 
 > **Text entry — don't cast key ids to char**
 >
-> The SDK owns keyboard editing in `ui::KeyboardEntry`: `attach()` a caller buffer, route the keyboard's key/shift/mode/delete actions to its methods, and it handles the shift/symbol layers, layout-correct UTF-8 append and multi-byte backspace. Key actions report a stable **id** in `ActionEvent::value` — ASCII keys their code point, localized keys (é, ñ, ß, and every Cyrillic / Hebrew glyph) ids above 1000 — so casting the value straight to `char` corrupts non-ASCII layouts. Insert through `KeyboardEntry` (or `keyboardKeyText()`) instead — it appends layout-correct UTF-8 and, with a script-switch key (drawn as a globe glyph), tracks the active `KeyboardLayoutId`. Right-to-left is the renderer's job; the Hebrew layout inserts code points in logical order (and gives the final-form ף its own key).
+> The SDK owns keyboard editing in `ui::KeyboardEntry`: `attach()` a caller buffer, route the keyboard's key/shift/mode/delete actions to its methods, and it handles the shift/symbol layers, layout-correct UTF-8 append and multi-byte backspace. Key actions report a stable **id** in `ActionEvent::value` — ASCII keys their code point, localized keys (é, ñ, ß, and every Cyrillic / Hebrew glyph) ids above 1000 — so casting the value straight to `char` corrupts non-ASCII layouts. Insert through `KeyboardEntry` (or `keyboardKeyText()`) instead — it appends layout-correct UTF-8 and, with a script-switch key (drawn as a globe glyph), tracks the active `KeyboardLayoutId`. Right-to-left is the renderer's job; the Hebrew and Arabic layouts insert code points in logical order (Hebrew gives the final-form ף its own key).
 
 ## Visual builder
 
@@ -2102,7 +2119,7 @@ A set of immediate-mode components, deliberately not tied to any application's s
 | `tabBar` | Pill or underline-style tabs with an optional divider, per-tab icons (stacked above the label), up/down indicator arrows and a disabled state. |
 | `list` | Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; inline section-heading rows; an optional per-row subtitle beneath the label (which wraps to its own line count); vertically-centered row content; dynamic per-row height so a wrapped multi-line label or subtitle grows its row instead of clipping; a windowed-items mode so the app can supply only the visible slice of a huge list; and opt-in RTL row mirroring. |
 | `capsuleSlider / sliderRow / tileGrid / sheet` | Control-center building blocks: a stadium-capsule brightness-style slider, a labeled −/capsule/+ slider row, a grid of quick-setting tiles, and a pull-down/bottom sheet chrome (sheetContentRect() gives the body). |
-| `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, four ЙЦУКЕН Cyrillic layouts — Russian, Ukrainian, Belarusian, Kazakh — and a Hebrew RTL layout, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, an optional script-switch key drawn as a globe glyph for apps that reach more than one script, and an optional prepended number row; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting. |
+| `keyGrid / keyboard / textField` | A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, four ЙЦУКЕН Cyrillic layouts — Russian, Ukrainian, Belarusian, Kazakh — and Hebrew and Arabic RTL layouts, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, an optional script-switch key drawn as a globe glyph for apps that reach more than one script, an optional prepended number row, and an automatic, panel-responsive keyboard height that reserves headroom for the corner alt hints; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting. |
 | `textArea` | A multi-line scrollable writing canvas (the editor body). The app owns the text buffer and caret offset; it word-wraps, draws the window of lines from topLine, and an optional caret. textAreaMeasure() / textAreaTopLineFor() keep the caret on screen, mirroring lists. |
 | `readerChrome / tapZones` | Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing. |
 | `bookCard / coverGrid` | Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection (a fixed array, or a CoverGridItemProvider callback that supplies items lazily by index). |
@@ -2114,7 +2131,7 @@ A set of immediate-mode components, deliberately not tied to any application's s
 
 ## Virtualized lists
 
-`list` never creates a node per item. The app owns the full item array plus scroll state; the component lays out, draws and registers interactions only for the rows that fully fit, and draws a right-edge scroll indicator when the list overflows. For lists too large to keep in RAM, a **windowed-items** mode (`itemsWindowFirst` / `itemsWindowCount`) lets the app pass only the currently-visible slice. Rows can be variable height, so `ListNav` reads back the measured layout to page correctly; **inline section-heading** rows and opt-in **RTL row mirroring** (icon and label move to the trailing edge, values to the leading edge) round out the model.
+`list` never creates a node per item. The app owns the full item array plus scroll state; the component lays out, draws and registers interactions only for the rows that fully fit, and draws a right-edge scroll indicator when the list overflows. For lists too large to keep in RAM, a **windowed-items** mode (`itemsWindowFirst` / `itemsWindowCount`) lets the app pass only the currently-visible slice. Rows can be variable height — measured from the row's content and a minimum touch-target size — so `ListNav` reads back the measured layout to page correctly. **Inline section-heading** rows (whose current heading stays previewed at the top when the viewport clips it mid-section) and opt-in **RTL row mirroring** (icon and label move to the trailing edge, values to the leading edge) round out the model.
 
 ```cpp
 const uint16_t visible = freeink::ui::listVisibleRows(rect, theme.rowHeight);
@@ -2191,7 +2208,7 @@ For teams mapping from LVGL, the equivalent FreeInkUI surface in e-paper-specifi
 | Label | Primitive: DrawTarget::text; used by header, statusBar, rows, dialogs |
 | Image / canvas / line | Primitive: bitmap, fill, stroke, line, triangle; DisplayTarget renders into the 1-bit framebuffer |
 | Button | button, gestureBar, FooterAction / FooterProps |
-| Button matrix / keyboard | keyGrid, keyboard, qwertyKeyboard — built-in Latin (QWERTY, AZERTY, QWERTZ, Spanish), Cyrillic (Russian, Ukrainian, Belarusian, Kazakh) and Hebrew (RTL) layouts, with a script-switch key |
+| Button matrix / keyboard | keyGrid, keyboard, qwertyKeyboard — built-in Latin (QWERTY, AZERTY, QWERTZ, Spanish), Cyrillic (Russian, Ukrainian, Belarusian, Kazakh) and Hebrew + Arabic (RTL) layouts, with a script-switch key |
 | Checkbox | checkbox |
 | Switch | toggleRow |
 | Slider | slider; discrete setting changes use stepperRow |

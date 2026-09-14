@@ -92,10 +92,13 @@ export default function Display() {
         planes against a B/W base frame — cheap, and how in-page glyph AA works. <strong>Absolute</strong>{' '}
         supplies a complete four-tone image where every pixel is present in both planes, independent of
         what was on screen — the right choice for a full-screen render like a sleep/cover overlay, where
-        there's no reliable base to diff against. Absolute planes are accepted on the SSD1677 and the
-        UltraChip X4 controllers (UC8179 / UC8279); the X3 (UC8253) and the PaperColor are overlay-only.
-        Query <Code>grayscaleCapabilities(mode).encoding</Code> before staging, and let the driver force
-        the next B/W refresh clean after an absolute pass.
+        there's no reliable base to diff against. <strong>Direct</strong> takes those same complete planes
+        but paints them in a single combined activation with the full-quality image waveform — the
+        best-looking one-pass mode for a photo or cover, at the cost of a longer refresh. Absolute and
+        Direct planes are accepted on the SSD1677 and the UltraChip X4 controllers (UC8179 / UC8279); the
+        X3 (UC8253) and the PaperColor are overlay-only. Query{' '}
+        <Code>grayscaleCapabilities(mode).encoding</Code> before staging, and let the driver force the
+        next B/W refresh clean after an absolute pass.
       </P>
 
       <H3>Orientation</H3>

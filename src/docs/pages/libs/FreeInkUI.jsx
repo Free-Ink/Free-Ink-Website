@@ -181,8 +181,8 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
           value straight to <Code>char</Code> corrupts non-ASCII layouts. Insert through{' '}
           <Code>KeyboardEntry</Code> (or <Code>keyboardKeyText()</Code>) instead — it appends
           layout-correct UTF-8 and, with a script-switch key (drawn as a globe glyph), tracks the active{' '}
-          <Code>KeyboardLayoutId</Code>. Right-to-left is the renderer's job; the Hebrew layout inserts
-          code points in logical order (and gives the final-form ף its own key).
+          <Code>KeyboardLayoutId</Code>. Right-to-left is the renderer's job; the Hebrew and Arabic
+          layouts insert code points in logical order (Hebrew gives the final-form ף its own key).
         </p>
       </Callout>
 
@@ -269,7 +269,7 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
           [<Code key="c">tabBar</Code>, 'Pill or underline-style tabs with an optional divider, per-tab icons (stacked above the label), up/down indicator arrows and a disabled state.'],
           [<Code key="d">list</Code>, 'Virtualized rows; fill/outline/pill styles plus Underline/Triangle selection markers; hug-content pill rows; inline section-heading rows; an optional per-row subtitle beneath the label (which wraps to its own line count); vertically-centered row content; dynamic per-row height so a wrapped multi-line label or subtitle grows its row instead of clipping; a windowed-items mode so the app can supply only the visible slice of a huge list; and opt-in RTL row mirroring.'],
           [<Code key="cp">capsuleSlider / sliderRow / tileGrid / sheet</Code>, 'Control-center building blocks: a stadium-capsule brightness-style slider, a labeled −/capsule/+ slider row, a grid of quick-setting tiles, and a pull-down/bottom sheet chrome (sheetContentRect() gives the body).'],
-          [<Code key="e">keyGrid / keyboard / textField</Code>, 'A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, four ЙЦУКЕН Cyrillic layouts — Russian, Ukrainian, Belarusian, Kazakh — and a Hebrew RTL layout, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, an optional script-switch key drawn as a globe glyph for apps that reach more than one script, and an optional prepended number row; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting.'],
+          [<Code key="e">keyGrid / keyboard / textField</Code>, 'A KeyKind key grid with glyph art, a data-driven on-screen keyboard (built-in QWERTY / AZERTY / QWERTZ / Spanish layouts, four ЙЦУКЕН Cyrillic layouts — Russian, Ukrainian, Belarusian, Kazakh — and Hebrew and Arabic RTL layouts, Shift + symbols, a localized OK label, per-key long-press alternates shown as a corner hint, an optional script-switch key drawn as a globe glyph for apps that reach more than one script, an optional prepended number row, and an automatic, panel-responsive keyboard height that reserves headroom for the corner alt hints; qwertyKeyboard is the QWERTY wrapper), and a single-line field with a chunk-measured cursor for long URLs/passphrases (masking stays app-side) plus an optional selection highlight — a [selStart, selEnd) byte range drawn as a dithered band behind the text so 1-bit glyphs stay legible without inverting.'],
           [<Code key="ta">textArea</Code>, 'A multi-line scrollable writing canvas (the editor body). The app owns the text buffer and caret offset; it word-wraps, draws the window of lines from topLine, and an optional caret. textAreaMeasure() / textAreaTopLineFor() keep the caret on screen, mirroring lists.'],
           [<Code key="rd">readerChrome / tapZones</Code>, 'Reader surfaces: top/bottom reading chrome (title + progress label/bar) and page tap zones (prev / menu / next) with swipe routing.'],
           [<Code key="lib">bookCard / coverGrid</Code>, 'Library surfaces: a cover + title/author/meta + progress row, and a cover-art grid for visual selection (a fixed array, or a CoverGridItemProvider callback that supplies items lazily by index).'],
@@ -288,9 +288,11 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
         fit, and draws a right-edge scroll indicator when the list overflows. For lists too large to keep
         in RAM, a <strong>windowed-items</strong> mode (<Code>itemsWindowFirst</Code> /{' '}
         <Code>itemsWindowCount</Code>) lets the app pass only the currently-visible slice. Rows can be
-        variable height, so <Code>ListNav</Code> reads back the measured layout to page correctly;{' '}
-        <strong>inline section-heading</strong> rows and opt-in <strong>RTL row mirroring</strong> (icon
-        and label move to the trailing edge, values to the leading edge) round out the model.
+        variable height — measured from the row's content and a minimum touch-target size — so{' '}
+        <Code>ListNav</Code> reads back the measured layout to page correctly. <strong>Inline
+        section-heading</strong> rows (whose current heading stays previewed at the top when the viewport
+        clips it mid-section) and opt-in <strong>RTL row mirroring</strong> (icon and label move to the
+        trailing edge, values to the leading edge) round out the model.
       </P>
       <CodeBlock lang="cpp">{`const uint16_t visible = freeink::ui::listVisibleRows(rect, theme.rowHeight);
 topIndex = freeink::ui::listTopIndexFor(selectedIndex, topIndex, visible, count);
@@ -446,7 +448,7 @@ freeink::ui::Frame<32> ui(target, device, input, interactions);
           ['Label', 'Primitive: DrawTarget::text; used by header, statusBar, rows, dialogs'],
           ['Image / canvas / line', 'Primitive: bitmap, fill, stroke, line, triangle; DisplayTarget renders into the 1-bit framebuffer'],
           ['Button', 'button, gestureBar, FooterAction / FooterProps'],
-          ['Button matrix / keyboard', 'keyGrid, keyboard, qwertyKeyboard — built-in Latin (QWERTY, AZERTY, QWERTZ, Spanish), Cyrillic (Russian, Ukrainian, Belarusian, Kazakh) and Hebrew (RTL) layouts, with a script-switch key'],
+          ['Button matrix / keyboard', 'keyGrid, keyboard, qwertyKeyboard — built-in Latin (QWERTY, AZERTY, QWERTZ, Spanish), Cyrillic (Russian, Ukrainian, Belarusian, Kazakh) and Hebrew + Arabic (RTL) layouts, with a script-switch key'],
           ['Checkbox', 'checkbox'],
           ['Switch', 'toggleRow'],
           ['Slider', 'slider; discrete setting changes use stepperRow'],

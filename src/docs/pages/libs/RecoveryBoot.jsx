@@ -22,6 +22,8 @@ export default function RecoveryBoot() {
       <ApiTable
         rows={[
           ['checkBootCombo()', 'Read the recovery combo and, if held, switch otadata to OTA slot 0 and reboot. Returns immediately (no reboot) in every other case.'],
+          ['checkBootCombo(const SdUpdateOptions& options)', 'Combo-latched SD update: when the combo is held, flash options.path (default /update.bin) into the next OTA slot and reboot into it; with no file present — or on flash failure — falls back to the plain slot-0 hatch. Latches the board’s power rails itself so a released power button can’t cut power mid-flash.'],
+          ['switchBootPartition(const esp_partition_t* dest) → bool', 'Point the bootloader at dest by writing a fresh otadata entry (bypasses esp_image_verify, which rejects patched vendor images). Does not reboot.'],
         ]}
       />
       <CodeBlock lang="cpp">{`#include <RecoveryBoot.h>
@@ -47,6 +49,32 @@ void setup() {
           reached. A corrupt app <em>image</em> is still caught for free — the bootloader falls back to
           the other OTA slot on its own. Truly unconditional GPIO recovery would need a custom
           second-stage bootloader, which the recovery firmware deliberately never reflashes.
+        </p>
+      </Callout>
+
+      <H2>SD-card firmware flasher</H2>
+      <P>
+        The same library ships a standalone <strong>SD-card firmware flasher</strong>{' '}
+        (<Code>freeink::firmware</Code>, <Code>FirmwareFlasher.h</Code>) — the engine behind the{' '}
+        <Code>SdUpdateOptions</Code> combo, also callable directly for an in-app "update from SD" flow.
+        It streams an ESP32 app image from an SD path into the next OTA partition with interleaved 64 KiB
+        erase + writes, then repoints <Code>otadata</Code>; the caller restarts. It deliberately avoids the
+        Arduino <Code>Update</Code> class and <Code>esp_image_verify</Code> (which reject patched vendor
+        images) and runs its own full integrity pass instead.
+      </P>
+      <ApiTable
+        rows={[
+          ['validateImageFile(const char* sdPath, size_t partitionSize) → Result', 'Bootloader-equivalent integrity check before flashing: header magic, chip_id vs the running MCU, segment-table walk, XOR checksum, and SHA256 trailer. Streams in small chunks (C3-safe). Pass partitionSize 0 to skip the fits-partition check.'],
+          ['flashFromSdPath(const char* sdPath, ProgressCb onProgress = nullptr, void* ctx = nullptr, bool alreadyValidated = false) → Result', 'Validate (unless already done), then stream the image into the next OTA slot and switch otadata. The card must be mounted first; the caller reboots on OK.'],
+          ['runningPartitionChipId() → uint16_t', 'chip_id of the currently-running image (0xFFFF if unreadable) — the authoritative CPU match a candidate image must satisfy.'],
+          ['resultName(Result) → const char*', 'Human name for a Result (OK, BAD_MAGIC, BAD_SHA, BAD_CHIP, NO_PARTITION, WRITE_FAIL, …).'],
+        ]}
+      />
+      <Callout title="Requires the SD card mounted">
+        <p>
+          Call <Code>SDCardManager::begin()</Code> before any flasher call. The image is validated against
+          the running MCU family, so a truncated, corrupted, or wrong-chip <Code>.bin</Code> never reaches{' '}
+          <Code>otadata</Code>.
         </p>
       </Callout>
     </>

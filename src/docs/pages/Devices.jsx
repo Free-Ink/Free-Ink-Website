@@ -46,7 +46,9 @@ export default function Devices() {
         <Code>XTEINK_X4_PRO</Code> profile (16&nbsp;MB flash, 8&nbsp;MB PSRAM), built with{' '}
         <Code>-DFREEINK_DEVICE_X4PRO=1</Code>. It reuses the X4's 800×480 SSD1677 panel and OTP waveform,
         and adds GT911 touch, a dual warm/cool frontlight, a PCF8563-compatible RTC, a CW2017 fuel gauge,
-        native 1-bit SDMMC storage, and host transfer over USB — as mass storage or a serial transport. The panel controller <strong>varies by production
+        native 1-bit SDMMC storage, and host transfer over USB — as mass storage (with{' '}
+        <Code>hostSuspended()</Code> so the app can end a session on host sleep or cable pull) or a serial
+        transport. The panel controller <strong>varies by production
         batch</strong> — original units carry the SSD1677, newer ones a UC8179 (an UltraChip part on the
         same glass and pinout) — so the firmware fingerprints the live display bus at boot and promotes
         to the matching driver via <A href="/docs/lib-detect">XteinkDetect</A>'s{' '}

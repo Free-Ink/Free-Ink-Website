@@ -14,7 +14,7 @@ export default function Imu() {
 
       <P>
         <Code>begin()</Code> checks the <Code>WHO_AM_I</Code> id and configures accel + gyro for the
-        board's chip (LSM6DS3TR-C at 104 Hz, ±2 g / ±245 dps; QMI8658 at 28 Hz, ±2 g / ±512 dps).{' '}
+        board's chip (LSM6DS3TR-C at 104 Hz, ±2 g / ±245 dps; QMI8658 at 117 Hz, ±2 g / ±512 dps).{' '}
         <Code>read()</Code> returns one <Code>Sample</Code> already scaled to physical units —
         acceleration in g and angular rate in degrees/second — so the app gets usable values regardless
         of which part is fitted.
