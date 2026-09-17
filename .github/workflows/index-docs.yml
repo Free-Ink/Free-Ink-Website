@@ -1,0 +1,40 @@
+name: Update docs search index
+
+# Re-embeds the docs and upserts them into the Vectorize index whenever the docs
+# (or the indexer itself) change on main. Runs independently of the Worker
+# deploy, so the semantic index tracks the docs without slowing deploys.
+#
+# Requires two repo secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   — token with Workers AI (Read/Run) + Vectorize (Edit)
+#   CLOUDFLARE_ACCOUNT_ID  — the account id that owns the freeink-docs index
+# See SEARCH.md for how to create the token.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/docs/**'
+      - 'scripts/index-docs.mjs'
+      - '.github/workflows/index-docs.yml'
+  workflow_dispatch: {}
+
+# Never let two index runs race; keep only the latest.
+concurrency:
+  group: docs-index
+  cancel-in-progress: true
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build + upsert the docs index
+        run: npm run index-docs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

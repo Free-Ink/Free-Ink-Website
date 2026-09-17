@@ -46,6 +46,29 @@ re-running is safe; it refreshes changed sections and adds new ones.
 > renaming pages/headings, recreate the index for a clean slate:
 > `wrangler vectorize delete freeink-docs && wrangler vectorize create freeink-docs --dimensions=768 --metric=cosine && npm run index-docs`.
 
+## Automatic re-indexing (CI)
+
+`.github/workflows/index-docs.yml` re-indexes on every push to `main` that
+touches `src/docs/**` or the indexer, so the index tracks the docs automatically
+(it runs separately from the Worker deploy). It needs two repo secrets:
+
+| Secret | Value |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | API token with **Workers AI** (Read/Run) + **Vectorize** (Edit) |
+| `CLOUDFLARE_ACCOUNT_ID` | the account id that owns `freeink-docs` |
+
+Create the token at **dash.cloudflare.com → My Profile → API Tokens → Create
+Token → Create Custom Token**, with permissions *Account › Workers AI › Read* and
+*Account › Vectorize › Edit*. Then add both secrets:
+
+```sh
+gh secret set CLOUDFLARE_API_TOKEN
+gh secret set CLOUDFLARE_ACCOUNT_ID --body <account-id>
+```
+
+Until the secrets exist the workflow runs but fails at the upsert step; manual
+`npm run index-docs` keeps working in the meantime.
+
 ## Local dev
 
 `npm run dev` runs the Worker (via `@cloudflare/vite-plugin`) with `/api/search`
