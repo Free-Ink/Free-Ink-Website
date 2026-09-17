@@ -33,7 +33,8 @@ export default function RepositoryLayout() {
   network/SecureNet/           wolfSSL TLS 1.3 client + HTTP shim (opt-in)
   network/BleKeyboardHost/     BLE HID host — keyboards, page turners (opt-in)
   ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)
-  book/FreeInkBook/            EPUB reading engine (layout, cache, fonts, i18n)`}</CodeBlock>
+  book/FreeInkBook/            EPUB reading engine (layout, cache, fonts, i18n)
+  font/FreeInkFont/            shared font stack — arena + stb_truetype + FreeType (FtFont)`}</CodeBlock>
 
       <P>
         The display package holds the facade (<Code>FreeInkDisplay</Code>), the <Code>EInkDisplay</Code>{' '}

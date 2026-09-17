@@ -287,7 +287,10 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
         state; the component lays out, draws and registers interactions only for the rows that fully
         fit, and draws a right-edge scroll indicator when the list overflows. For lists too large to keep
         in RAM, a <strong>windowed-items</strong> mode (<Code>itemsWindowFirst</Code> /{' '}
-        <Code>itemsWindowCount</Code>) lets the app pass only the currently-visible slice. Rows can be
+        <Code>itemsWindowCount</Code>) lets the app pass only the currently-visible slice — or a{' '}
+        pull-based <Code>rowProvider(ctx, index, item)</Code> callback fills one row at a time as the
+        component draws, so a caller never has to materialize the full <Code>ListItem</Code> array at
+        all. Rows can be
         variable height — measured from the row's content and a minimum touch-target size — so{' '}
         <Code>ListNav</Code> reads back the measured layout to page correctly. <strong>Inline
         section-heading</strong> rows (whose current heading stays previewed at the top when the viewport

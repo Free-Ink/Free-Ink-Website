@@ -40,8 +40,12 @@ if (imu.begin()) {
 }`}</CodeBlock>
 
       <P>
-        Fixed output rate per chip, no dynamic rate selection. The IMU shares the sensor I²C bus with
-        the <A href="/docs/lib-rtc">RTC</A> and <A href="/docs/lib-env">EnvironmentSensor</A>; the board
+        Fixed output rate per chip, no dynamic rate selection. A part soldered rotated on the PCB is
+        corrected in the board profile: <Code>SensorsConfig.imuSwapXY</Code> / <Code>imuFlipX</Code> /{' '}
+        <Code>imuFlipY</Code> (swap first, then sign-flip — the same ordering as touch mounting) map raw
+        samples into a board-independent frame, so <Code>read()</Code> reports the X3/X4 tilt convention
+        regardless of how the chip is oriented. The IMU shares the sensor I²C bus with the{' '}
+        <A href="/docs/lib-rtc">RTC</A> and <A href="/docs/lib-env">EnvironmentSensor</A>; the board
         profile picks the bus via <Code>SensorsConfig.i2cBus</Code> on multi-bus SoCs. See{' '}
         <A href="/docs/lib-board">BoardConfig</A>.
       </P>

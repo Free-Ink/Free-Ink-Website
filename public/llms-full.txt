@@ -1619,7 +1619,7 @@ if (imu.begin()) {
 }
 ```
 
-Fixed output rate per chip, no dynamic rate selection. The IMU shares the sensor I²C bus with the [RTC](https://freeink.org/docs/lib-rtc) and [EnvironmentSensor](https://freeink.org/docs/lib-env); the board profile picks the bus via `SensorsConfig.i2cBus` on multi-bus SoCs. See [BoardConfig](https://freeink.org/docs/lib-board).
+Fixed output rate per chip, no dynamic rate selection. A part soldered rotated on the PCB is corrected in the board profile: `SensorsConfig.imuSwapXY` / `imuFlipX` / `imuFlipY` (swap first, then sign-flip — the same ordering as touch mounting) map raw samples into a board-independent frame, so `read()` reports the X3/X4 tilt convention regardless of how the chip is oriented. The IMU shares the sensor I²C bus with the [RTC](https://freeink.org/docs/lib-rtc) and [EnvironmentSensor](https://freeink.org/docs/lib-env); the board profile picks the bus via `SensorsConfig.i2cBus` on multi-bus SoCs. See [BoardConfig](https://freeink.org/docs/lib-board).
 
 ---
 
@@ -1638,7 +1638,7 @@ All methods are static.
 | `armPowerButtonWakeup() → bool` | Arm wake-on-power-button (SoC-correct source + active pin/polarity). False if the board has no power pin. |
 | `armWakeOnPins(uint64_t gpioMask, bool wakeLow = true)` | Arm wake on an arbitrary set of GPIOs (a touch INT, a second button, an IO-expander INT) using the SoC-correct source. Pins must be RTC-capable on ext1 (Xtensa) parts. |
 | `waitForPowerButtonRelease()` | Poll the power GPIO until released, so sleep isn’t cancelled by a still-held press. |
-| `deepSleep()` | Isolate floating GPIOs, then enter deep sleep. Does not return (chip resets on wake). |
+| `deepSleep()` | Isolate floating GPIOs, then enter deep sleep. Normally does not return (chip resets on wake); if the entry is aborted (a wake source already latched), it recovers and returns instead of spinning, so the caller can retry. |
 | `deepSleepUntilPowerButton()` | Convenience: wait for release, arm wakeup, then deep sleep. |
 | `powerDownRailsForSleep()` | Drive every assigned power-rail enable in the profile (display / SD / touch / mic) OFF and latch it with gpio_hold, so gated rails stay off through deep sleep instead of draining milliamps. No-op on boards with no gated rails (X3/X4). Call after the display’s deep-sleep command and before deepSleep(). Cutting the touch rail forfeits touch-to-wake. |
 
@@ -2131,7 +2131,7 @@ A set of immediate-mode components, deliberately not tied to any application's s
 
 ## Virtualized lists
 
-`list` never creates a node per item. The app owns the full item array plus scroll state; the component lays out, draws and registers interactions only for the rows that fully fit, and draws a right-edge scroll indicator when the list overflows. For lists too large to keep in RAM, a **windowed-items** mode (`itemsWindowFirst` / `itemsWindowCount`) lets the app pass only the currently-visible slice. Rows can be variable height — measured from the row's content and a minimum touch-target size — so `ListNav` reads back the measured layout to page correctly. **Inline section-heading** rows (whose current heading stays previewed at the top when the viewport clips it mid-section) and opt-in **RTL row mirroring** (icon and label move to the trailing edge, values to the leading edge) round out the model.
+`list` never creates a node per item. The app owns the full item array plus scroll state; the component lays out, draws and registers interactions only for the rows that fully fit, and draws a right-edge scroll indicator when the list overflows. For lists too large to keep in RAM, a **windowed-items** mode (`itemsWindowFirst` / `itemsWindowCount`) lets the app pass only the currently-visible slice — or a pull-based `rowProvider(ctx, index, item)` callback fills one row at a time as the component draws, so a caller never has to materialize the full `ListItem` array at all. Rows can be variable height — measured from the row's content and a minimum touch-target size — so `ListNav` reads back the measured layout to page correctly. **Inline section-heading** rows (whose current heading stays previewed at the top when the viewport clips it mid-section) and opt-in **RTL row mirroring** (icon and label move to the trailing edge, values to the leading edge) round out the model.
 
 ```cpp
 const uint16_t visible = freeink::ui::listVisibleRows(rect, theme.rowHeight);
@@ -2354,7 +2354,7 @@ Everything follows from four rules, each enforced by host tests rather than conv
 | CSS | A tolerant subset cascade: element / .class selectors, ~15 properties, inline style="", chapter <style> blocks. |
 | Layout | SAX → block flow → UAX #14 line breaking → two-phase paragraph placement → page records. The same engine lays out .txt via layoutPlainText(). |
 | Cache | FIBP page records: generation hash, torn-write detection, char anchors, id-anchor table, per-chapter totals. |
-| Fonts | A RenderFont interface; an stb_truetype engine (kerning, ligatures, AA); a style-aware FontChain. |
+| Fonts | A RenderFont interface with two engines — stb_truetype (kerning, ligatures, AA) and a FreeType backend (FtFont: variable-font axes, streamed CJK) — plus a style-aware FontChain. Split into the standalone FreeInkFont library. |
 | Render | Page → framebuffer compositor (mono dithered / sharp / Gray8, 4 rotations); streaming image decode with box-filter + Floyd–Steinberg. |
 
 The engine vendors its dependencies (UAX #14 line breaking, stb_truetype, expat XML); `vendorVersions()` reports the bundled versions, and the expat parser is exposed (`epub/Expat.h`) for apps that need XML of their own.
@@ -2408,7 +2408,9 @@ Every page record carries `charStart` — the codepoint offset of its first run 
 
 ## Fonts
 
-`RenderFont` is the one interface (metrics + `rasterize()` + `hasGlyph()` + `ligature()`). `TtfFont` wraps stb_truetype over a borrowed pointer — SD-loaded into PSRAM, memory-mapped from a flash partition, or compiled in — with real kern/GPOS kerning and an arena-bounded glyph cache, so even PSRAM-less MCUs serve TTFs from mapped flash. `FontChain` registers up to 8 style-flagged faces with per-codepoint fallback, so mixed scripts never render tofu.
+The font stack now lives in its own standalone `FreeInkFont` library (the shared arena + font classes, split out of the book engine so UI chrome and the reader draw from one place). `RenderFont` is the one interface (metrics + `rasterize()` + `hasGlyph()` + `ligature()`), with two engines behind it. `TtfFont` wraps stb_truetype over a borrowed pointer — SD-loaded into PSRAM, memory-mapped from a flash partition, or compiled in — with real kern/GPOS kerning and an arena-bounded glyph cache, so even PSRAM-less MCUs serve TTFs from mapped flash. `FontChain` registers up to 8 style-flagged faces with per-codepoint fallback, so mixed scripts never render tofu.
+
+`FtFont` is a second, FreeType-backed engine for cases stb can't cover. It reads **OpenType variable-font axes**, so one variable file yields real weights (bold = the `wght` axis) and a real italic/slant where present (synthesizing oblique or emboldening when an axis is absent), and it **streams large CJK faces** — `initStream()` pulls only the tables and glyphs actually used through a caller-supplied read callback (e.g. an open SD file), which stb can't do on a no-PSRAM device. It borrows the file bytes (they must outlive the face), routes FreeType's own allocations to PSRAM, and `deinit()` sheds an idle face's memory to rebuild on demand. The bytecode interpreter is disabled — grid-fit hinting buys nothing on a 1-bit panel.
 
 Two opt-in [FreeInkUI](https://freeink.org/docs/lib-ui) bridges live in `FreeInkUIBookFont.h`: `BitmapBookFont` reads books with the bundled bitmap font (zero font files required), and `TtfGlyphSource` feeds UI chrome its missing-glyph fallback (Hangul / CJK titles) from a `TtfFont`.
 
@@ -2551,6 +2553,7 @@ libs/
   network/BleKeyboardHost/     BLE HID host — keyboards, page turners (opt-in)
   ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)
   book/FreeInkBook/            EPUB reading engine (layout, cache, fonts, i18n)
+  font/FreeInkFont/            shared font stack — arena + stb_truetype + FreeType (FtFont)
 ```
 
 The display package holds the facade (`FreeInkDisplay`), the `EInkDisplay` compatibility shim, each controller's `PanelDriver` in its own file under `src/driver/`, the shared `EpdBus`, and the waveform LUTs under `src/lut/`. For how these layers relate, see [Architecture](https://freeink.org/docs/architecture); for the public surface of each library, see the [Libraries](https://freeink.org/docs/api) overview.

@@ -43,7 +43,7 @@ export default function FreeInkBook() {
           ['CSS', 'A tolerant subset cascade: element / .class selectors, ~15 properties, inline style="", chapter <style> blocks.'],
           ['Layout', 'SAX → block flow → UAX #14 line breaking → two-phase paragraph placement → page records. The same engine lays out .txt via layoutPlainText().'],
           ['Cache', 'FIBP page records: generation hash, torn-write detection, char anchors, id-anchor table, per-chapter totals.'],
-          ['Fonts', 'A RenderFont interface; an stb_truetype engine (kerning, ligatures, AA); a style-aware FontChain.'],
+          ['Fonts', 'A RenderFont interface with two engines — stb_truetype (kerning, ligatures, AA) and a FreeType backend (FtFont: variable-font axes, streamed CJK) — plus a style-aware FontChain. Split into the standalone FreeInkFont library.'],
           ['Render', 'Page → framebuffer compositor (mono dithered / sharp / Gray8, 4 rotations); streaming image decode with box-filter + Floyd–Steinberg.'],
         ]}
       />
@@ -136,12 +136,26 @@ PageRenderer::render(page, fonts, source, book.zip(), scratch, frame);`}</CodeBl
 
       <H2>Fonts</H2>
       <P>
+        The font stack now lives in its own standalone <Code>FreeInkFont</Code> library (the shared arena +
+        font classes, split out of the book engine so UI chrome and the reader draw from one place).{' '}
         <Code>RenderFont</Code> is the one interface (metrics + <Code>rasterize()</Code> +{' '}
-        <Code>hasGlyph()</Code> + <Code>ligature()</Code>). <Code>TtfFont</Code> wraps stb_truetype over a
-        borrowed pointer — SD-loaded into PSRAM, memory-mapped from a flash partition, or compiled in —
-        with real kern/GPOS kerning and an arena-bounded glyph cache, so even PSRAM-less MCUs serve TTFs
-        from mapped flash. <Code>FontChain</Code> registers up to 8 style-flagged faces with per-codepoint
-        fallback, so mixed scripts never render tofu.
+        <Code>hasGlyph()</Code> + <Code>ligature()</Code>), with two engines behind it.{' '}
+        <Code>TtfFont</Code> wraps stb_truetype over a borrowed pointer — SD-loaded into PSRAM,
+        memory-mapped from a flash partition, or compiled in — with real kern/GPOS kerning and an
+        arena-bounded glyph cache, so even PSRAM-less MCUs serve TTFs from mapped flash.{' '}
+        <Code>FontChain</Code> registers up to 8 style-flagged faces with per-codepoint fallback, so mixed
+        scripts never render tofu.
+      </P>
+      <P>
+        <Code>FtFont</Code> is a second, FreeType-backed engine for cases stb can't cover. It reads{' '}
+        <strong>OpenType variable-font axes</strong>, so one variable file yields real weights (bold =
+        the <Code>wght</Code> axis) and a real italic/slant where present (synthesizing oblique or
+        emboldening when an axis is absent), and it <strong>streams large CJK faces</strong> —{' '}
+        <Code>initStream()</Code> pulls only the tables and glyphs actually used through a caller-supplied
+        read callback (e.g. an open SD file), which stb can't do on a no-PSRAM device. It borrows the
+        file bytes (they must outlive the face), routes FreeType's own allocations to PSRAM, and{' '}
+        <Code>deinit()</Code> sheds an idle face's memory to rebuild on demand. The bytecode interpreter
+        is disabled — grid-fit hinting buys nothing on a 1-bit panel.
       </P>
       <P>
         Two opt-in <A href="/docs/lib-ui">FreeInkUI</A> bridges live in{' '}
