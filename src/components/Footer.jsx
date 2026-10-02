@@ -1,12 +1,11 @@
 import { Link } from 'react-router-dom'
 import { Logo } from './Brand.jsx'
 import GitHubMenu from './GitHubMenu.jsx'
-import { SOFTWARE_REPO, HARDWARE_REPO, SDK_REPO } from './repos.js'
+import { SOFTWARE_REPO, HARDWARE_REPO, HARDWARE_SITE, SDK_REPO } from './repos.js'
 import { SPONSOR_URL } from './sponsor.js'
 
 const SITE = 'https://crosspointreader.com'
 const DISCORD = 'https://discord.gg/y2q7WRnM4P'
-const PCB_REPO = 'https://github.com/iandchasse/de-link-pcb'
 
 const COLUMNS = [
   {
@@ -21,10 +20,10 @@ const COLUMNS = [
   {
     title: 'Hardware',
     links: [
-      { name: 'de-link board', href: HARDWARE_REPO },
-      { name: 'Schematics', href: `${HARDWARE_REPO}tree/main/schematic` },
-      { name: 'KiCad / PCB', href: PCB_REPO },
-      { name: 'Cost breakdown', href: `${HARDWARE_REPO}blob/main/markdown/COST.md` },
+      { name: 'Silkscreen', href: HARDWARE_SITE },
+      { name: 'Schematics', href: `${HARDWARE_REPO}/blob/master/docs/silkscreen_pcb_schematic.pdf` },
+      { name: 'KiCad / PCB', href: HARDWARE_REPO },
+      { name: 'Cost breakdown', href: `${HARDWARE_SITE}/cost` },
     ],
   },
   {

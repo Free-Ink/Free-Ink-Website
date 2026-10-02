@@ -34,7 +34,7 @@ src/
     Hero.jsx             headline, CTAs, exploded e-reader blueprint
     TechStrip.jsx        scrolling marquee of supported tech
     Software.jsx         CrossPoint Reader feature grid
-    Hardware.jsx         de-link board specs + PCB block diagram
+    Hardware.jsx         Silkscreen board specs + PCB block diagram
     Manifesto.jsx        values band
     Stats.jsx            by-the-numbers + dot chart
     Community.jsx        contribute CTA
@@ -66,7 +66,7 @@ public/
 Copy and product details are drawn from the sibling Free Ink projects:
 
 - **Software / firmware** — CrossPoint Reader and CrossPoint Tools
-- **Hardware** — de-link, the open-hardware e-paper board
+- **Hardware** — [Silkscreen](https://silkscreenreader.com), the open-hardware e-paper board
 
 Repository links live in `src/components/repos.js`.
 

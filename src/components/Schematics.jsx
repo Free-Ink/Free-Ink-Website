@@ -135,7 +135,7 @@ export function PcbDiagram({ className = '' }) {
     { x: 30, y: 30, w: 120, h: 80, label: 'ESP32-S3', sub: '240 MHz' },
     { x: 30, y: 140, w: 120, h: 56, label: 'microSD', sub: 'SDMMC' },
     { x: 180, y: 30, w: 120, h: 56, label: 'E-PAPER', sub: '24-pin SPI' },
-    { x: 180, y: 110, w: 120, h: 56, label: 'CHARGER', sub: 'MCP73832' },
+    { x: 180, y: 110, w: 120, h: 56, label: 'CHARGER', sub: 'TP4056' },
     { x: 180, y: 188, w: 120, h: 40, label: 'PROTECT', sub: 'DW01A' },
     { x: 330, y: 30, w: 116, h: 56, label: 'USB-C', sub: '5V in' },
     { x: 330, y: 110, w: 116, h: 56, label: 'LED BOOST', sub: 'AP3012 · 29V' },
