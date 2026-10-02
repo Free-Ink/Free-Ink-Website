@@ -22,7 +22,7 @@ export default function RepositoryLayout() {
   hardware/MemoryManager/      on-demand RAM reclaim (cache sinks, pressure watermarks)
   hardware/PowerManager/       per-SoC deep-sleep wake-on-power-button
   hardware/RecoveryBoot/       boot-time OTA recovery hatch (Back+Up combo)
-  hardware/FrontlightManager/  frontlight — LEDC PWM (de-link) or LM3630A I²C (EEGO A4)
+  hardware/FrontlightManager/  frontlight — LEDC PWM (Silkscreen) or LM3630A I²C (EEGO A4)
   hardware/AudioManager/       WAV-over-I2S audio (Murphy M3 ES8388, M5 ES8311)
   hardware/LedManager/         addressable RGB LEDs (M5 PaperColor, WS2812-compatible)
   hardware/Buzzer/             LEDC PWM tone buzzer (Sticky, Murphy)

@@ -24,7 +24,7 @@ export default function BuildComposition() {
             <Code key="b">-DFREEINK_DEVICE_X3 -DFREEINK_DEVICE_X4</Code>,
             <>X3 and X4 in one C3 binary, runtime-selected via <Code>setDisplayX3()</Code></>,
           ],
-          [<Code key="c">-DFREEINK_DEVICE_DELINK</Code>, 'de-link (S3, SSD1677 + frontlight)'],
+          [<Code key="c">-DFREEINK_DEVICE_DELINK</Code>, 'Silkscreen (S3, SSD1677 + frontlight)'],
           [<Code key="d">-DFREEINK_DEVICE_M5</Code>, 'M5 PaperColor (S3, ED2208 + color)'],
           [<Code key="e">-DFREEINK_DEVICE_MURPHY</Code>, 'Murphy M3 (S3, UC8253 + touch + frontlight)'],
           [<Code key="g">-DFREEINK_DEVICE_LILYGO</Code>, 'LilyGo T5 S3 (S3, ED047TC1 raw-parallel EPD via LovyanGFX)'],
@@ -80,7 +80,7 @@ export default function BuildComposition() {
           ],
           [
             <Code key="sd">-DFREEINK_SD_SDMMC=1</Code>,
-            <>use the native 4-bit SDMMC backend (needs <Code>-DUSE_BLOCK_DEVICE_INTERFACE=1</Code>); auto-on for de-link</>,
+            <>use the native 4-bit SDMMC backend (needs <Code>-DUSE_BLOCK_DEVICE_INTERFACE=1</Code>); auto-on for Silkscreen</>,
           ],
           [
             <Code key="bg">-DFREEINK_BATTERY_I2C_GAUGE=1</Code>,

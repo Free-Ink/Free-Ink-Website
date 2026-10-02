@@ -15,7 +15,7 @@ export default function Architecture() {
                     PanelDriver  (interface)
               ┌───────────┼───────────────┬───────────────┐
         Ssd1677Driver  Uc8253X3Driver  Ed2208M5Driver  Uc8253MurphyDriver
-         (X4/de-link)     (X3)            (M5)            (Murphy)
+         (X4/Silkscreen)     (X3)            (M5)            (Murphy)
                           │  native controllers share
                           ▼
                        EpdBus  (SPI/GPIO framing, BUSY polarity, reset, mirror)

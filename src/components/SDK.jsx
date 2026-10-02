@@ -49,7 +49,7 @@ const DEVICES = [
   { name: 'Xteink X4 Pro', mcu: 'ESP32-S3', controller: 'SSD1677 / UC8179', panel: '800×480 B/W, GT911 touch, warm/cool frontlight' },
   { name: 'Xteink X4 Classic', mcu: 'ESP32-S3', controller: 'SSD1677 / UC8179', panel: '800×480 B/W, 7-key nav, CW2017 gauge, SDMMC' },
   { name: 'Xteink X3', mcu: 'ESP32-C3', controller: 'UC8253 / UC8279', panel: '792×528 B/W + 4-level gray' },
-  { name: 'de-link', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + gray, frontlight' },
+  { name: 'Silkscreen', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W + gray, frontlight' },
   { name: 'M5Stack PaperColor', mcu: 'ESP32-S3', controller: 'ED2208', panel: '400×600 Spectra-6 color' },
   { name: 'Murphy M3', mcu: 'ESP32-S3', controller: 'UC8253', panel: '240×416 B/W, touch + frontlight' },
   { name: 'Murphy M4', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W, FT6336U touch, 5-key, warm/cool frontlight' },

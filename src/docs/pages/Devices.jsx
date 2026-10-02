@@ -17,7 +17,7 @@ export default function Devices() {
           ['Xteink X4 Pro', 'ESP32-S3', 'SSD1677 / UC8179', '800×480 B/W, GT911 touch, warm/cool frontlight, PCF8563 RTC, CW2017 gauge, SDMMC SD, USB MSC'],
           ['Xteink X4 Classic', 'ESP32-S3', 'SSD1677 / UC8179', '800×480 B/W, 7 discrete keys (no touch), CW2017 gauge, BM8563 RTC, QMI8658 IMU, SDMMC SD'],
           ['Xteink X3', 'ESP32-C3', 'UC8253 / UC8279', '792×528 B/W + 4-level gray, BQ27220 I²C gauge, DS3231 RTC, QMI8658 IMU'],
-          ['de-link', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD'],
+          ['Silkscreen', 'ESP32-S3', 'SSD1677', '800×480 B/W + gray, frontlight, SDMMC SD'],
           ['M5Stack PaperColor', 'ESP32-S3', 'ED2208', '400×600 Spectra-6 color, built-in speaker (ES8311 + AW8737A amp), 2× RGB LEDs'],
           ['Murphy M3', 'ESP32-S3', 'UC8253', '240×416 B/W, CHSC6x touch, PWM frontlight'],
           ['Murphy M4', 'ESP32-S3', 'SSD1677', '800×480 B/W, FT6336U touch, 5-key nav, warm/cool frontlight, SDMMC SD, ADC battery'],
@@ -37,7 +37,7 @@ export default function Devices() {
         via <Code>setDisplayX3()</Code>, which swaps the active profile and driver. Distinct-MCU boards
         build their own binary, selected with a board macro. A build targets exactly one of{' '}
         <strong>four MCU families</strong> — ESP32-C3 (X3/X4), ESP32-C61 (OnePage), ESP32-S3 (X4 Pro, X4
-        Classic, de-link, PaperColor, Murphy M3/M4, LilyGo, Sticky, Paper Mono, PaperS3, EEGO A4,
+        Classic, Silkscreen, PaperColor, Murphy M3/M4, LilyGo, Sticky, Paper Mono, PaperS3, EEGO A4,
         Waveshare 3.97″) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects mixing
         families at compile time.
       </P>
@@ -78,7 +78,7 @@ export default function Devices() {
         buzzer, a discrete RGB LED, an RX8130 RTC and native SDMMC storage round out the profile.
       </P>
       <P>
-        de-link reuses the X4's SSD1677 panel on an ESP32-S3, adding a warm/cool frontlight and{' '}
+        Silkscreen reuses the X4's SSD1677 panel on an ESP32-S3, adding a warm/cool frontlight and{' '}
         <strong>native 4-bit SDMMC storage</strong>. SdFat can't drive SDIO, so FreeInk mounts a
         volume on an esp-idf SDMMC block device (auto-enabled via <Code>FREEINK_SD_SDMMC</Code>) — see{' '}
         <A href="/docs/build-composition">Build composition</A>. Its panel orientation is set in the

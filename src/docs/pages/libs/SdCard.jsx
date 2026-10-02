@@ -6,7 +6,7 @@ export default function SdCard() {
       <Lead>
         SD storage with an app-friendly wrapper plus the raw <Code>FsFile</Code> API. Two
         interchangeable backends sit behind one <Code>FsVolume&amp;</Code> seam — SdFat-over-SPI
-        (default) and a native 4-bit SDMMC block device (<Code>FREEINK_SD_SDMMC</Code>, e.g. de-link).
+        (default) and a native 4-bit SDMMC block device (<Code>FREEINK_SD_SDMMC</Code>, e.g. Silkscreen).
         Both hand back ordinary <Code>FsFile</Code> objects, so the API below is identical for either.
       </Lead>
 
@@ -29,9 +29,9 @@ export default function SdCard() {
 
       <H2>Backends</H2>
       <P>
-        SdFat can't drive SDIO, so boards wired for 4-bit SDMMC (de-link) mount a plain{' '}
+        SdFat can't drive SDIO, so boards wired for 4-bit SDMMC (Silkscreen) mount a plain{' '}
         <Code>FsVolume</Code> on a native esp-idf SDMMC block device. Enable it with{' '}
-        <Code>-DFREEINK_SD_SDMMC=1</Code> (auto-on for de-link) plus{' '}
+        <Code>-DFREEINK_SD_SDMMC=1</Code> (auto-on for Silkscreen) plus{' '}
         <Code>-DUSE_BLOCK_DEVICE_INTERFACE=1</Code>. The board's SDMMC wiring comes from{' '}
         <Code>BoardProfile.sdmmc</Code>. See <A href="/docs/build-composition">Build composition</A>.
       </P>

@@ -4,7 +4,7 @@ export default function Frontlight() {
   return (
     <>
       <Lead>
-        Frontlight with warm/cool control (e.g. de-link). Gated by{' '}
+        Frontlight with warm/cool control (e.g. Silkscreen). Gated by{' '}
         <Code>FREEINK_CAP_FRONTLIGHT</Code>; inert on boards without a frontlight. Most boards drive the
         LEDs with LEDC PWM; the <A href="/docs/devices">EEGO A4</A> instead drives an{' '}
         <strong>LM3630A over I²C</strong>, selected from the board profile
