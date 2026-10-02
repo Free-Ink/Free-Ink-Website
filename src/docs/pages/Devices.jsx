@@ -29,6 +29,7 @@ export default function Devices() {
           ['EEGO A4', 'ESP32-S3', 'UC8279C', '768×552 4-gray, GSLX680 touch, LM3630A warm/cool frontlight, PCF8563 RTC, ADC battery, SPI SD'],
           ['Waveshare 3.97"', 'ESP32-S3', 'SSD1677', '800×480 B/W, AXP2101 PMIC (battery + power), PCF85063 RTC, QMI8658 IMU, SDMMC SD'],
           ['OnePage', 'ESP32-C61', 'SSD1677', '800×480 B/W, ADC-ladder + side keys (no touch), ADC battery, SPI SD'],
+          ['Metalio E-Ink 4', 'ESP32-S3', 'SSD1677', '800×480 B/W, CST816S touch, BQ27220 gauge, PCF8563 RTC, SC7A20H IMU, vendor audio + mic module, haptics, 4G modem, SDMMC SD'],
         ]}
       />
       <P>
@@ -38,7 +39,7 @@ export default function Devices() {
         build their own binary, selected with a board macro. A build targets exactly one of{' '}
         <strong>four MCU families</strong> — ESP32-C3 (X3/X4), ESP32-C61 (OnePage), ESP32-S3 (X4 Pro, X4
         Classic, Silkscreen, PaperColor, Murphy M3/M4, LilyGo, Sticky, Paper Mono, PaperS3, EEGO A4,
-        Waveshare 3.97″) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects mixing
+        Waveshare 3.97″, Metalio E-Ink 4) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects mixing
         families at compile time.
       </P>
       <P>
@@ -192,6 +193,18 @@ export default function Devices() {
         navigated by a four-key ADC ladder plus three side GPIO buttons, with an ADC battery read and an
         SPI SD card sharing the display bus.
       </P>
+      <P>
+        The <strong>Metalio E-Ink 4</strong> (<Code>-DFREEINK_DEVICE_METALIO_EINK4</Code>) is the most
+        feature-dense board yet: an ESP32-S3 on the 800×480 SSD1677 panel with CST816S touch, a BQ27220
+        gauge, a PCF8563 RTC and an SC7A20H IMU, plus three things no other profile carries — a{' '}
+        <strong>vibration motor</strong> (<A href="/docs/lib-haptic">HapticManager</A>), a{' '}
+        <strong>vendor audio + microphone module</strong> driven over I²S with a UART control channel
+        (<A href="/docs/lib-audio">AudioManager</A> / <A href="/docs/lib-mic">Microphone</A>), and an
+        always-on <strong>NT26 4G/LTE modem</strong> on a framed UART link. Buttons are digital (a BOOT
+        confirm key plus volume ± through a TCA9555 expander). The whole profile is reverse-engineered and{' '}
+        <strong>pending hardware validation</strong> — grayscale is unconfirmed, so it ships B/W-only for
+        now.
+      </P>
 
       <H2>M5Stack PaperColor refresh behavior</H2>
       <P>
@@ -275,7 +288,7 @@ export default function Devices() {
 
       <H2>Capacitive touch</H2>
       <P>
-        Touch is implemented for four controllers (gated by <Code>FREEINK_CAP_TOUCH</Code>):
+        Touch is implemented for five controllers (gated by <Code>FREEINK_CAP_TOUCH</Code>):
       </P>
       <Ul>
         <Li>
@@ -297,6 +310,10 @@ export default function Devices() {
         <Li>
           <strong>GSLX680</strong> (EEGO A4) — a Silead digitizer whose calibration firmware the SDK
           uploads at boot; it reports panel-native coordinates and carries a capacitive home key.
+        </Li>
+        <Li>
+          <strong>CST816S</strong> (Metalio E-Ink 4) — a single-touch controller on the shared sensor
+          I²C bus; its portrait digitizer is mapped to the native landscape frame.
         </Li>
       </Ul>
       <P>

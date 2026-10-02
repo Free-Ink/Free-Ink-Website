@@ -19,7 +19,8 @@ export default function SdCard() {
           ['readFile(path) → String', 'Read a whole file (empty on failure).'],
           ['readFileToStream(path, out, chunkSize = 256)', 'Stream a file to any Print.'],
           ['readFileToBuffer(path, buffer, bufferSize, maxBytes = 0)', 'Read into a fixed buffer.'],
-          ['writeFile(path, content)', 'Write a String to a file.'],
+          ['writeFile(path, content)', 'Write a String to a file atomically — writes to path + ".tmp" and swaps in only a fully-written copy, so a short write leaves the old file intact.'],
+          ['replaceFile(tmpPath, path)', 'Swap a temp file over an existing target (removes the target first, since FAT rename won’t replace) — the primitive behind the atomic writeFile.'],
           ['exists / remove / rename / mkdir / rmdir / ensureDirectoryExists', 'Filesystem operations.'],
           ['open(path, oflag = O_RDONLY) → FsFile', 'Raw SdFat handle for streaming.'],
           ['sdTotalBytes() → uint64_t', 'Total card capacity, cached at begin(). 0 if not mounted.'],
@@ -34,6 +35,13 @@ export default function SdCard() {
         <Code>-DFREEINK_SD_SDMMC=1</Code> (auto-on for Silkscreen) plus{' '}
         <Code>-DUSE_BLOCK_DEVICE_INTERFACE=1</Code>. The board's SDMMC wiring comes from{' '}
         <Code>BoardProfile.sdmmc</Code>. See <A href="/docs/build-composition">Build composition</A>.
+      </P>
+      <P>
+        For USB mass storage, <Code>rawBlockDevice()</Code> and <Code>detachFilesystemForRawAccess()</Code>{' '}
+        now answer on <strong>both</strong> backends — the SPI path hands back SdFat's own card as an{' '}
+        <Code>FsBlockDeviceInterface</Code> — so USB-MSC works on an SPI SD card, not just SDMMC. Enabling
+        the <Code>FREEINK_CAP_USB_MSC</Code> capability turns on <Code>USE_BLOCK_DEVICE_INTERFACE</Code>{' '}
+        automatically; consumers don't wire the block device themselves.
       </P>
     </>
   )

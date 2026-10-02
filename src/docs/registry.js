@@ -19,6 +19,7 @@ import Frontlight from './pages/libs/Frontlight.jsx'
 import AudioManager from './pages/libs/AudioManager.jsx'
 import LedManager from './pages/libs/LedManager.jsx'
 import Buzzer from './pages/libs/Buzzer.jsx'
+import HapticManager from './pages/libs/HapticManager.jsx'
 import Microphone from './pages/libs/Microphone.jsx'
 import Rtc from './pages/libs/Rtc.jsx'
 import EnvironmentSensor from './pages/libs/EnvironmentSensor.jsx'
@@ -27,6 +28,7 @@ import PowerManager from './pages/libs/PowerManager.jsx'
 import MemoryManager from './pages/libs/MemoryManager.jsx'
 import RecoveryBoot from './pages/libs/RecoveryBoot.jsx'
 import Networking from './pages/Networking.jsx'
+import Catalog from './pages/libs/Catalog.jsx'
 import BleKeyboardHost from './pages/libs/BleKeyboardHost.jsx'
 import BoardConfig from './pages/libs/BoardConfig.jsx'
 import XteinkDetect from './pages/libs/XteinkDetect.jsx'
@@ -147,6 +149,12 @@ export const DOC_GROUPS = [
         Content: Buzzer,
       },
       {
+        slug: 'lib-haptic',
+        title: 'HapticManager',
+        description: 'PWM vibration-motor pulses and patterns.',
+        Content: HapticManager,
+      },
+      {
         slug: 'lib-mic',
         title: 'Microphone',
         description: 'PDM microphone capture to 16-bit PCM.',
@@ -193,6 +201,12 @@ export const DOC_GROUPS = [
         title: 'SecureNet',
         description: 'Opt-in wolfSSL TLS 1.3 transport.',
         Content: Networking,
+      },
+      {
+        slug: 'lib-catalog',
+        title: 'Catalog (OPDS)',
+        description: 'OPDS + WebDAV/JSON catalog client over SecureNet.',
+        Content: Catalog,
       },
       {
         slug: 'lib-ble',

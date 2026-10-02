@@ -44,6 +44,7 @@ export default function InputManager() {
           ['wasSwipe(float& nxStart, float& nyStart, float& nxEnd, float& nyEnd) → bool', 'Edge: a flick released this frame (contact moved ≥60 px within 700 ms), returning normalized start (touch-down) and end (release) positions. A swipe also raises wasTouchTap(); check wasSwipe() first to disambiguate. The app maps both points and takes the dominant axis for direction.'],
           ['lastTouchHeldMs() → unsigned long', 'Duration of the last touch contact, latched on release — a raw primitive for an app-side tap-vs-long-press policy. 0 with no touch HW.'],
           ['wasHomeKeyPressed() / wasHomeKeyTapped() / wasHomeKeyLongPressed()', 'Edges for the GT911 capacitive home key: raw press, short-press release (the primary “home” action), and a held press past ~700 ms. A home-key press now also counts toward wasTouchActivity(). Always false on controllers without one.'],
+          ['capacitivePageButtonMask() → uint32_t', 'Bitmask of the capacitive strip’s virtual page buttons currently held (0 when the board has no touch strip).'],
         ]}
       />
 

@@ -46,7 +46,18 @@ export default function Networking() {
         <strong> opt-in redirect following</strong> (<Code>setFollowRedirects(maxHops)</Code>, with{' '}
         <Code>setAllowRedirectDowngrade()</Code> for https→http), <strong>HTTP Basic auth</strong>{' '}
         (<Code>setBasicAuth(user, pass)</Code>), a custom <Code>setUserAgent()</Code> sent on every
-        request, and a <Code>setProgressCallback()</Code> (return false to abort a long download).
+        request, and a <Code>setProgressCallback()</Code> (return false to abort a long download). The
+        abort callback is now honored <strong>during connect</strong> too — threaded into DNS / TCP / TLS
+        handshake, not just the read loop — so a cancel takes effect immediately.
+      </P>
+      <P>
+        For large downloads over a flaky link, the header-only <Code>fetchResumable()</Code> wraps the
+        client in a <strong>resumable GET</strong>: it picks a cut-short transfer back up from the bytes
+        already received via a <Code>Range</Code> request on a fresh connection (and rewinds the sink if
+        the server ignores Range and replies 200). It follows redirects with a <strong>same-origin
+        credential guard</strong> — <Code>fetchOrigin()</Code> scopes auth to the starting
+        scheme/host/port, so an <Code>Authorization</Code> header never leaks to another server or goes
+        clear-text on an https→http hop — and backs off with built-in stalled/attempt limits.
       </P>
 
       <H2>Enabling it</H2>

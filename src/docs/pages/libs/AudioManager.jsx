@@ -6,8 +6,9 @@ export default function AudioManager() {
       <Lead>
         WAV (16-bit PCM) playback through the I2S codec described by{' '}
         <Code>BoardConfig::ACTIVE.audio</Code>. Gated by <Code>FREEINK_CAP_AUDIO</Code>, which defaults
-        on for the Murphy M3 (an ES8388-compatible stereo codec) and the M5 PaperColor (an ES8311 mono
-        codec driving an AW8737A speaker amp), and off elsewhere; inert on boards with no audio path.
+        on for the Murphy M3 (an ES8388-compatible stereo codec), the M5 PaperColor (an ES8311 mono
+        codec driving an AW8737A speaker amp) and the Metalio E-Ink 4 (a vendor I²S audio module with a
+        UART control channel), and off elsewhere; inert on boards with no audio path.
       </Lead>
 
       <P>

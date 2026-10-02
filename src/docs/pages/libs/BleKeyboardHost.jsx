@@ -43,10 +43,13 @@ lib_deps =
           ['poll()', 'Drive auto-reconnect and key auto-repeat; call each loop.'],
           ['popKey(KeyEvent& ev) → bool', 'Drain the next translated key. ev.special is a SpecialKey (PageDown, arrows…); ev.ch is printable input.'],
           ['startScan(uint32_t ms) / deviceCount() / device(i)', 'Scan for peripherals; each DiscoveredDevice carries addr, name, rssi, hid, connectable (and hasName).'],
-          ['connect(addr) / isConnected()', 'Async connect; isConnected() flips when the link is ready.'],
+          ['connect(addr) / isConnected() / connectedAddr()', 'Async connect; isConnected() flips when the link is ready. connectedAddr() names the peer actually on the live link — which can differ from the one you asked for (auto-reconnect may pick another bond).'],
+          ['armSelectedPeerReconnect(addr) → bool', 'Retry one chosen bonded peer only (≤6 attempts, 4 s apart, ≤120 s total), with no fallback to other bonds. Refused if not bonded, before begin(), or while already scanning/connecting/connected.'],
+          ['popRawButton(RawButtonEvent& out) → bool', 'Drain the next raw button edge decoded from the HID report bytes — for remotes whose buttons you want untranslated. Apps that never call it are unaffected.'],
           ['releaseScanResults()', 'Reclaim scan RAM once connected.'],
           ['pairedCount() / paired(i) / forget(addr)', 'Enumerate and remove stored bonds.'],
           ['takePairingPasskey()', 'When a peripheral requires passkey pairing, returns the six-digit code to show the user.'],
+          ['end(uint32_t timeoutMs = 1000)', 'Full NimBLE teardown within a time budget (capped 2 s). If it can’t finish it deletes nothing and returns false (isStopping() stays true) — it never deletes a busy task; end(0) never waits.'],
         ]}
       />
       <P>

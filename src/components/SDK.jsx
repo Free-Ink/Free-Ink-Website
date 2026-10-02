@@ -60,6 +60,7 @@ const DEVICES = [
   { name: 'M5 PaperS3', mcu: 'ESP32-S3', controller: 'ED047TC1', panel: '4.7″ 960×540 16-gray, GT911 touch (raw parallel)' },
   { name: 'EEGO A4', mcu: 'ESP32-S3', controller: 'UC8279C', panel: '768×552 4-gray, GSLX680 touch, warm/cool frontlight' },
   { name: 'Waveshare 3.97″', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W, AXP2101 PMIC, RTC + IMU' },
+  { name: 'Metalio E-Ink 4', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W, CST816S touch, audio + mic, haptics, 4G modem' },
   { name: 'OnePage', mcu: 'ESP32-C61', controller: 'SSD1677', panel: '800×480 B/W, key nav' },
 ]
 

@@ -17,7 +17,7 @@ export default function BatteryMonitor() {
         charge-status pin (MCP73832 <Code>/STAT</Code>, active-LOW) drives <Code>isCharging()</Code>.
         The <strong>I²C fuel-gauge</strong> backend (<Code>-DFREEINK_BATTERY_I2C_GAUGE=1</Code>) reads
         SoC / voltage / charge from the gauge selected by <Code>GaugeType</Code> — a{' '}
-        <strong>BQ27220</strong> (+ optional BQ25896 charger) on X3 and the LilyGo T5 S3, a{' '}
+        <strong>BQ27220</strong> (+ optional BQ25896 charger) on X3, the LilyGo T5 S3 and the Metalio E-Ink 4, a{' '}
         <strong>CW2017</strong> on the X4 Pro and X4 Classic (which re-uploads its 80-byte BATINFO profile
         if the gauge has lost it), or an <strong>AXP2101</strong> PMIC on the Waveshare 3.97″ (whose
         fuel-gauge block reports SoC directly, and which also owns the board's EPD rail) — and ignores the
@@ -51,6 +51,7 @@ export default function BatteryMonitor() {
           ['readPercentageChecked(uint16_t& out) → bool', 'Like readPercentage(), but returns false on a transient I²C-gauge / PMIC failure and leaves out unchanged (caller keeps its last good value). The ADC path always succeeds.'],
           ['readMillivolts() / readVolts()', 'Battery voltage in mV / volts (ADC paths account for the divider).'],
           ['isCharging()', 'Charge state: the ADC charge-status pin, or a charger IC (BQ25896 CHRG_STAT), or — on a gauge board with no charger IC (e.g. X3) — the sign of the gauge’s Current() (BQ27220, positive = charging).'],
+          ['isExternalPowerPresent(bool* known = nullptr) → bool', 'Whether the external/USB rail is physically present (BQ25896 VBUS_STAT + PG_STAT) — distinct from isCharging(). known reports whether the board can observe it at all; charger-IC-dependent.'],
           ['percentageFromMillivolts(mv)', 'Static mV → percentage curve.'],
         ]}
       />

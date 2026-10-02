@@ -154,8 +154,15 @@ PageRenderer::render(page, fonts, source, book.zip(), scratch, frame);`}</CodeBl
         <Code>initStream()</Code> pulls only the tables and glyphs actually used through a caller-supplied
         read callback (e.g. an open SD file), which stb can't do on a no-PSRAM device. It borrows the
         file bytes (they must outlive the face), routes FreeType's own allocations to PSRAM, and{' '}
-        <Code>deinit()</Code> sheds an idle face's memory to rebuild on demand. The bytecode interpreter
-        is disabled — grid-fit hinting buys nothing on a 1-bit panel.
+        <Code>deinit()</Code> sheds an idle face's memory to rebuild on demand. It reads modern{' '}
+        <strong>GPOS</strong> kerning (falling back to it when a face has no legacy <Code>kern</Code>{' '}
+        table), exposes a size-agnostic <strong>26.6 fixed-point</strong> glyph-indexed surface
+        (<Code>glyphId()</Code> / <Code>metricsGlyph26_6()</Code> / <Code>rasterizeGlyph26_6()</Code>) for
+        glyph-keyed caches, and reports exact failures through <Code>lastGlyphFailure()</Code> /{' '}
+        <Code>lastInitFailure()</Code>. Hinting is off by default — grid-fit buys little on a 1-bit panel —
+        but opt-in via <Code>setRenderOptions()</Code> (<Code>HintingMode</Code> plus stem-darkening,
+        embolden and slant). The heavier FreeType modules stay out of the binary unless asked: psnames,
+        gzip/WOFF, and the native/auto hinters are each behind a <Code>FREEINK_FONT_ENABLE_*</Code> flag.
       </P>
       <P>
         Two opt-in <A href="/docs/lib-ui">FreeInkUI</A> bridges live in{' '}

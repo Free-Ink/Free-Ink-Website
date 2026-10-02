@@ -4,9 +4,10 @@ export default function Microphone() {
   return (
     <>
       <Lead>
-        PDM microphone capture to 16-bit PCM, described by <Code>BoardConfig::ACTIVE.mic</Code>. Gated
-        by <Code>FREEINK_CAP_MIC</Code>, which defaults on for the <A href="/docs/devices">Sticky</A> and
-        M5 Paper Mono, and off elsewhere; inert on boards with no microphone.
+        Microphone capture to 16-bit PCM, described by <Code>BoardConfig::ACTIVE.mic</Code> — a PDM MEMS
+        mic on the <A href="/docs/devices">Sticky</A> and M5 Paper Mono, or the vendor I²S audio+mic
+        module (16 kHz mono) on the Metalio E-Ink 4. Gated by <Code>FREEINK_CAP_MIC</Code>, which defaults
+        on for those boards and off elsewhere; inert on boards with no microphone.
       </Lead>
 
       <P>
