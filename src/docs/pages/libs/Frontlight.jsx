@@ -6,9 +6,10 @@ export default function Frontlight() {
       <Lead>
         Frontlight with warm/cool control (e.g. Silkscreen). Gated by{' '}
         <Code>FREEINK_CAP_FRONTLIGHT</Code>; inert on boards without a frontlight. Most boards drive the
-        LEDs with LEDC PWM; the <A href="/docs/devices">EEGO A4</A> instead drives an{' '}
-        <strong>LM3630A over I²C</strong>, selected from the board profile
-        (<Code>I2cFrontlightController</Code>), so the same API works either way.
+        LEDs with LEDC PWM; some drive an <strong>I²C LED controller</strong> instead — an LM3630A on the{' '}
+        <A href="/docs/devices">EEGO A4</A>, or the dual warm/cool PiccoDualLed on the Onyx Picco —
+        selected from the board profile (<Code>I2cFrontlightController</Code>), so the same API works
+        either way.
       </Lead>
 
       <ApiTable

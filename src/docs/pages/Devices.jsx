@@ -30,6 +30,7 @@ export default function Devices() {
           ['Waveshare 3.97"', 'ESP32-S3', 'SSD1677', '800×480 B/W, AXP2101 PMIC (battery + power), PCF85063 RTC, QMI8658 IMU, SDMMC SD'],
           ['OnePage', 'ESP32-C61', 'SSD1677', '800×480 B/W, ADC-ladder + side keys (no touch), ADC battery, SPI SD'],
           ['Metalio E-Ink 4', 'ESP32-S3', 'SSD1677', '800×480 B/W, CST816S touch, BQ27220 gauge, PCF8563 RTC, SC7A20H IMU, vendor audio + mic module, haptics, 4G modem, SDMMC SD'],
+          ['Onyx Picco', 'ESP32-S3', 'SSD1677 / SSD2677', '800×480 B/W + 4-gray, CST touch, warm/cool I²C frontlight, ADC battery + SGM41562 charger, PCF8563 RTC, QMI8658 IMU, SDMMC SD'],
         ]}
       />
       <P>
@@ -39,7 +40,7 @@ export default function Devices() {
         build their own binary, selected with a board macro. A build targets exactly one of{' '}
         <strong>four MCU families</strong> — ESP32-C3 (X3/X4), ESP32-C61 (OnePage), ESP32-S3 (X4 Pro, X4
         Classic, Silkscreen, PaperColor, Murphy M3/M4, LilyGo, Sticky, Paper Mono, PaperS3, EEGO A4,
-        Waveshare 3.97″, Metalio E-Ink 4) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects mixing
+        Waveshare 3.97″, Metalio E-Ink 4, Onyx Picco) or classic ESP32 (M5Paper v1.1) — and <Code>BoardConfig</Code> rejects mixing
         families at compile time.
       </P>
       <P>
@@ -205,6 +206,17 @@ export default function Devices() {
         <strong>pending hardware validation</strong> — grayscale is unconfirmed, so it ships B/W-only for
         now.
       </P>
+      <P>
+        The <strong>Onyx Picco</strong> (BOOX Tiles, <Code>-DFREEINK_DEVICE_PICCO</Code>) is an ESP32-S3
+        reader whose controller is resolved at boot: the driver probes the panel and selects{' '}
+        <strong>SSD1677</strong> or, for the SE0400NQW47 glass, <strong>SSD2677</strong>, each with its own
+        custom LUTs, over the same 800×480 panel with 4-level grayscale. It carries a CST capacitive
+        digitizer (with a deep-sleep power-down sequence), a dual warm/cool <strong>I²C</strong> frontlight
+        (PiccoDualLed), an ADC battery read paired with an <strong>SGM41562</strong> charger IC, a PCF8563
+        RTC and a QMI8658 IMU on the shared bus, and 4-bit SDMMC storage. The profile is reverse-engineered
+        from retail firmware and still pending hardware validation — touch coordinate offsets and the
+        panel orientation in particular.
+      </P>
 
       <H2>M5Stack PaperColor refresh behavior</H2>
       <P>
@@ -288,7 +300,7 @@ export default function Devices() {
 
       <H2>Capacitive touch</H2>
       <P>
-        Touch is implemented for five controllers (gated by <Code>FREEINK_CAP_TOUCH</Code>):
+        Touch is implemented for six controllers (gated by <Code>FREEINK_CAP_TOUCH</Code>):
       </P>
       <Ul>
         <Li>
@@ -314,6 +326,10 @@ export default function Devices() {
         <Li>
           <strong>CST816S</strong> (Metalio E-Ink 4) — a single-touch controller on the shared sensor
           I²C bus; its portrait digitizer is mapped to the native landscape frame.
+        </Li>
+        <Li>
+          <strong>PiccoCst</strong> (Onyx Picco) — a CST-family controller with a deep-sleep power-down
+          command sequence so touch-to-wake survives sleep without back-powering the panel.
         </Li>
       </Ul>
       <P>

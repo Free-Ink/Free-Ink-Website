@@ -50,6 +50,7 @@ lib_deps =
           ['pairedCount() / paired(i) / forget(addr)', 'Enumerate and remove stored bonds.'],
           ['takePairingPasskey()', 'When a peripheral requires passkey pairing, returns the six-digit code to show the user.'],
           ['end(uint32_t timeoutMs = 1000)', 'Full NimBLE teardown within a time budget (capped 2 s). If it can’t finish it deletes nothing and returns false (isStopping() stays true) — it never deletes a busy task; end(0) never waits.'],
+          ['remoteButtonProfileIndex(name) → int', 'Match a connected remote by device-name prefix to a built-in RemoteButtonProfile (e.g. “Free3”, “BOOX Keypage”) in kRemoteButtonProfiles, or −1. Opt-in metadata: the app maps each popRawButton() code to a logical RemoteKey itself, so raw identities stay stable and user re-bindings survive.'],
         ]}
       />
       <P>

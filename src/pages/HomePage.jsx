@@ -1,6 +1,5 @@
 import Header from '../components/Header.jsx'
 import Hero from '../components/Hero.jsx'
-import TechStrip from '../components/TechStrip.jsx'
 import Software from '../components/Software.jsx'
 import SDK from '../components/SDK.jsx'
 import Hardware from '../components/Hardware.jsx'
@@ -16,7 +15,6 @@ export default function HomePage() {
       <Header />
       <main>
         <Hero />
-        <TechStrip />
         <Software />
         <SDK />
         <Hardware />

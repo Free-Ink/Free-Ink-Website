@@ -18,7 +18,7 @@ export default function Catalog() {
       </P>
       <ApiTable
         rows={[
-          ['setServer(url, username, password)', 'Base catalog URL + HTTP Basic credentials.'],
+          ['setServer(url, username, password, headers = {})', 'Base catalog URL + HTTP Basic credentials, plus optional custom request headers (sent only to the request’s own origin, never to a redirect target).'],
           ['setTokens(access, refresh, refreshUrl)', 'Bearer/refresh tokens for token-auth servers (auto-refreshed on 401).'],
           ['setAcceptLanguage(lang)', 'Language-negotiation header.'],
           ['fetchFeed(url, OpdsFeedParser&) → FetchStatus', 'Fetch a catalog feed and stream it into the parser.'],
@@ -52,7 +52,10 @@ export default function Catalog() {
         <Code>opdsAcquisitionRank()</Code> ranks acquisition types (open-access &gt; acquisition &gt;
         borrow/subscribe &gt; buy) so the app picks the best link. <Code>OpdsPublication</Code> carries
         the same inline metadata for a single document, plus a <Code>price</Code> string and an{' '}
-        <Code>OpdsAvailability</Code> (state + copies/holds) for library and store feeds.
+        <Code>OpdsAvailability</Code> (state + copies/holds) for library and store feeds. To render one, the{' '}
+        <A href="/docs/lib-ui">FreeInkUI</A> <Code>publicationPage</Code> component lays out the cover,
+        metadata and action buttons; a <Code>descriptionPainter</Code> callback lets the app draw the
+        description area itself (return false to fall back to plain text).
       </P>
 
       <H2>CatalogList — WebDAV / JSON listings</H2>

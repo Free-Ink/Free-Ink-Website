@@ -17,7 +17,7 @@ export default function SdCard() {
           ['shutdown()', 'SDMMC boards: stop the card, unmount, and float the bus pads to cut deep-sleep leakage. Call after every file user has stopped; wake remounts via begin(). No-op on SPI/SdFat boards.'],
           ['listFiles(path = "/", maxFiles = 200) → vector<String>', 'Directory listing.'],
           ['readFile(path) → String', 'Read a whole file (empty on failure).'],
-          ['readFileToStream(path, out, chunkSize = 256)', 'Stream a file to any Print.'],
+          ['readFileToStream(path, out, chunkSize = 256)', 'Stream a file to any Print. Returns true only when every byte is accepted; a stalled write, SD read error or premature EOF returns false (out may hold a partial prefix).'],
           ['readFileToBuffer(path, buffer, bufferSize, maxBytes = 0)', 'Read into a fixed buffer.'],
           ['writeFile(path, content)', 'Write a String to a file atomically — writes to path + ".tmp" and swaps in only a fully-written copy, so a short write leaves the old file intact.'],
           ['replaceFile(tmpPath, path)', 'Swap a temp file over an existing target (removes the target first, since FAT rename won’t replace) — the primitive behind the atomic writeFile.'],

@@ -8,10 +8,11 @@ export default function Rtc() {
         <Code>BoardConfig::ACTIVE.sensors</Code>. Three chips are supported, selected per board by{' '}
         <Code>RtcType</Code>: the <strong>PCF8563</strong> family — including the register-compatible
         BM8563 (X4 Pro, X4 Classic, M5 PaperS3) and PCF85063 (Waveshare 3.97″), plus the plain part on
-        Sticky, the EEGO A4 and the Metalio E-Ink 4 — the <strong>DS3231</strong> (Xteink X3) and the{' '}
-        <strong>RX8130</strong> (M5 Paper Mono). Gated by <Code>FREEINK_CAP_RTC</Code>, which defaults on
-        for the <A href="/docs/devices">X3</A>, Sticky, X4 Pro, X4 Classic, Paper Mono, PaperS3, EEGO A4,
-        Waveshare 3.97″ and Metalio, and off elsewhere; inert on boards with no RTC.
+        Sticky, the EEGO A4, the Metalio E-Ink 4 and the Onyx Picco — the <strong>DS3231</strong> (Xteink
+        X3) and the <strong>RX8130</strong> (M5 Paper Mono, with timer-wake support). Gated by{' '}
+        <Code>FREEINK_CAP_RTC</Code>, which defaults on for the <A href="/docs/devices">X3</A>, Sticky, X4
+        Pro, X4 Classic, Paper Mono, PaperS3, EEGO A4, Waveshare 3.97″, Metalio and Picco, and off
+        elsewhere; inert on boards with no RTC.
       </Lead>
 
       <P>

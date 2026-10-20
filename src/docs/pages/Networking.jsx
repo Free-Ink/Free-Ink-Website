@@ -48,7 +48,9 @@ export default function Networking() {
         (<Code>setBasicAuth(user, pass)</Code>), a custom <Code>setUserAgent()</Code> sent on every
         request, and a <Code>setProgressCallback()</Code> (return false to abort a long download). The
         abort callback is now honored <strong>during connect</strong> too — threaded into DNS / TCP / TLS
-        handshake, not just the read loop — so a cancel takes effect immediately.
+        handshake, not just the read loop — so a cancel takes effect immediately.{' '}
+        <Code>getUniqueHeader(name)</Code> returns a pointer straight into the stored response headers (no
+        copy), or null when the header is absent or duplicated — a cheap read for a single expected header.
       </P>
       <P>
         For large downloads over a flaky link, the header-only <Code>fetchResumable()</Code> wraps the

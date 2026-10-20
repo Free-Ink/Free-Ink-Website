@@ -39,7 +39,7 @@ export default function FreeInkBook() {
       <Table
         head={['Stage', 'What it does']}
         rows={[
-          ['Container', 'ZIP catalog + streaming inflate; OPF metadata / manifest / spine; nav + NCX TOC; encryption.xml parsing that tells font obfuscation from real DRM (obfuscated-font-only books still render; only true DRM → Encrypted).'],
+          ['Container', 'ZIP catalog + streaming inflate; OPF metadata / manifest / spine; nav + NCX TOC; encryption.xml parsing that tells font obfuscation from real DRM (obfuscated-font-only books still render) and, via the ContentProtection library, decrypts Readium LCP basic-profile books on-read given the content key.'],
           ['CSS', 'A tolerant subset cascade: element / .class selectors, ~15 properties, inline style="", chapter <style> blocks.'],
           ['Layout', 'SAX → block flow → UAX #14 line breaking → two-phase paragraph placement → page records. The same engine lays out .txt via layoutPlainText().'],
           ['Cache', 'FIBP page records: generation hash, torn-write detection, char anchors, id-anchor table, per-chapter totals.'],
@@ -161,8 +161,9 @@ PageRenderer::render(page, fonts, source, book.zip(), scratch, frame);`}</CodeBl
         glyph-keyed caches, and reports exact failures through <Code>lastGlyphFailure()</Code> /{' '}
         <Code>lastInitFailure()</Code>. Hinting is off by default — grid-fit buys little on a 1-bit panel —
         but opt-in via <Code>setRenderOptions()</Code> (<Code>HintingMode</Code> plus stem-darkening,
-        embolden and slant). The heavier FreeType modules stay out of the binary unless asked: psnames,
-        gzip/WOFF, and the native/auto hinters are each behind a <Code>FREEINK_FONT_ENABLE_*</Code> flag.
+        embolden and slant). The heavier FreeType modules stay out of the binary unless asked: CFF-outline OpenType
+        (<Code>FREEINK_FONT_ENABLE_CFF</Code>, which pulls in psnames + the Adobe Glyph List), gzip/WOFF,
+        and the native/auto hinters are each behind a <Code>FREEINK_FONT_ENABLE_*</Code> flag.
       </P>
       <P>
         Two opt-in <A href="/docs/lib-ui">FreeInkUI</A> bridges live in{' '}
@@ -181,6 +182,35 @@ PageRenderer::render(page, fonts, source, book.zip(), scratch, frame);`}</CodeBl
         preview instead of a blank. Truly unsupported formats (GIF, SVG, interlaced PNG) leave their
         reserved space blank rather than failing the page.
       </P>
+
+      <H2>Content protection (Readium LCP)</H2>
+      <P>
+        A separate, parser-agnostic <Code>ContentProtection</Code> library handles encrypt-at-rest EPUBs.{' '}
+        <Code>ProtectedBook</Code> scans <Code>encryption.xml</Code>, marks a container protected only
+        when it holds real encrypted entries (font obfuscation alone doesn't count), and{' '}
+        <strong>decrypts on-read, streamed to a sink</strong> — there is deliberately no API that writes
+        plaintext out. It uses <Code>encryption.xml</Code>'s <Code>OriginalLength</Code> for the decrypted
+        size and W3C xmlenc padding for LCP content.
+      </P>
+      <P>
+        <Code>LcpLicense</Code> parses a Readium LCP license (id, provider, profile, hint, rights) and
+        derives the AES-256 content key: for the <strong>basic profile</strong>{' '}
+        (<Code>http://readium.org/lcp/basic-profile</Code>) the user key is SHA-256(passphrase), checked
+        against the license's key-check, then used to unwrap the content key — or the key arrives
+        X25519-wrapped from FreeInk's <Code>/unlock</Code> endpoint and{' '}
+        <Code>lcpUnwrapContentKey()</Code> recovers it (ECDH → HKDF → AES-256-GCM). Hand the 32-byte key
+        to <Code>setContentKey()</Code> and the book renders end-to-end. All crypto is injected through a{' '}
+        <Code>Crypto</Code> interface, so the core carries no crypto dependency; the on-device wolfSSL
+        backend is opt-in via <Code>-DFREEINK_CONTENT_WOLFSSL=1</Code>.
+      </P>
+      <Callout title="Basic profile only, on device" tone="warn">
+        <p>
+          Only the LCP <strong>basic profile</strong> derives on device. A production-profile license
+          parses but fails <Code>isBasicProfile()</Code> — its confidential key transform lives
+          server-side only (the <Code>/fulfill</Code> and <Code>/unlock</Code> endpoints). Books whose key
+          can't be derived still surface as <Code>Encrypted</Code>.
+        </p>
+      </Callout>
 
       <H2>Memory profiles</H2>
       <P>
@@ -218,8 +248,8 @@ PageRenderer::render(page, fonts, source, book.zip(), scratch, frame);`}</CodeBl
         <p>
           Beyond the host suites, <Code>tools/fibcheck.cpp</Code> runs any real EPUB through the whole
           pipeline. The current corpus is ~50 commercial and pathological books across Latin, Cyrillic and
-          CJK — including Ulysses, a 3,742-page omnibus and 1,700-chapter webnovels — all clean, with DRM'd
-          books correctly rejected as <Code>Encrypted</Code>.
+          CJK — including Ulysses, a 3,742-page omnibus and 1,700-chapter webnovels — all clean, with LCP
+          basic-profile books decrypting end-to-end and any key-less DRM surfaced as <Code>Encrypted</Code>.
         </p>
       </Callout>
     </>

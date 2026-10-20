@@ -50,7 +50,7 @@ html.dark { color-scheme: dark; }
   background-size: 28px 28px;
 }
 
-/* Slow marquee for the tech strip */
+/* Slow marquee for the partner strip */
 @keyframes ticker {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }

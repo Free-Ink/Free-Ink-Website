@@ -33,6 +33,16 @@ export default function BatteryMonitor() {
         Sticky uses it to hold its BQ25616 charger enabled.
       </P>
       <P>
+        A board can also name a <strong>charger IC</strong> (<Code>BatteryGaugeConfig.chargerType</Code>):
+        the BQ25896, or the <strong>SGM41562</strong> (Onyx Picco), whose status register backs{' '}
+        <Code>isCharging()</Code> and <Code>isExternalPowerPresent()</Code> on an ADC board with no
+        charge-status pin (it also exposes <Code>enterShipMode()</Code> for a true-off ship state). And a
+        BQ27220 board sets its real cell capacity in <Code>designCapacityMah</Code> — the gauge silently
+        resets Design Capacity to TI's 3000&nbsp;mAh default on power loss, skewing the percentage, so{' '}
+        <Code>loadDesignCapacity()</Code> rewrites the true value (and corrects a drifted full-charge
+        capacity) only when it detects the default.
+      </P>
+      <P>
         The <strong>M5PM1</strong> backend is <strong>auto-detected</strong> on the M5{' '}
         <A href="/docs/devices">PaperColor</A> (no flag) — the same PMIC that owns the board's rails also
         reports battery state over the internal I²C bus. It reads <Code>VBAT</Code> for voltage and

@@ -38,6 +38,7 @@ export default function RepositoryLayout() {
   network/BleKeyboardHost/     BLE HID host — keyboards, page turners (opt-in)
   ui/FreeInkUI/                immediate-mode UI framework (opt-in, host-tested)
   book/FreeInkBook/            EPUB reading engine (layout, cache, fonts, i18n)
+  book/ContentProtection/      encrypt-at-rest EPUBs + Readium LCP (decrypt-on-read)
   font/FreeInkFont/            shared font stack — arena + stb_truetype + FreeType (FtFont)`}</CodeBlock>
 
       <P>

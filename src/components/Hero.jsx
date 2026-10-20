@@ -5,29 +5,59 @@ import { GitHubIcon } from './icons.jsx'
 const PARTNERS = [
   { name: 'Xteink', href: 'https://www.xteink.com', src: '/img/partners/xteink.svg', className: 'h-5' },
   { name: 'Seeed Studio', href: 'https://www.seeedstudio.com', src: '/img/partners/seeed-studio.png', className: 'h-4' },
+  { name: 'M5Stack', href: 'https://m5stack.com', src: '/img/partners/m5stack.svg', className: 'h-6' },
+  { name: 'BOOX', href: 'https://www.boox.com', src: '/img/partners/boox.svg', className: 'h-5' },
+  { name: 'BookFusion', href: 'https://www.bookfusion.com', src: '/img/partners/bookfusion.svg', className: 'h-5' },
+  { name: 'EEGORead', src: '/img/partners/eegoread.png', className: 'h-3.5' },
+  { name: 'CLOUD ZAO', src: '/img/partners/cloudzao.svg', className: 'h-9' },
 ]
+
+function PartnerLogos({ ariaHidden }) {
+  return PARTNERS.map((partner) => {
+    const img = (
+      <img
+        src={partner.src}
+        alt={ariaHidden ? '' : partner.name}
+        className={`${partner.className} w-auto max-w-none brightness-0 opacity-50 transition-opacity hover:opacity-80 dark:invert`}
+      />
+    )
+    return (
+      <li key={partner.name} className="flex shrink-0 items-center">
+        {partner.href ? (
+          <a
+            href={partner.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={partner.name}
+            tabIndex={ariaHidden ? -1 : undefined}
+          >
+            {img}
+          </a>
+        ) : (
+          img
+        )}
+      </li>
+    )
+  })
+}
 
 function PartnerStrip() {
   return (
-    <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+    <div>
       <p className="font-mono text-xs tracking-wide text-stone-400 uppercase dark:text-stone-500">
         Official partners of
       </p>
-      {PARTNERS.map((partner) => (
-        <a
-          key={partner.name}
-          href={partner.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={partner.name}
-        >
-          <img
-            src={partner.src}
-            alt={partner.name}
-            className={`${partner.className} w-auto brightness-0 opacity-50 transition-opacity hover:opacity-80 dark:invert`}
-          />
-        </a>
-      ))}
+      {/* logos rendered twice; the track slides -50% so the loop is seamless */}
+      <div className="group mt-5 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+        <div className="flex w-max animate-ticker group-hover:[animation-play-state:paused]">
+          <ul role="list" className="flex items-center gap-x-10 pr-10">
+            <PartnerLogos />
+          </ul>
+          <ul role="list" aria-hidden="true" className="flex items-center gap-x-10 pr-10">
+            <PartnerLogos ariaHidden />
+          </ul>
+        </div>
+      </div>
     </div>
   )
 }
