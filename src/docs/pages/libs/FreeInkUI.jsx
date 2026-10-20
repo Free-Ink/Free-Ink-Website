@@ -173,7 +173,9 @@ if (app.lastRenderRefreshHint() != freeink::ui::RefreshHint::None) {
         control, <Code>setComponentStyle(&amp;style)</Code> points at a compact (≤64-byte){' '}
         <Code>ComponentStyle</Code> whose per-field presence mask overrides only the text, box (per
         state), padding, alignment or marker-width tokens you set — the rest keep inheriting the theme —
-        scoped per-call or app-wide by swapping the pointer.
+        scoped per-call or app-wide by swapping the pointer. Build with{' '}
+        <Code>-DFREEINK_UI_COMPONENT_STYLE=0</Code> to compile the whole override path out when an app
+        doesn't need it.
       </P>
       <Callout title="Text entry — don't cast key ids to char">
         <p>

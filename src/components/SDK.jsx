@@ -62,7 +62,7 @@ const DEVICES = [
   { name: 'Waveshare 3.97″', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W, AXP2101 PMIC, RTC + IMU' },
   { name: 'Metalio E-Ink 4', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W, CST816S touch, audio + mic, haptics, 4G modem' },
   { name: 'OnePage', mcu: 'ESP32-C61', controller: 'SSD1677', panel: '800×480 B/W, key nav' },
-  { name: 'Boox Picco', mcu: 'ESP32-S3', controller: 'SSD1677 / SSD2677', panel: '800×480 B/W + 4-gray, CST touch, warm/cool frontlight' },
+  { name: 'Boox Picco', mcu: 'ESP32-S3', controller: 'SSD1677 / SSD2677', panel: '800×480 B/W + 4-gray, TMA525C touch, warm/cool frontlight' },
 ]
 
 export default function SDK() {
