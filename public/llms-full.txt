@@ -1034,7 +1034,7 @@ The same PMIC also reports power telemetry, which [BatteryMonitor](https://freei
 
 ## Capacitive touch
 
-Touch is implemented for six controllers (gated by `FREEINK_CAP_TOUCH`):
+Touch is implemented for six controllers (gated by `FREEINK_CAP_TOUCH`, and only the drivers the selected devices actually use are compiled in):
 
 - **CHSC6x** (Murphy M3) — IRQ-driven, ported from the upstream driver.
 - **GT911** (X4 Pro, LilyGo T5 S3, M5Paper v1.1, PaperS3 and Sticky) — raw register reads plus the reset/address dance; LilyGo runs it in IRQ mode, the others poll. Its capacitive home key is surfaced via `wasHomeKeyPressed()`. On the button-less PaperS3 it's the *only* input, so paging and navigation come entirely from tap zones and gestures. GT911 also reports up to four simultaneous contacts, so it backs the [multi-touch pinch / spread / rotation gestures](https://freeink.org/docs/lib-input).
@@ -1996,7 +1996,7 @@ void loop() {
 
 ## How it works
 
-**Scan** is an active scan that upserts every advertiser into a fixed array and records the HID service UUID; HID is validated at connect time, so devices that hide their name or services in scan-response / extended-advertising fragments still appear in the pairing UI. **Connect** runs on a dedicated FreeRTOS task: connect → discover HID → bond (`secureConnection()`) → switch to **Report Protocol** mode → subscribe to Input reports, falling back to Boot Keyboard Input (`0x2A22`) for boot-only devices. **Reports** are normalized to `[mod][k0..k5]`, diffed against the previous report, and translated (US QWERTY HID usages) into `KeyEvent`s — page turners' arrow / page-up/down usages arrive as `SpecialKey`. Gamepad-style remotes (a HID button bitfield that only clears the pressed bit on release) are decoded without phantom double-presses. Since HID sends one report per state change, `poll()` **synthesizes auto-repeat** for a held key after an initial delay.
+**Scan** is an active scan that upserts every advertiser into a fixed array and records the HID service UUID; HID is validated at connect time, so devices that hide their name or services in scan-response / extended-advertising fragments still appear in the pairing UI. **Connect** runs on a dedicated FreeRTOS task: connect → discover HID → bond (`secureConnection()`) → switch to **Report Protocol** mode → subscribe to Input reports, falling back to Boot Keyboard Input (`0x2A22`) for boot-only devices, and enumerating all services when the HID service isn't advertised. **Reports** are normalized to `[mod][k0..k5]` — including remotes that send a bare key array with no report ID (keys read straight from byte 0, e.g. the Flic Duo) — diffed against the previous report, and translated (US QWERTY HID usages) into `KeyEvent`s — page turners' arrow / page-up/down usages arrive as `SpecialKey`. Gamepad-style remotes (a HID button bitfield that only clears the pressed bit on release) are decoded without phantom double-presses. Since HID sends one report per state change, `poll()` **synthesizes auto-repeat** for a held key after an initial delay.
 
 ## Memory
 

@@ -81,7 +81,9 @@ void loop() {
         <strong>Connect</strong> runs on a dedicated FreeRTOS task: connect → discover HID → bond
         (<Code>secureConnection()</Code>) → switch to <strong>Report Protocol</strong> mode → subscribe
         to Input reports, falling back to Boot Keyboard Input (<Code>0x2A22</Code>) for boot-only
-        devices. <strong>Reports</strong> are normalized to <Code>[mod][k0..k5]</Code>, diffed against
+        devices, and enumerating all services when the HID service isn't advertised. <strong>Reports</strong>{' '}
+        are normalized to <Code>[mod][k0..k5]</Code> — including remotes that send a bare key array with no
+        report ID (keys read straight from byte 0, e.g. the Flic Duo) — diffed against
         the previous report, and translated (US QWERTY HID usages) into <Code>KeyEvent</Code>s — page
         turners' arrow / page-up/down usages arrive as <Code>SpecialKey</Code>. Gamepad-style remotes (a
         HID button bitfield that only clears the pressed bit on release) are decoded without phantom

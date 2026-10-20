@@ -300,7 +300,8 @@ export default function Devices() {
 
       <H2>Capacitive touch</H2>
       <P>
-        Touch is implemented for six controllers (gated by <Code>FREEINK_CAP_TOUCH</Code>):
+        Touch is implemented for six controllers (gated by <Code>FREEINK_CAP_TOUCH</Code>, and only the
+        drivers the selected devices actually use are compiled in):
       </P>
       <Ul>
         <Li>
