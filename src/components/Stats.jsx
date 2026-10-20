@@ -1,8 +1,8 @@
-import { Section, Eyebrow } from './ui.jsx'
+import { Section } from './ui.jsx'
 import { DotChart } from './Schematics.jsx'
 
 const STATS = [
-  { v: '~$60', k: 'Rough cost to build your own' },
+  { v: '$50-80', k: 'Per board, in small batches' },
   { v: '10+', k: 'Interface languages' },
   { v: 'USB-C', k: 'Standard-cable charging' },
   { v: '100%', k: 'Open schematics & BOM' },
@@ -13,8 +13,7 @@ export default function Stats() {
     <Section>
       <div className="grid grid-cols-1 items-center gap-x-12 gap-y-12 lg:grid-cols-2">
         <div>
-          <Eyebrow>By the numbers</Eyebrow>
-          <h2 className="mt-4 max-w-[18ch] font-display text-4xl font-semibold tracking-tight text-balance text-stone-900 sm:text-5xl dark:text-white">
+          <h2 className="max-w-[18ch] font-display text-4xl font-semibold tracking-tight text-balance text-stone-900 sm:text-5xl dark:text-white">
             Open from pixels to PCB.
           </h2>
           <p className="mt-6 max-w-[52ch] text-lg text-pretty text-stone-600 dark:text-stone-300">
@@ -36,8 +35,7 @@ export default function Stats() {
 
         <div className="rounded-2xl border border-stone-200 bg-stone-50 p-6 sm:p-8 dark:border-white/10 dark:bg-stone-900">
           <div className="flex items-center justify-between font-mono text-[0.6875rem] text-stone-400 dark:text-stone-500">
-            <span>releases shipped · cumulative</span>
-            <span>v0.1 → v1.2</span>
+            <span>shipped in the open</span>
           </div>
           <DotChart className="mt-6 w-full" />
           <p className="mt-6 font-mono text-xs text-stone-500 dark:text-stone-400">

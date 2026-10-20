@@ -1,4 +1,4 @@
-import { Section, Eyebrow, TextLink } from './ui.jsx'
+import { Section, TextLink } from './ui.jsx'
 import { PcbDiagram } from './Schematics.jsx'
 import { HARDWARE_REPO, HARDWARE_SITE } from './repos.js'
 
@@ -18,8 +18,7 @@ export default function Hardware() {
     <Section id="hardware" className="border-t border-stone-200 bg-stone-100/40 dark:border-white/10 dark:bg-white/[0.02]">
       <div className="grid grid-cols-1 items-start gap-x-12 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <Eyebrow>The hardware · Silkscreen</Eyebrow>
-          <h2 className="mt-4 max-w-[18ch] font-display text-4xl font-semibold tracking-tight text-balance text-stone-900 sm:text-5xl dark:text-white">
+          <h2 className="max-w-[18ch] font-display text-4xl font-semibold tracking-tight text-balance text-stone-900 sm:text-5xl dark:text-white">
             An e-reader you can actually open.
           </h2>
           <p className="mt-6 max-w-[52ch] text-lg text-pretty text-stone-600 dark:text-stone-300">
@@ -32,7 +31,7 @@ export default function Hardware() {
           </p>
           <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3">
             <TextLink href={HARDWARE_SITE} target="_blank" rel="noreferrer">Visit silkscreenreader.com</TextLink>
-            <TextLink href={HARDWARE_REPO} target="_blank" rel="noreferrer">Explore the hardware</TextLink>
+            <TextLink href={HARDWARE_REPO} target="_blank" rel="noreferrer">View on GitHub</TextLink>
           </div>
         </div>
 

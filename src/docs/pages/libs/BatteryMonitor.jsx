@@ -34,7 +34,7 @@ export default function BatteryMonitor() {
       </P>
       <P>
         A board can also name a <strong>charger IC</strong> (<Code>BatteryGaugeConfig.chargerType</Code>):
-        the BQ25896, or the <strong>SGM41562</strong> (Onyx Picco), whose status register backs{' '}
+        the BQ25896, or the <strong>SGM41562</strong> (Boox Picco), whose status register backs{' '}
         <Code>isCharging()</Code> and <Code>isExternalPowerPresent()</Code> on an ADC board with no
         charge-status pin (it also exposes <Code>enterShipMode()</Code> for a true-off ship state). And a
         BQ27220 board sets its real cell capacity in <Code>designCapacityMah</Code> — the gauge silently

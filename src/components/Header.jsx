@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Wordmark } from './Brand.jsx'
 import ThemeToggle from './ThemeToggle.jsx'
-import { GitHubIcon } from './icons.jsx'
+import { GitHubIcon, Bars3Icon, XMarkIcon } from './icons.jsx'
 import GitHubMenu from './GitHubMenu.jsx'
 import { REPOS } from './repos.js'
 import { SPONSOR_URL } from './sponsor.js'
@@ -62,9 +62,7 @@ export default function Header() {
             aria-expanded={open}
             className="inline-flex size-9 items-center justify-center rounded-md text-stone-700 ring-1 ring-stone-300 dark:text-stone-200 dark:ring-white/15"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="size-5" aria-hidden="true">
-              {open ? <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" /> : <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />}
-            </svg>
+            {open ? <XMarkIcon className="size-5" /> : <Bars3Icon className="size-5" />}
           </button>
         </div>
       </nav>

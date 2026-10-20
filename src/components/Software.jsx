@@ -1,4 +1,4 @@
-import { Section, Eyebrow, TextLink } from './ui.jsx'
+import { Section, TextLink } from './ui.jsx'
 import { SOFTWARE_REPO } from './repos.js'
 import {
   BookOpenIcon,
@@ -45,8 +45,7 @@ const FEATURES = [
 export default function Software() {
   return (
     <Section id="software">
-      <Eyebrow>The software · CrossPoint Reader</Eyebrow>
-      <h2 className="mt-4 max-w-[20ch] font-display text-4xl font-semibold tracking-tight text-balance text-stone-900 sm:text-5xl dark:text-white">
+      <h2 className="max-w-[20ch] font-display text-4xl font-semibold tracking-tight text-balance text-stone-900 sm:text-5xl dark:text-white">
         An e-reader experience tuned to how you read.
       </h2>
       <p className="mt-6 max-w-[60ch] text-lg text-pretty text-stone-600 dark:text-stone-300">
@@ -69,7 +68,7 @@ export default function Software() {
       </dl>
 
       <div className="mt-12">
-        <TextLink href={SOFTWARE_REPO} target="_blank" rel="noreferrer">Explore the software</TextLink>
+        <TextLink href={SOFTWARE_REPO} target="_blank" rel="noreferrer">View on GitHub</TextLink>
       </div>
     </Section>
   )

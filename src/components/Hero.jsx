@@ -80,8 +80,7 @@ export default function Hero() {
 
           <p className="mt-6 max-w-[54ch] text-lg text-pretty text-stone-600 dark:text-stone-300">
             Free Ink is an open-source collective building the software, firmware and hardware for
-            e-paper readers. Every layer ships in the open, so anyone can pick it up, extend it, and
-            make it their own.
+            e-paper readers, all in the open.
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-3">

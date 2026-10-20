@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Section, Eyebrow, TextLink } from './ui.jsx'
+import { Section, TextLink } from './ui.jsx'
 import { SDK_REPO } from './repos.js'
 import {
   CpuChipIcon,
@@ -62,14 +62,13 @@ const DEVICES = [
   { name: 'Waveshare 3.97″', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W, AXP2101 PMIC, RTC + IMU' },
   { name: 'Metalio E-Ink 4', mcu: 'ESP32-S3', controller: 'SSD1677', panel: '800×480 B/W, CST816S touch, audio + mic, haptics, 4G modem' },
   { name: 'OnePage', mcu: 'ESP32-C61', controller: 'SSD1677', panel: '800×480 B/W, key nav' },
-  { name: 'Onyx Picco', mcu: 'ESP32-S3', controller: 'SSD1677 / SSD2677', panel: '800×480 B/W + 4-gray, CST touch, warm/cool frontlight' },
+  { name: 'Boox Picco', mcu: 'ESP32-S3', controller: 'SSD1677 / SSD2677', panel: '800×480 B/W + 4-gray, CST touch, warm/cool frontlight' },
 ]
 
 export default function SDK() {
   return (
     <Section id="sdk" className="border-t border-stone-200 dark:border-white/10">
-      <Eyebrow>The SDK · FreeInk</Eyebrow>
-      <h2 className="mt-4 max-w-[20ch] font-display text-4xl font-semibold tracking-tight text-balance text-stone-900 sm:text-5xl dark:text-white">
+      <h2 className="max-w-[20ch] font-display text-4xl font-semibold tracking-tight text-balance text-stone-900 sm:text-5xl dark:text-white">
         One firmware API. Any e-paper device.
       </h2>
       <p className="mt-6 max-w-[62ch] text-lg text-pretty text-stone-600 dark:text-stone-300">
@@ -140,7 +139,7 @@ export default function SDK() {
           to="/docs"
           className="group inline-flex items-center gap-x-1.5 text-sm font-medium text-flame-600 hover:text-flame-700 dark:text-flame-500 dark:hover:text-flame-400"
         >
-          Read the SDK docs
+          Read the docs
           <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">
             &rarr;
           </span>
